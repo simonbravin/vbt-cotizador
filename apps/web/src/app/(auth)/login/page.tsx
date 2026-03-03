@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -17,12 +17,12 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>;
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const { locale, setLocale, t } = useLanguage();
+  const { t } = useLanguage();
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -56,6 +56,76 @@ export default function LoginPage() {
   }
 
   return (
+    <div className="bg-white rounded-2xl shadow-2xl p-8">
+      <h2 className="text-xl font-semibold text-gray-800 mb-6">{t("auth.signIn")}</h2>
+
+      {searchParams.get("error") === "INACTIVE" && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+          {t("auth.suspended")}
+        </div>
+      )}
+
+      {error && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+          {error}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            {t("auth.email")}
+          </label>
+          <input
+            {...register("email")}
+            type="email"
+            autoComplete="email"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-vbt-blue focus:border-transparent"
+            placeholder="you@example.com"
+          />
+          {errors.email && (
+            <p className="mt-1 text-xs text-red-600">{errors.email.message}</p>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            {t("auth.password")}
+          </label>
+          <input
+            {...register("password")}
+            type="password"
+            autoComplete="current-password"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-vbt-blue focus:border-transparent"
+            placeholder="••••••••"
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-vbt-blue hover:bg-blue-900 text-white font-medium py-2.5 px-4 rounded-lg text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {loading ? t("auth.signingIn") : t("auth.signInBtn")}
+        </button>
+      </form>
+
+      <div className="mt-6 text-center">
+        <p className="text-sm text-gray-500">
+          {t("auth.noAccount")}{" "}
+          <Link href="/signup" className="text-vbt-orange hover:underline font-medium">
+            {t("auth.requestAccess")}
+          </Link>
+        </p>
+      </div>
+    </div>
+  );
+}
+
+export default function LoginPage() {
+  const { locale, setLocale } = useLanguage();
+
+  return (
     <div className="min-h-screen bg-gradient-to-br from-vbt-blue to-slate-800 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Language toggle */}
@@ -86,70 +156,9 @@ export default function LoginPage() {
           <p className="text-slate-300 mt-1 text-sm">Vision Building Technologies</p>
         </div>
 
-        {/* Card */}
-        <div className="bg-white rounded-2xl shadow-2xl p-8">
-          <h2 className="text-xl font-semibold text-gray-800 mb-6">{t("auth.signIn")}</h2>
-
-          {searchParams.get("error") === "INACTIVE" && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-              {t("auth.suspended")}
-            </div>
-          )}
-
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t("auth.email")}
-              </label>
-              <input
-                {...register("email")}
-                type="email"
-                autoComplete="email"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-vbt-blue focus:border-transparent"
-                placeholder="you@example.com"
-              />
-              {errors.email && (
-                <p className="mt-1 text-xs text-red-600">{t("auth.invalidCredentials")}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t("auth.password")}
-              </label>
-              <input
-                {...register("password")}
-                type="password"
-                autoComplete="current-password"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-vbt-blue focus:border-transparent"
-                placeholder="••••••••"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-vbt-blue hover:bg-blue-900 text-white font-medium py-2.5 px-4 rounded-lg text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? t("auth.signingIn") : t("auth.signInBtn")}
-            </button>
-          </form>
-
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-500">
-              {t("auth.noAccount")}{" "}
-              <Link href="/signup" className="text-vbt-orange hover:underline font-medium">
-                {t("auth.requestAccess")}
-              </Link>
-            </p>
-          </div>
-        </div>
+        <Suspense fallback={<div className="bg-white rounded-2xl shadow-2xl p-8 text-center text-gray-400 text-sm">Loading...</div>}>
+          <LoginForm />
+        </Suspense>
       </div>
     </div>
   );
