@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Download, Mail, Archive, Trash2, ChevronDown, ChevronRight } from "lucide-react";
+import { ArrowLeft, Download, Mail, Archive, Trash2, ChevronDown, ChevronRight, Pencil, Activity } from "lucide-react";
 
 function fmt(n: number) {
   return n.toLocaleString("en-US", { style: "currency", currency: "USD" });
@@ -26,13 +26,40 @@ export default function QuoteDetailPage() {
   const [archiving, setArchiving] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [auditLog, setAuditLog] = useState<{ id: string; action: string; createdAt: string; userName: string | null; meta: { changed?: string[] } | null }[]>([]);
+  const [loadingAudit, setLoadingAudit] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [editNotes, setEditNotes] = useState("");
+  const [editStatus, setEditStatus] = useState("DRAFT");
+
+  const fetchAudit = () => {
+    fetch(`/api/quotes/${params.id}/audit`)
+      .then((r) => r.json())
+      .then((data) => { setAuditLog(Array.isArray(data) ? data : []); setLoadingAudit(false); })
+      .catch(() => setLoadingAudit(false));
+  };
 
   useEffect(() => {
     fetch(`/api/quotes/${params.id}`)
       .then((r) => r.json())
-      .then((d) => { setQuote(d); setLoading(false); })
+      .then((d) => {
+        setQuote(d);
+        setEditNotes(d?.notes ?? "");
+        setEditStatus(d?.status ?? "DRAFT");
+        setLoading(false);
+      })
       .catch(() => setLoading(false));
   }, [params.id]);
+
+  useEffect(() => {
+    if (!quote?.id) return;
+    setLoadingAudit(true);
+    fetch(`/api/quotes/${quote.id}/audit`)
+      .then((r) => r.json())
+      .then((data) => { setAuditLog(Array.isArray(data) ? data : []); setLoadingAudit(false); })
+      .catch(() => setLoadingAudit(false));
+  }, [quote?.id]);
 
   const sendEmail = async () => {
     if (!emailTo) return;
@@ -49,6 +76,7 @@ export default function QuoteDetailPage() {
       setSendResult("Email sent successfully!");
       setEmailDialog(false);
       setQuote((prev: any) => ({ ...prev, status: "SENT" }));
+      fetchAudit();
     } else {
       setSendResult(data.error ?? "Failed to send email");
     }
@@ -65,6 +93,7 @@ export default function QuoteDetailPage() {
     setArchiveDialog(false);
     if (res.ok) {
       setQuote((prev: any) => ({ ...prev, status: "ARCHIVED" }));
+      fetchAudit();
     }
   };
 
@@ -74,6 +103,37 @@ export default function QuoteDetailPage() {
     setDeleting(false);
     setDeleteDialog(false);
     if (res.ok) router.push("/quotes");
+  };
+
+  const openEdit = () => {
+    setEditNotes(quote?.notes ?? "");
+    setEditStatus(quote?.status ?? "DRAFT");
+    setEditOpen(true);
+  };
+
+  const saveEdit = async () => {
+    setSaving(true);
+    const res = await fetch(`/api/quotes/${params.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ notes: editNotes || undefined, status: editStatus }),
+    });
+    setSaving(false);
+    if (res.ok) {
+      const updated = await res.json();
+      setQuote(updated);
+      setEditOpen(false);
+      fetchAudit();
+    }
+  };
+
+  const formatQuoteAction = (action: string, meta: { changed?: string[] } | null) => {
+    if (action === "QUOTE_CREATED") return "Quote created";
+    if (action === "QUOTE_ARCHIVED") return "Archived";
+    if (action === "QUOTE_UPDATED" && meta?.changed?.length) return `Updated: ${meta.changed.join(", ")}`;
+    if (action === "QUOTE_DELETED") return "Deleted";
+    if (action === "QUOTE_SENT") return "Email sent";
+    return action.replace(/_/g, " ").toLowerCase();
   };
 
   if (loading) return <div className="p-8 text-center text-gray-400">Loading...</div>;
@@ -109,6 +169,12 @@ export default function QuoteDetailPage() {
         </div>
 
         <div className="flex gap-2">
+          <button
+            onClick={openEdit}
+            className="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50"
+          >
+            <Pencil className="w-4 h-4" /> Edit
+          </button>
           <button
             onClick={() => setPdfDialog(true)}
             className="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50"
@@ -296,6 +362,83 @@ export default function QuoteDetailPage() {
           );
         })()}
       </div>
+
+      {/* Activity */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+        <div className="p-5 border-b border-gray-100 flex items-center gap-2">
+          <Activity className="w-5 h-5 text-gray-500" />
+          <h2 className="font-semibold text-gray-800">Activity</h2>
+        </div>
+        <div className="p-5">
+          {loadingAudit ? (
+            <p className="text-gray-400 text-sm">Loading...</p>
+          ) : auditLog.length === 0 ? (
+            <p className="text-gray-400 text-sm">No activity yet</p>
+          ) : (
+            <ul className="space-y-3">
+              {auditLog.map((entry) => (
+                <li key={entry.id} className="flex items-center justify-between text-sm border-b border-gray-50 pb-2 last:border-0 last:pb-0">
+                  <span className="text-gray-700">{formatQuoteAction(entry.action, entry.meta)}</span>
+                  <span className="text-gray-400 text-xs">
+                    {entry.userName ?? "System"} · {new Date(entry.createdAt).toLocaleString()}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+
+      {/* Edit quote modal */}
+      {editOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md m-4">
+            <h3 className="font-semibold text-lg mb-4">Edit quote</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <select
+                  value={editStatus}
+                  onChange={(e) => setEditStatus(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                >
+                  <option value="DRAFT">Draft</option>
+                  <option value="SENT">Sent</option>
+                  <option value="ARCHIVED">Archived</option>
+                  <option value="CANCELLED">Cancelled</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                <textarea
+                  value={editNotes}
+                  onChange={(e) => setEditNotes(e.target.value)}
+                  rows={3}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  placeholder="Internal notes..."
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 mt-6">
+              <button
+                type="button"
+                onClick={() => setEditOpen(false)}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={saveEdit}
+                disabled={saving}
+                className="px-4 py-2 bg-vbt-orange text-white rounded-lg text-sm font-medium hover:bg-orange-600 disabled:opacity-50"
+              >
+                {saving ? "Saving..." : "Save"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* PDF options dialog */}
       {pdfDialog && (

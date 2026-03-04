@@ -148,6 +148,49 @@ export function ProjectDetailClient({ initialProject }: { initialProject: Projec
         </button>
       </div>
 
+      {/* Project info */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+        <h2 className="font-semibold text-gray-800 mb-4">Project details</h2>
+        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+          {project.client && (
+            <>
+              <dt className="text-gray-500">Client</dt>
+              <dd className="text-gray-900 font-medium">{project.client}</dd>
+            </>
+          )}
+          {project.location && (
+            <>
+              <dt className="text-gray-500">Location</dt>
+              <dd className="text-gray-900">{project.location}</dd>
+            </>
+          )}
+          <dt className="text-gray-500">Country</dt>
+          <dd className="text-gray-900">{project.country?.name ?? project.country?.code ?? "—"}</dd>
+          <dt className="text-gray-500">Total kits</dt>
+          <dd className="text-gray-900 font-medium">{project.totalKits ?? "—"}</dd>
+          <dt className="text-gray-500">Superficie total</dt>
+          <dd className="text-gray-900">{(Number(project.wallAreaM2Total) || 0).toFixed(1)} m²</dd>
+          {project.plannedStartDate && (
+            <>
+              <dt className="text-gray-500">Planned start</dt>
+              <dd className="text-gray-900">{new Date(project.plannedStartDate).toLocaleDateString()}</dd>
+            </>
+          )}
+          {project.durationWeeks != null && (
+            <>
+              <dt className="text-gray-500">Duration</dt>
+              <dd className="text-gray-900">{project.durationWeeks} weeks</dd>
+            </>
+          )}
+          {project.description && (
+            <>
+              <dt className="text-gray-500 sm:col-span-1">Description</dt>
+              <dd className="text-gray-900 sm:col-span-2">{project.description}</dd>
+            </>
+          )}
+        </dl>
+      </div>
+
       {/* Wall Areas */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[

@@ -45,20 +45,24 @@ export async function PATCH(
 
   const body = await req.json().catch(() => ({}));
   const status = body.status;
-  if (status && ["DRAFT", "SENT", "ARCHIVED", "CANCELLED"].includes(status)) {
+  const notes = body.notes;
+  const data: Record<string, unknown> = {};
+  if (status && ["DRAFT", "SENT", "ARCHIVED", "CANCELLED"].includes(status)) data.status = status;
+  if (typeof notes === "string") data.notes = notes;
+
+  if (Object.keys(data).length > 0) {
     await prisma.quote.update({
       where: { id: params.id },
-      data: { status: status as any },
+      data: data as any,
     });
-    if (status === "ARCHIVED") {
-      await createAuditLog({
-        orgId: user.orgId,
-        userId: user.id,
-        action: "QUOTE_ARCHIVED",
-        entityType: "Quote",
-        entityId: params.id,
-      });
-    }
+    await createAuditLog({
+      orgId: user.orgId,
+      userId: user.id,
+      action: data.status === "ARCHIVED" ? "QUOTE_ARCHIVED" : "QUOTE_UPDATED",
+      entityType: "Quote",
+      entityId: params.id,
+      meta: { changed: Object.keys(data) },
+    });
     const updated = await prisma.quote.findFirst({
       where: { id: params.id },
       include: { project: true, country: true, lines: true, taxLines: true },
@@ -83,6 +87,15 @@ export async function DELETE(
     where: { id: params.id, orgId: user.orgId },
   });
   if (!quote) return NextResponse.json({ error: "Quote not found" }, { status: 404 });
+
+  await createAuditLog({
+    orgId: user.orgId,
+    userId: user.id,
+    action: "QUOTE_DELETED",
+    entityType: "Quote",
+    entityId: params.id,
+    meta: { quoteNumber: quote.quoteNumber ?? params.id },
+  });
 
   // Release any reserved inventory
   if (quote.reserveStock) {
