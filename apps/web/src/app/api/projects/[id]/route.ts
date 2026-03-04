@@ -8,13 +8,14 @@ const updateSchema = z.object({
   name: z.string().min(1).optional(),
   client: z.string().optional(),
   location: z.string().optional(),
+  countryId: z.string().nullable().optional(),
+  totalKits: z.number().min(1).optional(),
   description: z.string().optional(),
   wallAreaM2S80: z.number().min(0).optional(),
   wallAreaM2S150: z.number().min(0).optional(),
   wallAreaM2S200: z.number().min(0).optional(),
   kitsPerContainer: z.number().min(0).optional(),
   numContainers: z.number().min(0).optional(),
-  totalKits: z.number().min(0).optional(),
 }).partial();
 
 export async function GET(
@@ -28,6 +29,7 @@ export async function GET(
   const project = await prisma.project.findFirst({
     where: { id: params.id, orgId: user.orgId },
     include: {
+      country: { select: { id: true, name: true, code: true } },
       quotes: {
         include: { country: true },
         orderBy: { createdAt: "desc" },
@@ -60,7 +62,10 @@ export async function PATCH(
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
 
-  const data = parsed.data;
+  const data = parsed.data as Record<string, unknown>;
+  if (data.countryId === null || data.countryId === "") {
+    data.countryId = null;
+  }
   if (data.wallAreaM2S80 !== undefined || data.wallAreaM2S150 !== undefined || data.wallAreaM2S200 !== undefined) {
     const existing = await prisma.project.findUnique({ where: { id: params.id } });
     if (existing) {
@@ -73,7 +78,7 @@ export async function PATCH(
 
   const project = await prisma.project.update({
     where: { id: params.id },
-    data,
+    data: data as any,
   });
 
   return NextResponse.json(project);

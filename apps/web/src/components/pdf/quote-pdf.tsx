@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
   colDesc: { flex: 3 },
   colSys: { width: 40, textAlign: "center" },
   colQty: { width: 35, textAlign: "right" },
-  colLinM: { width: 50, textAlign: "right" },
+  colLength: { width: 50, textAlign: "right" },
   colM2: { width: 45, textAlign: "right" },
   colPrice: { width: 55, textAlign: "right" },
   colTotal: { width: 65, textAlign: "right" },
@@ -449,7 +449,7 @@ export function QuotePdfDocument({ data }: { data: QuotePdfData }) {
                 <Text style={styles.colDesc}>Description</Text>
                 <Text style={styles.colSys}>Sys</Text>
                 <Text style={styles.colQty}>Qty</Text>
-                <Text style={styles.colLinM}>Lin.m</Text>
+                <Text style={styles.colLength}>Length (m)</Text>
                 <Text style={styles.colM2}>m²</Text>
                 <Text style={styles.colPrice}>Unit</Text>
                 <Text style={styles.colTotal}>Total</Text>
@@ -464,8 +464,8 @@ export function QuotePdfDocument({ data }: { data: QuotePdfData }) {
                     <Text style={styles.colDesc}>{line.description}</Text>
                     <Text style={styles.colSys}>{line.systemCode ?? "—"}</Text>
                     <Text style={styles.colQty}>{fmtN(line.qty, 0)}</Text>
-                    <Text style={styles.colLinM}>
-                      {fmtN(line.linearM ?? 0)}
+                    <Text style={styles.colLength}>
+                      {fmtN((line.heightMm ?? 0) / 1000)}
                     </Text>
                     <Text style={styles.colM2}>{fmtN(line.m2Line ?? 0)}</Text>
                     <Text style={styles.colPrice}>{fmt(line.unitPrice)}</Text>
@@ -496,10 +496,12 @@ export function QuotePdfDocument({ data }: { data: QuotePdfData }) {
               value={fmt(data.freightCostUsd)}
             />
             <SumRow label="CIF" value={fmt(data.cifUsd)} bold />
+            <SumRow label="Total taxes & fees" value={fmt(data.taxesFeesUsd)} />
+            <SumRow label="Landed DDP" value={fmt(data.landedDdpUsd)} bold />
           </View>
         </View>
 
-        {/* ── Taxes & Fees ──────────────────────────────────────────────── */}
+        {/* ── Taxes & Fees (detail) ───────────────────────────────────────── */}
         {data.taxLines.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>

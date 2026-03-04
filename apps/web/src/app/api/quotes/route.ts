@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
 import { createAuditLog } from "@/lib/audit";
-import { buildQuoteSnapshot, TaxRule } from "@vbt/core";
+import { buildQuoteSnapshot, TaxRule, removeVersionPrefix } from "@vbt/core";
 import { generateQuoteNumber } from "@/lib/utils";
 
 const createSchema = z.object({
@@ -101,7 +101,7 @@ export async function POST(req: Request) {
       csvImportLines = importData.lines
         .filter((l) => !l.isIgnored)
         .map((l) => ({
-          description: l.rawPieceName,
+          description: removeVersionPrefix(l.rawPieceName),
           pieceId: l.pieceId ?? undefined,
           qty: l.rawQty,
           heightMm: l.rawHeightMm,

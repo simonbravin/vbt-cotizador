@@ -9,13 +9,11 @@ const createSchema = z.object({
   name: z.string().min(1, "Project name is required"),
   client: z.string().optional(),
   location: z.string().optional(),
+  countryId: z.string().optional(),
+  totalKits: z.number().min(1).optional().default(1),
   description: z.string().optional(),
-  wallAreaM2S80: z.number().min(0).optional().default(0),
-  wallAreaM2S150: z.number().min(0).optional().default(0),
-  wallAreaM2S200: z.number().min(0).optional().default(0),
   kitsPerContainer: z.number().min(0).optional().default(0),
   numContainers: z.number().min(0).optional().default(0),
-  totalKits: z.number().min(0).optional().default(0),
 });
 
 export async function GET(req: Request) {
@@ -31,11 +29,14 @@ export async function GET(req: Request) {
   const where = {
     orgId: user.orgId,
     isArchived: false,
-    ...(search
+    ...(search.trim()
       ? {
           OR: [
-            { name: { contains: search, mode: "insensitive" as const } },
-            { client: { contains: search, mode: "insensitive" as const } },
+            { name: { contains: search.trim(), mode: "insensitive" as const } },
+            { client: { contains: search.trim(), mode: "insensitive" as const } },
+            { location: { contains: search.trim(), mode: "insensitive" as const } },
+            { country: { name: { contains: search.trim(), mode: "insensitive" as const } } },
+            { country: { code: { contains: search.trim(), mode: "insensitive" as const } } },
           ],
         }
       : {}),
@@ -44,7 +45,10 @@ export async function GET(req: Request) {
   const [projects, total] = await Promise.all([
     prisma.project.findMany({
       where,
-      include: { _count: { select: { quotes: true } } },
+      include: {
+        country: { select: { id: true, name: true, code: true } },
+        _count: { select: { quotes: true } },
+      },
       orderBy: { createdAt: "desc" },
       take: limit,
       skip: (page - 1) * limit,
@@ -69,17 +73,17 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
 
-  const { wallAreaM2S80, wallAreaM2S150, wallAreaM2S200, ...rest } = parsed.data;
-  const wallAreaM2Total = (wallAreaM2S80 ?? 0) + (wallAreaM2S150 ?? 0) + (wallAreaM2S200 ?? 0);
-
   const project = await prisma.project.create({
     data: {
-      ...rest,
+      name: parsed.data.name,
+      client: parsed.data.client ?? null,
+      location: parsed.data.location ?? null,
+      countryId: parsed.data.countryId ?? null,
+      totalKits: parsed.data.totalKits ?? 1,
+      description: parsed.data.description ?? null,
+      kitsPerContainer: parsed.data.kitsPerContainer ?? 0,
+      numContainers: parsed.data.numContainers ?? 0,
       orgId: user.orgId,
-      wallAreaM2S80: wallAreaM2S80 ?? 0,
-      wallAreaM2S150: wallAreaM2S150 ?? 0,
-      wallAreaM2S200: wallAreaM2S200 ?? 0,
-      wallAreaM2Total,
     },
   });
 

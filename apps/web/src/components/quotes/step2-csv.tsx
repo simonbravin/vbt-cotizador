@@ -29,10 +29,21 @@ interface CatalogItem {
   systemType: string
 }
 
+interface ImportLine {
+  rawPieceName: string
+  rawQty: number
+  rawHeightMm: number
+  linearM: number | null
+  m2Line: number | null
+  pieceId: string | null
+  piece?: { canonicalName?: string; systemCode?: string } | null
+}
+
 export default function Step2CSV({ state, update }: Step2Props) {
   const [file, setFile] = React.useState<File | null>(state.csvFile)
   const [uploading, setUploading] = React.useState(false)
   const [result, setResult] = React.useState<ImportResult | null>(null)
+  const [importLines, setImportLines] = React.useState<ImportLine[]>([])
   const [error, setError] = React.useState<string | null>(null)
   const [mappingRow, setMappingRow] = React.useState<UnmatchedRow | null>(null)
   const [catalogSearch, setCatalogSearch] = React.useState("")
@@ -67,6 +78,11 @@ export default function Step2CSV({ state, update }: Step2Props) {
       const data: ImportResult = await res.json()
       setResult(data)
       update({ revitImportId: data.revitImportId, unmatchedRows: data.unmatchedRows })
+      // Load full import with lines for interpreted table
+      fetch("/api/import/" + data.revitImportId)
+        .then((r) => r.json())
+        .then((imp: { lines?: ImportLine[] }) => setImportLines(imp?.lines ?? []))
+        .catch(() => setImportLines([]))
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Upload failed")
     } finally {
@@ -164,6 +180,37 @@ export default function Step2CSV({ state, update }: Step2Props) {
               Unmatched: {unmatchedActive.length}
             </Badge>
           </div>
+          {importLines.length > 0 && (
+            <div className="space-y-2">
+              <h3 className="font-medium text-sm">Interpreted data (same as CSV, parsed)</h3>
+              <div className="rounded-md border overflow-x-auto max-h-80 overflow-y-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Type / Piece</TableHead>
+                      <TableHead className="text-right">Qty</TableHead>
+                      <TableHead className="text-right">Height (mm)</TableHead>
+                      <TableHead className="text-right">Linear (m)</TableHead>
+                      <TableHead className="text-right">m²</TableHead>
+                      <TableHead>Match</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {importLines.map((line, i) => (
+                      <TableRow key={i}>
+                        <TableCell className="font-mono text-xs max-w-[200px] truncate" title={line.rawPieceName}>{line.rawPieceName}</TableCell>
+                        <TableCell className="text-right">{line.rawQty}</TableCell>
+                        <TableCell className="text-right">{line.rawHeightMm}</TableCell>
+                        <TableCell className="text-right">{line.linearM != null ? line.linearM.toFixed(2) : "—"}</TableCell>
+                        <TableCell className="text-right">{line.m2Line != null ? line.m2Line.toFixed(2) : "—"}</TableCell>
+                        <TableCell>{line.pieceId ? (line.piece?.systemCode ?? "OK") : "—"}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          )}
           {result.unmatchedRows.length > 0 && (
             <div className="space-y-2">
               <h3 className="font-medium text-sm">Unmatched Rows</h3>

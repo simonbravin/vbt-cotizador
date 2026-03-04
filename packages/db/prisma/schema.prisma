@@ -260,6 +260,7 @@ model Project {
   name        String
   client      String?
   location    String?
+  countryId   String?  // Project location country (for filtering/reports)
   description String?
   // Wall area breakdown
   wallAreaM2S80  Float @default(0)
@@ -269,16 +270,18 @@ model Project {
   // Container info
   kitsPerContainer Int  @default(0)
   numContainers    Int  @default(0)
-  totalKits        Int  @default(0)
+  totalKits        Int  @default(1)
   isArchived  Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  org         Org           @relation(fields: [orgId], references: [id])
+  org         Org             @relation(fields: [orgId], references: [id])
+  country     CountryProfile? @relation(fields: [countryId], references: [id])
   revitImports RevitImport[]
   quotes      Quote[]
 
   @@index([orgId])
+  @@index([countryId])
   @@map("projects")
 }
 
@@ -417,6 +420,7 @@ model CountryProfile {
   org             Org                  @relation(fields: [orgId], references: [id])
   freightProfiles FreightRateProfile[]
   taxRuleSets     TaxRuleSet[]
+  projects        Project[]
   quotes          Quote[]
 
   @@unique([orgId, code])

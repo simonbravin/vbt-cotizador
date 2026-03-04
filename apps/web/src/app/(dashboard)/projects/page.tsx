@@ -11,7 +11,10 @@ export default async function ProjectsPage() {
   const [projects, total] = await Promise.all([
     prisma.project.findMany({
       where: { orgId, isArchived: false },
-      include: { _count: { select: { quotes: true } } },
+      include: {
+        country: { select: { id: true, name: true, code: true } },
+        _count: { select: { quotes: true } },
+      },
       orderBy: { createdAt: "desc" },
       take: 50,
     }),
@@ -42,7 +45,7 @@ export default async function ProjectsPage() {
           </Link>
         </div>
       ) : (
-        <ProjectsClient projects={projects} />
+        <ProjectsClient projects={projects} total={total} />
       )}
     </div>
   );

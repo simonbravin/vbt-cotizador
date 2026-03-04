@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
@@ -81,17 +82,13 @@ export function Sidebar({ role }: SidebarProps) {
     <div className="w-64 bg-vbt-blue flex flex-col h-full shadow-xl flex-shrink-0">
       {/* Logo */}
       <div className="px-4 py-5 border-b border-white/10">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-vbt-orange rounded-lg flex items-center justify-center flex-shrink-0">
-            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-            </svg>
-          </div>
-          <div>
-            <p className="text-white font-bold text-sm leading-tight">VBT Cotizador</p>
-            <p className="text-white/50 text-xs">Vision Building Tech</p>
-          </div>
-        </div>
+        <Image
+          src="/logo-vbt-white.png"
+          alt="Vision Building Technologies"
+          width={200}
+          height={44}
+          className="h-11 w-auto object-contain object-left"
+        />
       </div>
 
       {/* Nav */}

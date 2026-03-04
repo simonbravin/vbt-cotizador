@@ -88,6 +88,14 @@ export function Step6Preview({ state, update }: Props) {
             <span>CIF</span>
             <span>{fmt(cif)}</span>
           </div>
+          <div className="flex justify-between">
+            <span className="text-gray-500">Total taxes & fees</span>
+            <span className="font-medium">{fmt(state.taxesFeesUsd ?? 0)}</span>
+          </div>
+          <div className="flex justify-between font-semibold border-t pt-2">
+            <span>Estimated landed DDP</span>
+            <span>{fmt(state.landedDdpUsd ?? cif + (state.taxesFeesUsd ?? 0))}</span>
+          </div>
         </div>
       </div>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import type { QuoteWizardState } from "@/app/(dashboard)/quotes/new/page";
 
 // Packing capacity: m² of wall panels per 40ft HC container
@@ -19,6 +19,31 @@ export function Step4Commission({ state, update }: Props) {
     state.kitsPerContainer > 0 && state.totalKits > 0
       ? Math.ceil(state.totalKits / state.kitsPerContainer)
       : state.numContainers;
+  const loadedProjectIdRef = useRef<string | null>(null);
+
+  // Load totalKits and kitsPerContainer from project once when projectId is set (user can still edit)
+  useEffect(() => {
+    if (!state.projectId || state.projectId === loadedProjectIdRef.current) return;
+    loadedProjectIdRef.current = state.projectId;
+    fetch(`/api/projects/${state.projectId}`)
+      .then((r) => r.json())
+      .then((p: { totalKits?: number; kitsPerContainer?: number } | null) => {
+        if (!p) return;
+        const totalKits = Math.max(1, p.totalKits ?? 1);
+        const kitsPerContainer = p.kitsPerContainer ?? 0;
+        const rawFromM2 = (state.m2S80 / CAP_S80) + (state.m2S150 / CAP_S150) + (state.m2S200 / CAP_S200);
+        const derived =
+          kitsPerContainer > 0 && totalKits > 0
+            ? Math.ceil(totalKits / kitsPerContainer)
+            : Math.ceil(rawFromM2) || 1;
+        update({
+          totalKits,
+          kitsPerContainer,
+          numContainers: derived,
+        });
+      })
+      .catch(() => {});
+  }, [state.projectId]);
 
   // Auto-set numContainers from m² packing capacity when kits are not configured
   useEffect(() => {

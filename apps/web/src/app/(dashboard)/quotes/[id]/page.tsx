@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Download, Mail, Archive, ExternalLink } from "lucide-react";
+import { ArrowLeft, Download, Mail, Archive, ExternalLink, ChevronDown, ChevronRight } from "lucide-react";
 
 function fmt(n: number) {
   return n.toLocaleString("en-US", { style: "currency", currency: "USD" });
@@ -14,6 +14,7 @@ export default function QuoteDetailPage() {
   const router = useRouter();
   const [quote, setQuote] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [materialLinesOpen, setMaterialLinesOpen] = useState(false);
   const [emailDialog, setEmailDialog] = useState(false);
   const [emailTo, setEmailTo] = useState("");
   const [emailMsg, setEmailMsg] = useState("");
@@ -129,36 +130,47 @@ export default function QuoteDetailPage() {
         ))}
       </div>
 
-      {/* CSV Lines */}
+      {/* Material Lines (collapsible) */}
       {quote.lines?.length > 0 && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-          <div className="p-4 border-b border-gray-100">
+          <button
+            type="button"
+            onClick={() => setMaterialLinesOpen((o) => !o)}
+            className="w-full p-4 border-b border-gray-100 flex items-center justify-between text-left hover:bg-gray-50/50 transition-colors"
+          >
             <h2 className="font-semibold text-gray-800">Material Lines ({quote.lines.length})</h2>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50">
-                <tr>
-                  {["Description", "System", "Qty", "Lin.m", "m²", "Unit Price", "Total"].map((h) => (
-                    <th key={h} className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {quote.lines.map((line: any, i: number) => (
-                  <tr key={i} className={i % 2 === 0 ? "" : "bg-gray-50/50"}>
-                    <td className="px-3 py-2 text-gray-800">{line.description}</td>
-                    <td className="px-3 py-2 text-gray-500">{line.systemCode ?? "—"}</td>
-                    <td className="px-3 py-2 text-right">{line.qty}</td>
-                    <td className="px-3 py-2 text-right">{(line.linearM ?? 0).toFixed(1)}</td>
-                    <td className="px-3 py-2 text-right">{(line.m2Line ?? 0).toFixed(1)}</td>
-                    <td className="px-3 py-2 text-right">{fmt(line.unitPrice ?? 0)}</td>
-                    <td className="px-3 py-2 text-right font-medium">{fmt(line.lineTotal)}</td>
+            {materialLinesOpen ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
+          </button>
+          {materialLinesOpen && (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase">Description</th>
+                    <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase">System</th>
+                    <th className="text-right px-3 py-2 text-xs font-semibold text-gray-500 uppercase">Qty</th>
+                    <th className="text-right px-3 py-2 text-xs font-semibold text-gray-500 uppercase">Length (m)</th>
+                    <th className="text-right px-3 py-2 text-xs font-semibold text-gray-500 uppercase">m²</th>
+                    <th className="text-right px-3 py-2 text-xs font-semibold text-gray-500 uppercase">Unit Price</th>
+                    <th className="text-right px-3 py-2 text-xs font-semibold text-gray-500 uppercase">Total</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {quote.lines.map((line: any, i: number) => (
+                    <tr key={i} className={i % 2 === 0 ? "" : "bg-gray-50/50"}>
+                      <td className="px-3 py-2 text-gray-800">{line.description}</td>
+                      <td className="px-3 py-2 text-gray-500">{line.systemCode ?? "—"}</td>
+                      <td className="px-3 py-2 text-right">{line.qty}</td>
+                      <td className="px-3 py-2 text-right">{((line.heightMm ?? 0) / 1000).toFixed(2)}</td>
+                      <td className="px-3 py-2 text-right">{(line.m2Line ?? 0).toFixed(1)}</td>
+                      <td className="px-3 py-2 text-right">{fmt(line.unitPrice ?? 0)}</td>
+                      <td className="px-3 py-2 text-right font-medium">{fmt(line.lineTotal)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 
@@ -173,6 +185,8 @@ export default function QuoteDetailPage() {
               { label: "FOB", value: quote.fobUsd, bold: true },
               { label: `Freight (${quote.numContainers} containers)`, value: quote.freightCostUsd },
               { label: "CIF", value: quote.cifUsd, bold: true },
+              { label: "Total taxes & fees", value: quote.taxesFeesUsd ?? 0 },
+              { label: "Landed DDP", value: quote.landedDdpUsd, bold: true },
             ].map((row) => (
               <div key={row.label} className={`flex justify-between ${row.bold ? "font-semibold border-t pt-2" : ""}`}>
                 <span className={row.bold ? "" : "text-gray-500"}>{row.label}</span>

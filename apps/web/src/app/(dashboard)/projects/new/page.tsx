@@ -1,23 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+
+type Country = { id: string; name: string; code: string };
 
 export default function NewProjectPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [countries, setCountries] = useState<Country[]>([]);
   const [form, setForm] = useState({
     name: "",
     client: "",
     location: "",
+    countryId: "" as string,
+    totalKits: 1,
     description: "",
-    wallAreaM2S80: 0,
-    wallAreaM2S150: 0,
-    wallAreaM2S200: 0,
   });
+
+  useEffect(() => {
+    fetch("/api/countries")
+      .then((r) => r.json())
+      .then((data) => setCountries(Array.isArray(data) ? data : data.countries ?? []))
+      .catch(() => setCountries([]));
+  }, []);
 
   const update = (key: string, val: any) => setForm((p) => ({ ...p, [key]: val }));
 
@@ -27,10 +36,14 @@ export default function NewProjectPage() {
     setLoading(true);
     setError(null);
     try {
+      const payload = {
+        ...form,
+        countryId: form.countryId || undefined,
+      };
       const res = await fetch("/api/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error ?? "Failed to create project"); return; }
@@ -56,7 +69,7 @@ export default function NewProjectPage() {
         {[
           { key: "name", label: "Project Name *", type: "text", placeholder: "e.g., Residencial Las Palmas" },
           { key: "client", label: "Client", type: "text", placeholder: "Client name" },
-          { key: "location", label: "Location", type: "text", placeholder: "City, Country" },
+          { key: "location", label: "Location", type: "text", placeholder: "City, region" },
         ].map(({ key, label, type, placeholder }) => (
           <div key={key}>
             <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
@@ -71,6 +84,32 @@ export default function NewProjectPage() {
         ))}
 
         <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
+          <select
+            value={form.countryId}
+            onChange={(e) => update("countryId", e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-vbt-blue bg-white"
+          >
+            <option value="">— Select country —</option>
+            {countries.map((c) => (
+              <option key={c.id} value={c.id}>{c.name} ({c.code})</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Total kits</label>
+          <input
+            type="number"
+            min={1}
+            value={form.totalKits}
+            onChange={(e) => update("totalKits", parseInt(e.target.value) || 1)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-vbt-blue"
+          />
+          <p className="text-xs text-gray-500 mt-0.5">e.g. 1 for single project (school), 100 for development (100 houses)</p>
+        </div>
+
+        <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
           <textarea
             rows={3}
@@ -79,29 +118,6 @@ export default function NewProjectPage() {
             placeholder="Optional project description..."
             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-vbt-blue resize-none"
           />
-        </div>
-
-        <div>
-          <p className="text-sm font-medium text-gray-700 mb-3">Initial Wall Area (optional)</p>
-          <div className="grid grid-cols-3 gap-3">
-            {[
-              { key: "wallAreaM2S80", label: "S80 (m²)" },
-              { key: "wallAreaM2S150", label: "S150 (m²)" },
-              { key: "wallAreaM2S200", label: "S200 (m²)" },
-            ].map(({ key, label }) => (
-              <div key={key}>
-                <label className="block text-xs text-gray-500 mb-1">{label}</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.1"
-                  value={(form as any)[key]}
-                  onChange={(e) => update(key, parseFloat(e.target.value) || 0)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-vbt-blue"
-                />
-              </div>
-            ))}
-          </div>
         </div>
 
         <div className="flex justify-end gap-3 pt-2">
