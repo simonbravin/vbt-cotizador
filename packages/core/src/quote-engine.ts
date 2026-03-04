@@ -274,14 +274,13 @@ export function buildQuoteSnapshot(input: QuoteInput): QuoteSnapshot {
 
   // ── Commission & FOB ──────────────────────────────────────────────────────
   const commissionPct = input.commissionPct ?? 0;
+  // commissionFixed is always the per-order total (commissionFixedPerKit is a UI alias for it)
   const commissionFixed = input.commissionFixed ?? 0;
   const commissionFixedPerKit = input.commissionFixedPerKit ?? 0;
-  const totalKitsForCommission = input.totalKits ?? 0;
-  const effectiveCommissionFixed = commissionFixed + commissionFixedPerKit * totalKitsForCommission;
   const { commissionAmount, fobUsd } = computeFob({
     factoryCost: factoryCostUsd,
     commissionPct,
-    commissionFixed: effectiveCommissionFixed,
+    commissionFixed,
   });
 
   // ── CIF ───────────────────────────────────────────────────────────────────
