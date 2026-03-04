@@ -69,10 +69,10 @@ export async function PATCH(
   if (data.wallAreaM2S80 !== undefined || data.wallAreaM2S150 !== undefined || data.wallAreaM2S200 !== undefined) {
     const existing = await prisma.project.findUnique({ where: { id: params.id } });
     if (existing) {
-      (data as any).wallAreaM2Total =
-        (data.wallAreaM2S80 ?? existing.wallAreaM2S80) +
-        (data.wallAreaM2S150 ?? existing.wallAreaM2S150) +
-        (data.wallAreaM2S200 ?? existing.wallAreaM2S200);
+      const s80 = Number(data.wallAreaM2S80 ?? existing.wallAreaM2S80);
+      const s150 = Number(data.wallAreaM2S150 ?? existing.wallAreaM2S150);
+      const s200 = Number(data.wallAreaM2S200 ?? existing.wallAreaM2S200);
+      (data as Record<string, unknown>).wallAreaM2Total = s80 + s150 + s200;
     }
   }
 
