@@ -23,7 +23,7 @@ const STEPS = [
 export interface QuoteWizardState {
   // Step 1
   projectId: string;
-  costMethod: "CSV" | "M2_BY_SYSTEM" | "M2_TOTAL";
+  costMethod: "CSV" | "M2_BY_SYSTEM";
   baseUom: "M" | "FT";
   warehouseId?: string;
   reserveStock: boolean;

@@ -1,7 +1,8 @@
-import { requireAuth, formatCurrency } from "@/lib/utils";
+import { requireAuth } from "@/lib/utils";
 import { prisma } from "@/lib/db";
 import Link from "next/link";
 import { Plus, FileText } from "lucide-react";
+import { QuotesClient } from "./QuotesClient";
 
 export default async function QuotesPage({ searchParams }: { searchParams: { status?: string } }) {
   const user = await requireAuth();
@@ -62,51 +63,7 @@ export default async function QuotesPage({ searchParams }: { searchParams: { sta
           </Link>
         </div>
       ) : (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b border-gray-100">
-              <tr>
-                {["Quote #", "Project", "Destination", "Method", "Landed DDP", "Status", "Date"].map((h) => (
-                  <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {quotes.map((q) => (
-                <tr key={q.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3">
-                    <Link href={`/quotes/${q.id}`} className="font-medium text-vbt-blue hover:underline">
-                      {q.quoteNumber ?? q.id.slice(0, 8).toUpperCase()}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3">
-                    <p className="font-medium text-gray-800">{q.project.name}</p>
-                    {q.project.client && <p className="text-gray-400 text-xs">{q.project.client}</p>}
-                  </td>
-                  <td className="px-4 py-3 text-gray-600">
-                    {q.country?.name ?? <span className="text-gray-300">—</span>}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded">{q.costMethod}</span>
-                  </td>
-                  <td className="px-4 py-3 font-semibold text-gray-800">
-                    {formatCurrency(q.landedDdpUsd)}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                      q.status === "SENT" ? "bg-green-100 text-green-700" :
-                      q.status === "DRAFT" ? "bg-amber-100 text-amber-700" :
-                      "bg-gray-100 text-gray-500"
-                    }`}>{q.status}</span>
-                  </td>
-                  <td className="px-4 py-3 text-gray-400 text-xs">
-                    {new Date(q.createdAt).toLocaleDateString()}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <QuotesClient quotes={quotes as any} />
       )}
     </div>
   );

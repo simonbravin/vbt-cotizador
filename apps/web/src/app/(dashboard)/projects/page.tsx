@@ -1,24 +1,22 @@
 import { requireAuth } from "@/lib/utils";
 import { prisma } from "@/lib/db";
 import Link from "next/link";
-import { Plus, FolderOpen, MapPin, User } from "lucide-react";
+import { Plus, FolderOpen } from "lucide-react";
+import { ProjectsClient } from "./ProjectsClient";
 
 export default async function ProjectsPage() {
   const user = await requireAuth();
   const orgId = (user as any).orgId;
 
-  const { projects, total } = await (async () => {
-    const [projects, total] = await Promise.all([
-      prisma.project.findMany({
-        where: { orgId, isArchived: false },
-        include: { _count: { select: { quotes: true } } },
-        orderBy: { createdAt: "desc" },
-        take: 50,
-      }),
-      prisma.project.count({ where: { orgId, isArchived: false } }),
-    ]);
-    return { projects, total };
-  })();
+  const [projects, total] = await Promise.all([
+    prisma.project.findMany({
+      where: { orgId, isArchived: false },
+      include: { _count: { select: { quotes: true } } },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+    }),
+    prisma.project.count({ where: { orgId, isArchived: false } }),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -44,42 +42,7 @@ export default async function ProjectsPage() {
           </Link>
         </div>
       ) : (
-        <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
-          {projects.map((p) => (
-            <Link
-              key={p.id}
-              href={`/projects/${p.id}`}
-              className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow"
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
-                  <FolderOpen className="w-5 h-5 text-blue-600" />
-                </div>
-                <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full">
-                  {p._count.quotes} quote{p._count.quotes !== 1 ? "s" : ""}
-                </span>
-              </div>
-              <h3 className="font-semibold text-gray-800">{p.name}</h3>
-              {p.client && (
-                <div className="flex items-center gap-1.5 text-gray-500 text-sm mt-1">
-                  <User className="w-3.5 h-3.5" />
-                  {p.client}
-                </div>
-              )}
-              {p.location && (
-                <div className="flex items-center gap-1.5 text-gray-400 text-sm mt-0.5">
-                  <MapPin className="w-3.5 h-3.5" />
-                  {p.location}
-                </div>
-              )}
-              <div className="mt-3 pt-3 border-t border-gray-100 flex gap-4 text-xs text-gray-500">
-                <span>S80: {p.wallAreaM2S80.toFixed(0)} m²</span>
-                <span>S150: {p.wallAreaM2S150.toFixed(0)} m²</span>
-                <span>S200: {p.wallAreaM2S200.toFixed(0)} m²</span>
-              </div>
-            </Link>
-          ))}
-        </div>
+        <ProjectsClient projects={projects} />
       )}
     </div>
   );

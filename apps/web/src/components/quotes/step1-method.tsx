@@ -1,13 +1,12 @@
 "use client"
 import * as React from "react"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 
-export type CostMethod = "CSV" | "M2_BY_SYSTEM" | "M2_TOTAL"
+export type CostMethod = "CSV" | "M2_BY_SYSTEM"
 export type UOM = "M" | "FT"
 
 export interface QuoteWizardState {
@@ -24,7 +23,6 @@ export interface QuoteWizardState {
   m2S80: number
   m2S150: number
   m2S200: number
-  m2Total: number
   materialCost: number
   totalWeight: number
   totalVolume: number
@@ -79,12 +77,7 @@ const METHOD_OPTIONS: { value: CostMethod; label: string; description: string }[
   {
     value: "M2_BY_SYSTEM",
     label: "M\u00b2 by System",
-    description: "Enter square meters per panel system (S80 / S150 / S200) and apply system rates.",
-  },
-  {
-    value: "M2_TOTAL",
-    label: "M\u00b2 Total",
-    description: "Enter a single total area and apply a global blended rate.",
+    description: "Enter wall area (m\u00b2) per panel system (VBT 80mm / VBT 150mm / VBT 200mm) and apply system rates.",
   },
 ]
 
@@ -145,7 +138,7 @@ export default function Step1Method({ state, update }: Step1Props) {
       {/* Costing method cards */}
       <div className="space-y-2">
         <Label>Costing Method</Label>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {METHOD_OPTIONS.map((opt) => (
             <button
               key={opt.value}

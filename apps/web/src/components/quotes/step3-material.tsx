@@ -26,7 +26,6 @@ export function Step3MaterialCost({ state, update }: Props) {
         .then((r) => r.json())
         .then((data) => {
           setImportData(data);
-          // Aggregate wall areas from lines
           let s80 = 0, s150 = 0, s200 = 0;
           for (const line of data.lines ?? []) {
             if (!line.isIgnored && line.m2Line) {
@@ -47,8 +46,6 @@ export function Step3MaterialCost({ state, update }: Props) {
       ? state.m2S80 * (settings?.rateS80 ?? 37) +
         state.m2S150 * (settings?.rateS150 ?? 67) +
         state.m2S200 * (settings?.rateS200 ?? 85)
-      : state.costMethod === "M2_TOTAL"
-      ? state.m2Total * (settings?.rateGlobal ?? 60)
       : null;
 
   const fmt = (n: number) =>
@@ -61,9 +58,7 @@ export function Step3MaterialCost({ state, update }: Props) {
         <p className="text-sm text-gray-500 mt-1">
           {state.costMethod === "CSV"
             ? "Review computed wall areas from your CSV import."
-            : state.costMethod === "M2_BY_SYSTEM"
-            ? "Enter wall area per system and review rates."
-            : "Enter total wall area for a quick estimate."}
+            : "Enter wall area per system and review rates."}
         </p>
       </div>
 
@@ -76,9 +71,9 @@ export function Step3MaterialCost({ state, update }: Props) {
             <>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
-                  { label: "S80 Wall Area", value: `${state.m2S80.toFixed(1)} m²`, color: "blue" },
-                  { label: "S150 Wall Area", value: `${state.m2S150.toFixed(1)} m²`, color: "purple" },
-                  { label: "S200 Wall Area", value: `${state.m2S200.toFixed(1)} m²`, color: "green" },
+                  { label: "VBT 80mm Wall Area", value: `${state.m2S80.toFixed(1)} m²`, color: "blue" },
+                  { label: "VBT 150mm Wall Area", value: `${state.m2S150.toFixed(1)} m²`, color: "purple" },
+                  { label: "VBT 200mm Wall Area", value: `${state.m2S200.toFixed(1)} m²`, color: "green" },
                   { label: "Total Wall Area", value: `${(state.m2S80 + state.m2S150 + state.m2S200).toFixed(1)} m²`, color: "orange" },
                 ].map((s) => (
                   <div key={s.label} className={`p-4 bg-${s.color}-50 rounded-lg border border-${s.color}-100`}>
@@ -88,7 +83,6 @@ export function Step3MaterialCost({ state, update }: Props) {
                 ))}
               </div>
 
-              {/* Weight/Volume summary */}
               {(() => {
                 let totalWeight = 0, totalVolume = 0;
                 for (const line of importData.lines ?? []) {
@@ -111,12 +105,10 @@ export function Step3MaterialCost({ state, update }: Props) {
                 );
               })()}
 
-              {/* Factory cost from CSV */}
               {(() => {
                 const totalCost = importData.lines?.reduce((acc: number, l: any) => {
                   if (!l.isIgnored && l.pricePerM) {
-                    const lm = l.linearM ?? 0;
-                    return acc + lm * l.pricePerM;
+                    return acc + (l.linearM ?? 0) * l.pricePerM;
                   }
                   return acc;
                 }, 0) ?? 0;
@@ -126,8 +118,8 @@ export function Step3MaterialCost({ state, update }: Props) {
                     <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
                       <p className="text-amber-800 font-medium text-sm">⚠ No piece costs configured</p>
                       <p className="text-amber-600 text-xs mt-1">
-                        Prices are zero for all pieces. The factory cost will be $0 unless you switch to M2 by System mode
-                        or enter manual overrides. You can still save the quote and fill costs later.
+                        Prices are zero for all pieces. The factory cost will be $0 unless you switch to M² by System mode.
+                        You can still save the quote and fill costs later.
                       </p>
                     </div>
                   );
@@ -152,9 +144,9 @@ export function Step3MaterialCost({ state, update }: Props) {
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {[
-              { key: "m2S80" as const, label: "S80 (80mm)", rate: settings.rateS80 },
-              { key: "m2S150" as const, label: "S150 (6in)", rate: settings.rateS150 },
-              { key: "m2S200" as const, label: "S200 (8in)", rate: settings.rateS200 },
+              { key: "m2S80" as const, label: "VBT 80mm", rate: settings.rateS80 },
+              { key: "m2S150" as const, label: "VBT 150mm", rate: settings.rateS150 },
+              { key: "m2S200" as const, label: "VBT 200mm", rate: settings.rateS200 },
             ].map((sys) => (
               <div key={sys.key} className="p-4 border border-gray-200 rounded-lg">
                 <label className="block text-sm font-medium text-gray-700 mb-1">{sys.label} Wall Area (m²)</label>
@@ -173,28 +165,6 @@ export function Step3MaterialCost({ state, update }: Props) {
           </div>
           <div className="p-4 bg-blue-50 border border-blue-100 rounded-lg flex items-center justify-between">
             <p className="text-blue-800 font-medium">Total Factory Cost</p>
-            <p className="text-2xl font-bold text-blue-700">{fmt(factoryCost!)}</p>
-          </div>
-        </div>
-      )}
-
-      {/* M2 Total */}
-      {state.costMethod === "M2_TOTAL" && settings && (
-        <div className="space-y-4">
-          <div className="p-4 border border-gray-200 rounded-lg">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Total Wall Area (m²)</label>
-            <input
-              type="number"
-              min="0"
-              step="0.1"
-              value={state.m2Total}
-              onChange={(e) => update({ m2Total: parseFloat(e.target.value) || 0 })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-vbt-blue"
-            />
-            <p className="text-xs text-gray-400 mt-1">Global rate: {fmt(settings.rateGlobal)}/m²</p>
-          </div>
-          <div className="p-4 bg-blue-50 border border-blue-100 rounded-lg flex items-center justify-between">
-            <p className="text-blue-800 font-medium">Estimated Factory Cost</p>
             <p className="text-2xl font-bold text-blue-700">{fmt(factoryCost!)}</p>
           </div>
         </div>

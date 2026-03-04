@@ -38,7 +38,15 @@
       "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_t7SJlWm1hFIu@ep-plain-block-aca3e1r5-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require\" npx prisma db push:*)",
       "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_t7SJlWm1hFIu@ep-plain-block-aca3e1r5-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require\" SUPERADMIN_EMAIL=\"simon@visionbuildingtechs.com\" SUPERADMIN_PASSWORD=\"ChangeMe123!\" npx tsx:*)",
       "Bash(taskkill:*)",
-      "Bash(netstat:*)"
+      "Bash(netstat:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(pnpm db:generate:*)",
+      "Bash(pnpm --filter @vbt/db generate:*)",
+      "Bash(pnpm --filter web build:*)",
+      "Bash(pnpm --filter @vbt/db seed:*)",
+      "Bash(find:*)"
     ]
   }
 }

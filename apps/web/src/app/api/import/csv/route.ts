@@ -63,7 +63,6 @@ export async function POST(req: Request) {
       if (isMatched) matchedCount++;
       else unmappedCount++;
 
-      // Compute metrics if matched
       const piece = isMatched
         ? catalog.find((p) => p.id === match.pieceId)
         : null;
@@ -96,7 +95,6 @@ export async function POST(req: Request) {
         volumeM3 = metrics.volumeM3;
       }
 
-      // Get latest cost
       const cost = piece?.costs[0];
       let pricePerM: number | null = null;
       let pricePerFt: number | null = null;
@@ -136,10 +134,8 @@ export async function POST(req: Request) {
       });
     }
 
-    // Bulk create lines
     await prisma.revitImportLine.createMany({ data: lineData });
 
-    // Update import counts
     await prisma.revitImport.update({
       where: { id: revitImport.id },
       data: {
@@ -149,18 +145,28 @@ export async function POST(req: Request) {
       },
     });
 
-    // Return import with lines
-    const fullImport = await prisma.revitImport.findUnique({
-      where: { id: revitImport.id },
-      include: {
-        lines: {
-          include: { piece: { include: { costs: { take: 1 } } } },
-          orderBy: { rowNum: "asc" },
-        },
-      },
-    });
+    // Build unmatched rows in the format step2-csv.tsx expects
+    const unmatchedRows = lineData
+      .filter((l) => !l.pieceId)
+      .map((l) => ({
+        rowIndex: l.rowNum,
+        revitFamily: l.rawPieceCode ?? "",
+        revitType: l.rawPieceName,
+        quantity: l.rawQty,
+        area: l.m2Line ?? 0,
+        mappedCatalogId: null,
+        ignored: false,
+      }));
 
-    return NextResponse.json(fullImport, { status: 201 });
+    return NextResponse.json(
+      {
+        revitImportId: revitImport.id,
+        totalRows: parsed.totalRows,
+        matchedCount,
+        unmatchedRows,
+      },
+      { status: 201 }
+    );
   } catch (error) {
     console.error("CSV import error:", error);
     return NextResponse.json({ error: "Failed to parse CSV" }, { status: 500 });
