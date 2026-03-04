@@ -46,6 +46,14 @@ const HEIGHT_HEADERS = [
   "altura_mm",
 ];
 
+// All column names we recognize as real data headers
+const ALL_KNOWN_HEADERS = [
+  ...PIECE_NAME_HEADERS,
+  ...PIECE_CODE_HEADERS,
+  ...QTY_HEADERS,
+  ...HEIGHT_HEADERS,
+];
+
 function findHeader(headers: string[], synonyms: string[]): string | null {
   for (const h of headers) {
     if (synonyms.includes(h.toLowerCase().trim())) return h;
@@ -57,6 +65,27 @@ function findHeader(headers: string[], synonyms: string[]): string | null {
     }
   }
   return null;
+}
+
+// ─── Revit meta-row detection ─────────────────────────────────────────────────
+
+/**
+ * Revit table schedule exports include subtotal and grand-total rows.
+ * Examples:
+ *   "SA2024_6in x 9in Form: 2034,,,"  <- group subtotal
+ *   "Grand total: 2487,,,"             <- grand total
+ *
+ * They are identified by:
+ *  - "Grand total" prefix, OR
+ *  - First cell ends with ": <number>" AND the qty cell is empty
+ */
+function isRevitMetaRow(row: string[]): boolean {
+  const first = (row[0] ?? "").trim();
+  if (!first) return false;
+  if (first.toLowerCase().startsWith("grand total")) return true;
+  // subtotal: "TypeName: 2034" with no qty value
+  if (/:\s*\d+\s*$/.test(first) && !(row[1] ?? "").trim()) return true;
+  return false;
 }
 
 // ─── Main Parser ──────────────────────────────────────────────────────────────
@@ -78,7 +107,34 @@ export interface CsvParseResult {
 export function parseRevitCsv(csvText: string): CsvParseResult {
   const errors: string[] = [];
 
-  const parsed = Papa.parse(csvText, {
+  // ── Step 1: raw parse to find the real header row ─────────────────────────
+  // Revit wall schedule CSVs often have a project-title row as row 1, with the
+  // actual column headers (Type, QTY, Length, …) in row 2.
+  // We scan the first few rows to find the one that contains known column names.
+  const rawParse = Papa.parse<string[]>(csvText, {
+    header: false,
+    skipEmptyLines: true,
+  });
+
+  const allRows = rawParse.data;
+
+  let headerRowIdx = 0;
+  for (let i = 0; i < Math.min(allRows.length, 5); i++) {
+    const cells = allRows[i].map((c) => c.toLowerCase().trim());
+    if (cells.some((c) => ALL_KNOWN_HEADERS.includes(c))) {
+      headerRowIdx = i;
+      break;
+    }
+  }
+
+  // ── Step 2: filter out Revit meta rows (subtotals, grand total) ───────────
+  const headerRow = allRows[headerRowIdx];
+  const dataRows = allRows.slice(headerRowIdx + 1).filter((row) => !isRevitMetaRow(row));
+
+  // ── Step 3: re-parse with proper headers ──────────────────────────────────
+  const cleanedCsv = Papa.unparse([headerRow, ...dataRows]);
+
+  const parsed = Papa.parse(cleanedCsv, {
     header: true,
     skipEmptyLines: true,
     transformHeader: (h) => h.trim(),
