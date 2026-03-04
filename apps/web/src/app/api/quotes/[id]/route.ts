@@ -73,7 +73,7 @@ export async function DELETE(
 
   await prisma.quote.update({
     where: { id: params.id },
-    data: { status: "CANCELLED" },
+    data: { status: "ARCHIVED" },
   });
 
   await createAuditLog({

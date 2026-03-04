@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { createAuditLog } from "@/lib/audit";
 import { z } from "zod";
 
 const updateSchema = z.object({
@@ -11,9 +12,12 @@ const updateSchema = z.object({
   countryId: z.string().nullable().optional(),
   totalKits: z.number().min(1).optional(),
   description: z.string().optional(),
+  wallAreaM2Total: z.number().min(0).optional(),
   wallAreaM2S80: z.number().min(0).optional(),
   wallAreaM2S150: z.number().min(0).optional(),
   wallAreaM2S200: z.number().min(0).optional(),
+  plannedStartDate: z.string().nullable().optional(),
+  durationWeeks: z.number().min(0).nullable().optional(),
   kitsPerContainer: z.number().min(0).optional(),
   numContainers: z.number().min(0).optional(),
 }).partial();
@@ -63,8 +67,14 @@ export async function PATCH(
   }
 
   const data = parsed.data as Record<string, unknown>;
+  const changedKeys = Object.keys(parsed.data);
   if (data.countryId === null || data.countryId === "") {
     data.countryId = null;
+  }
+  if (data.plannedStartDate === "" || data.plannedStartDate === null) {
+    data.plannedStartDate = null;
+  } else if (typeof data.plannedStartDate === "string") {
+    data.plannedStartDate = new Date(data.plannedStartDate);
   }
   if (data.wallAreaM2S80 !== undefined || data.wallAreaM2S150 !== undefined || data.wallAreaM2S200 !== undefined) {
     const existing = await prisma.project.findUnique({ where: { id: params.id } });
@@ -74,11 +84,24 @@ export async function PATCH(
       const s200 = Number(data.wallAreaM2S200 ?? existing.wallAreaM2S200);
       (data as Record<string, unknown>).wallAreaM2Total = s80 + s150 + s200;
     }
+  } else if (data.wallAreaM2Total !== undefined) {
+    (data as Record<string, unknown>).wallAreaM2S80 = 0;
+    (data as Record<string, unknown>).wallAreaM2S150 = Number(data.wallAreaM2Total) || 0;
+    (data as Record<string, unknown>).wallAreaM2S200 = 0;
   }
 
   const project = await prisma.project.update({
     where: { id: params.id },
     data: data as any,
+  });
+
+  await createAuditLog({
+    orgId: user.orgId,
+    userId: user.id,
+    action: "PROJECT_UPDATED",
+    entityType: "Project",
+    entityId: params.id,
+    meta: { changed: changedKeys },
   });
 
   return NextResponse.json(project);

@@ -288,6 +288,13 @@ export interface QuotePdfData {
   concreteM3: number;
   steelKgEst: number;
   notes?: string;
+  quotedByName?: string;
+}
+
+export interface QuotePdfOptions {
+  includeAlerts?: boolean;
+  includeMaterialLines?: boolean;
+  showUnitPrice?: boolean;
 }
 
 // ─── Formatters ──────────────────────────────────────────────────────────────
@@ -338,9 +345,17 @@ function SumRow({
 
 // ─── Main PDF Document ────────────────────────────────────────────────────────
 
-export function QuotePdfDocument({ data }: { data: QuotePdfData }) {
+const DEFAULT_CONTAINER_VOLUME_M3 = 70;
+
+export function QuotePdfDocument({ data, options = {} }: { data: QuotePdfData; options?: QuotePdfOptions }) {
   const hasCsvLines = data.costMethod === "CSV" && data.lines.length > 0;
   const belowMinRunLines = data.lines.filter((l) => l.isBelowMinRun);
+  const includeAlerts = options.includeAlerts ?? false;
+  const includeMaterialLines = options.includeMaterialLines ?? true;
+  const showUnitPrice = options.showUnitPrice ?? true;
+  const numCont = Math.max(Number(data.numContainers) || 1, 1);
+  const totalVol = Number(data.totalVolumeM3) ?? 0;
+  const occupancyPct = totalVol > 0 ? Math.min(100, (totalVol / (numCont * DEFAULT_CONTAINER_VOLUME_M3)) * 100) : null;
 
   return (
     <Document
@@ -360,6 +375,11 @@ export function QuotePdfDocument({ data }: { data: QuotePdfData }) {
             <Text style={styles.quoteTitle}>QUOTE</Text>
             <Text style={styles.quoteNumber}>{data.quoteNumber}</Text>
             <Text style={styles.quoteStatus}>{data.status}</Text>
+            {data.quotedByName && (
+              <Text style={{ fontSize: 7, color: "#666", marginTop: 2 }}>
+                Quoted by: {data.quotedByName}
+              </Text>
+            )}
             <Text style={{ fontSize: 7, color: "#888", marginTop: 4 }}>
               {data.createdAt}
             </Text>
@@ -427,8 +447,8 @@ export function QuotePdfDocument({ data }: { data: QuotePdfData }) {
           </View>
         </View>
 
-        {/* ── Alerts ───────────────────────────────────────────────────── */}
-        {belowMinRunLines.length > 0 && (
+        {/* ── Alerts (optional) ─────────────────────────────────────────── */}
+        {includeAlerts && belowMinRunLines.length > 0 && (
           <View style={styles.section}>
             {belowMinRunLines.map((line, i) => (
               <View key={i} style={styles.alertBox}>
@@ -441,8 +461,8 @@ export function QuotePdfDocument({ data }: { data: QuotePdfData }) {
           </View>
         )}
 
-        {/* ── CSV Line Items ────────────────────────────────────────────── */}
-        {hasCsvLines && (
+        {/* ── Material Lines (optional) ─────────────────────────────────── */}
+        {includeMaterialLines && hasCsvLines && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Material Lines</Text>
             <View style={styles.table}>
@@ -452,7 +472,7 @@ export function QuotePdfDocument({ data }: { data: QuotePdfData }) {
                 <Text style={styles.colQty}>Qty</Text>
                 <Text style={styles.colLength}>Length (m)</Text>
                 <Text style={styles.colM2}>m²</Text>
-                <Text style={styles.colPrice}>Unit</Text>
+                {showUnitPrice && <Text style={styles.colPrice}>Unit</Text>}
                 <Text style={styles.colTotal}>Total</Text>
               </View>
               {data.lines
@@ -469,7 +489,9 @@ export function QuotePdfDocument({ data }: { data: QuotePdfData }) {
                       {safeFmtN((line.heightMm ?? 0) / 1000)}
                     </Text>
                     <Text style={styles.colM2}>{safeFmtN(line.m2Line ?? 0)}</Text>
-                    <Text style={styles.colPrice}>{safeFmt(line.unitPrice)}</Text>
+                    {showUnitPrice && (
+                      <Text style={styles.colPrice}>{safeFmt(line.unitPrice)}</Text>
+                    )}
                     <Text style={styles.colTotal}>
                       {safeFmt(line.lineTotalWithMarkup)}
                     </Text>
@@ -479,18 +501,27 @@ export function QuotePdfDocument({ data }: { data: QuotePdfData }) {
           </View>
         )}
 
-        {/* ── Financial Summary ─────────────────────────────────────────── */}
+        {/* ── Logistics (to CIF) ────────────────────────────────────────── */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Logistics (to CIF)</Text>
+          <View style={styles.summaryBox}>
+            <SumRow
+              label="Containers"
+              value={`${data.numContainers} × ${data.kitsPerContainer} kits/container`}
+            />
+            {occupancyPct != null && (
+              <SumRow label="Container occupancy (vol.)" value={`${safeFmtN(occupancyPct, 1)}%`} />
+            )}
+            <SumRow label="Freight" value={safeFmt(data.freightCostUsd)} />
+            <SumRow label="FOB" value={safeFmt(data.fobUsd)} bold />
+            <SumRow label="CIF" value={safeFmt(data.cifUsd)} bold />
+          </View>
+        </View>
+
+        {/* ── Financial Summary (from FOB) ───────────────────────────────── */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Financial Summary</Text>
           <View style={styles.summaryBox}>
-            <SumRow
-              label={`Factory Cost (${data.costMethod})`}
-              value={safeFmt(data.factoryCostUsd)}
-            />
-            <SumRow
-              label={`Commission (${data.commissionPct}% + ${safeFmt(data.commissionFixed)} fixed)`}
-              value={safeFmt(data.commissionAmount)}
-            />
             <SumRow label="FOB" value={safeFmt(data.fobUsd)} bold />
             <SumRow
               label={`Freight (${data.numContainers} container${data.numContainers !== 1 ? "s" : ""})`}
@@ -552,41 +583,30 @@ export function QuotePdfDocument({ data }: { data: QuotePdfData }) {
           )}
         </View>
 
-        {/* ── Informational ─────────────────────────────────────────────── */}
+        {/* ── Informational (per kit & total) ────────────────────────────── */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
             Informational (not included in cost)
           </Text>
-          <View style={{ flexDirection: "row", gap: 12 }}>
-            <View style={styles.infoBox}>
-              <Text style={styles.infoBoxLabel}>Concrete Required</Text>
-              <Text style={styles.infoBoxValue}>
-                {safeFmtN(data.concreteM3)} m³
-              </Text>
-            </View>
-            <View style={styles.infoBox}>
-              <Text style={styles.infoBoxLabel}>Steel Estimate</Text>
-              <Text style={styles.infoBoxValue}>
-                {safeFmtN(data.steelKgEst)} kg
-              </Text>
-            </View>
-            {data.totalWeightKgCored != null && (
-              <View style={styles.infoBox}>
-                <Text style={styles.infoBoxLabel}>Panel Weight (cored)</Text>
-                <Text style={styles.infoBoxValue}>
-                  {safeFmtN(data.totalWeightKgCored)} kg
-                </Text>
+          {(() => {
+            const tk = Math.max(Number(data.totalKits) || 1, 1);
+            const m2 = Number(data.wallAreaM2Total) || 0;
+            const m3 = Number(data.concreteM3) || 0;
+            const kg = Number(data.steelKgEst) || 0;
+            return (
+              <View style={styles.summaryBox}>
+                <SumRow label="Muros (m²)" value={`Per kit: ${safeFmtN(m2 / tk)} · Total: ${safeFmtN(m2)} m²`} />
+                <SumRow label="Hormigón (m³)" value={`Per kit: ${safeFmtN(m3 / tk)} · Total: ${safeFmtN(m3)} m³`} />
+                <SumRow label="Acero (kg)" value={`Per kit: ${safeFmtN(kg / tk, 1)} · Total: ${safeFmtN(kg, 1)} kg`} />
+                {data.totalWeightKgCored != null && (
+                  <SumRow label="Panel weight (cored)" value={`${safeFmtN(data.totalWeightKgCored)} kg`} />
+                )}
+                {data.totalVolumeM3 != null && (
+                  <SumRow label="Panel volume" value={`${safeFmtN(data.totalVolumeM3, 2)} m³`} />
+                )}
               </View>
-            )}
-            {data.totalVolumeM3 != null && (
-              <View style={styles.infoBox}>
-                <Text style={styles.infoBoxLabel}>Panel Volume</Text>
-                <Text style={styles.infoBoxValue}>
-                  {safeFmtN(data.totalVolumeM3, 2)} m³
-                </Text>
-              </View>
-            )}
-          </View>
+            );
+          })()}
         </View>
 
         {/* ── Notes ────────────────────────────────────────────────────── */}

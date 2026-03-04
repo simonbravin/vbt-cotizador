@@ -31,10 +31,11 @@ export async function POST(
 
   const quote = await prisma.quote.findFirst({
     where: { id: params.id, orgId: user.orgId },
-    include: { project: true, country: true },
+    include: { project: true, country: true, createdByUser: { select: { name: true } } },
   });
 
   if (!quote) return NextResponse.json({ error: "Quote not found" }, { status: 404 });
+  const quotedByName = quote.createdByUser?.name ?? "VBT Team";
 
   // Generate PDF by calling our own PDF endpoint
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
@@ -77,6 +78,7 @@ export async function POST(
       </div>
       <div style="background-color: #f8f9fa; padding: 24px; border-radius: 0 0 8px 8px;">
         <h2 style="color: #1a3a5c; margin: 0 0 16px 0;">Quote ${quoteNumber}</h2>
+        <p style="color: #666; font-size: 13px; margin: 0 0 16px 0;">Quoted by: ${quotedByName}</p>
         <table style="width: 100%; border-collapse: collapse;">
           <tr>
             <td style="padding: 8px 0; color: #666; width: 40%;">Project</td>

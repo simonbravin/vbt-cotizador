@@ -20,6 +20,10 @@ export default function QuoteDetailPage() {
   const [emailMsg, setEmailMsg] = useState("");
   const [sending, setSending] = useState(false);
   const [sendResult, setSendResult] = useState<string | null>(null);
+  const [pdfDialog, setPdfDialog] = useState(false);
+  const [pdfOptions, setPdfOptions] = useState({ includeAlerts: false, includeMaterialLines: true, showUnitPrice: true });
+  const [archiveDialog, setArchiveDialog] = useState(false);
+  const [archiving, setArchiving] = useState(false);
 
   useEffect(() => {
     fetch(`/api/quotes/${params.id}`)
@@ -49,9 +53,11 @@ export default function QuoteDetailPage() {
   };
 
   const archive = async () => {
-    if (!confirm("Archive this quote?")) return;
-    await fetch(`/api/quotes/${params.id}`, { method: "DELETE" });
-    router.push("/quotes");
+    setArchiving(true);
+    const res = await fetch(`/api/quotes/${params.id}`, { method: "DELETE" });
+    setArchiving(false);
+    setArchiveDialog(false);
+    if (res.ok) router.push("/quotes");
   };
 
   if (loading) return <div className="p-8 text-center text-gray-400">Loading...</div>;
@@ -87,13 +93,12 @@ export default function QuoteDetailPage() {
         </div>
 
         <div className="flex gap-2">
-          <a
-            href={`/api/quotes/${quote.id}/pdf`}
-            target="_blank"
+          <button
+            onClick={() => setPdfDialog(true)}
             className="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50"
           >
             <Download className="w-4 h-4" /> PDF
-          </a>
+          </button>
           <button
             onClick={() => setEmailDialog(true)}
             className="inline-flex items-center gap-2 px-3 py-2 bg-vbt-blue text-white rounded-lg text-sm hover:bg-blue-900"
@@ -101,7 +106,7 @@ export default function QuoteDetailPage() {
             <Mail className="w-4 h-4" /> Send Email
           </button>
           <button
-            onClick={archive}
+            onClick={() => setArchiveDialog(true)}
             className="inline-flex items-center gap-2 px-3 py-2 border border-red-200 text-red-600 rounded-lg text-sm hover:bg-red-50"
           >
             <Archive className="w-4 h-4" />
@@ -180,8 +185,6 @@ export default function QuoteDetailPage() {
           <h2 className="font-semibold text-gray-800">Cost Breakdown</h2>
           <div className="space-y-2 text-sm">
             {[
-              { label: `Factory Cost (${quote.costMethod})`, value: quote.factoryCostUsd },
-              { label: `Commission (${Number(quote.commissionPct) || 0}% + ${fmt(Number(quote.commissionFixed) || 0)})`, value: snapshot.commissionAmount ?? 0 },
               { label: "FOB", value: quote.fobUsd, bold: true },
               { label: `Freight (${quote.numContainers} containers)`, value: quote.freightCostUsd },
               { label: "CIF", value: quote.cifUsd, bold: true },
@@ -237,13 +240,104 @@ export default function QuoteDetailPage() {
       {/* Informational */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
         <h2 className="font-semibold text-gray-800 mb-3">Informational (not in cost)</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <div><p className="text-gray-400 text-xs">Concrete</p><p className="font-semibold">{(Number(quote.concreteM3) || 0).toFixed(1)} m³</p></div>
-          <div><p className="text-gray-400 text-xs">Steel Est.</p><p className="font-semibold">{(Number(quote.steelKgEst) || 0).toFixed(0)} kg</p></div>
-          <div><p className="text-gray-400 text-xs">Panel Weight</p><p className="font-semibold">{(Number(quote.totalWeightKg) || 0).toFixed(0)} kg</p></div>
-          <div><p className="text-gray-400 text-xs">Panel Volume</p><p className="font-semibold">{(Number(quote.totalVolumeM3) || 0).toFixed(2)} m³</p></div>
-        </div>
+        {(() => {
+          const tk = Math.max(Number(quote.totalKits) || 1, 1);
+          const m2 = Number(quote.wallAreaM2Total) || 0;
+          const m3 = Number(quote.concreteM3) || 0;
+          const kg = Number(quote.steelKgEst) || 0;
+          return (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <p className="text-gray-500 text-xs font-medium uppercase mb-1">Muros (m²)</p>
+                  <p className="font-semibold text-gray-800">Por kit: {(m2 / tk).toLocaleString("en-US", { minimumFractionDigits: 2 })} m²</p>
+                  <p className="text-gray-600">Total: {m2.toLocaleString("en-US", { minimumFractionDigits: 2 })} m²</p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <p className="text-gray-500 text-xs font-medium uppercase mb-1">Hormigón (m³)</p>
+                  <p className="font-semibold text-gray-800">Por kit: {(m3 / tk).toLocaleString("en-US", { minimumFractionDigits: 2 })} m³</p>
+                  <p className="text-gray-600">Total: {m3.toLocaleString("en-US", { minimumFractionDigits: 2 })} m³</p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <p className="text-gray-500 text-xs font-medium uppercase mb-1">Acero (kg)</p>
+                  <p className="font-semibold text-gray-800">Por kit: {(kg / tk).toLocaleString("en-US", { minimumFractionDigits: 1 })} kg</p>
+                  <p className="text-gray-600">Total: {kg.toLocaleString("en-US", { minimumFractionDigits: 1 })} kg</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm border-t border-gray-100 pt-3">
+                <div><p className="text-gray-400 text-xs">Panel Weight</p><p className="font-semibold">{(Number(quote.totalWeightKg) || 0).toFixed(0)} kg</p></div>
+                <div><p className="text-gray-400 text-xs">Panel Volume</p><p className="font-semibold">{(Number(quote.totalVolumeM3) || 0).toFixed(2)} m³</p></div>
+              </div>
+            </div>
+          );
+        })()}
       </div>
+
+      {/* PDF options dialog */}
+      {pdfDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md m-4">
+            <h3 className="font-semibold text-lg mb-4">PDF options</h3>
+            <div className="space-y-3 text-sm">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={pdfOptions.includeMaterialLines}
+                  onChange={(e) => setPdfOptions((o) => ({ ...o, includeMaterialLines: e.target.checked }))}
+                  className="rounded border-gray-300"
+                />
+                Include Material Lines
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={pdfOptions.showUnitPrice}
+                  onChange={(e) => setPdfOptions((o) => ({ ...o, showUnitPrice: e.target.checked }))}
+                  className="rounded border-gray-300"
+                />
+                Show unit price (in Material Lines)
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={pdfOptions.includeAlerts}
+                  onChange={(e) => setPdfOptions((o) => ({ ...o, includeAlerts: e.target.checked }))}
+                  className="rounded border-gray-300"
+                />
+                Include below min run alerts
+              </label>
+            </div>
+            <div className="flex justify-end gap-2 mt-6">
+              <button type="button" onClick={() => setPdfDialog(false)} className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50">Cancel</button>
+              <a
+                href={`/api/quotes/${quote.id}/pdf?includeAlerts=${pdfOptions.includeAlerts ? "1" : "0"}&includeMaterialLines=${pdfOptions.includeMaterialLines ? "1" : "0"}&showUnitPrice=${pdfOptions.showUnitPrice ? "1" : "0"}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-vbt-blue text-white rounded-lg text-sm hover:bg-blue-900"
+                onClick={() => setPdfDialog(false)}
+              >
+                <Download className="w-4 h-4" /> Download PDF
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Archive confirmation dialog */}
+      {archiveDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md m-4">
+            <h3 className="font-semibold text-lg mb-2">Archivar cotización</h3>
+            <p className="text-gray-600 text-sm mb-6">¿Archivar esta cotización? Podrás verla en el listado con estado Archivada.</p>
+            <div className="flex justify-end gap-2">
+              <button type="button" onClick={() => setArchiveDialog(false)} className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50">Cancelar</button>
+              <button type="button" onClick={archive} disabled={archiving} className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 disabled:opacity-50">
+                {archiving ? "Archivando..." : "Archivar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Email Dialog */}
       {emailDialog && (

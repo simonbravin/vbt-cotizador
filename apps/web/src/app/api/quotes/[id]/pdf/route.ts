@@ -7,7 +7,7 @@ import { QuotePdfDocument, type QuotePdfData } from "@/components/pdf/quote-pdf"
 import React from "react";
 
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: { id: string } }
 ) {
   const session = await getServerSession(authOptions);
@@ -15,12 +15,18 @@ export async function GET(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const url = new URL(req.url);
+  const includeAlerts = url.searchParams.get("includeAlerts") === "1" || url.searchParams.get("includeAlerts") === "true";
+  const includeMaterialLines = url.searchParams.get("includeMaterialLines") !== "0" && url.searchParams.get("includeMaterialLines") !== "false";
+  const showUnitPrice = url.searchParams.get("showUnitPrice") !== "0" && url.searchParams.get("showUnitPrice") !== "false";
+
   try {
     const quote = await prisma.quote.findUnique({
       where: { id: params.id },
       include: {
         project: true,
         country: true,
+        createdByUser: { select: { name: true } },
         lines: { orderBy: { lineNum: "asc" } },
         taxLines: { orderBy: { order: "asc" } },
       },
@@ -91,10 +97,12 @@ export async function GET(
       concreteM3: Number(quote.concreteM3) || 0,
       steelKgEst: Number(quote.steelKgEst) || 0,
       notes: quote.notes ?? undefined,
+      quotedByName: quote.createdByUser?.name ?? undefined,
     };
 
+    const pdfOptions = { includeAlerts, includeMaterialLines, showUnitPrice };
     const buffer = await renderToBuffer(
-      React.createElement(QuotePdfDocument, { data: pdfData }) as any
+      React.createElement(QuotePdfDocument, { data: pdfData, options: pdfOptions }) as any
     );
 
     const filename = `VBT-Quote-${pdfData.quoteNumber}.pdf`;

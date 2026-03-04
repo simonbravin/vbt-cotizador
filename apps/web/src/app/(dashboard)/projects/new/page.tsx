@@ -18,6 +18,9 @@ export default function NewProjectPage() {
     location: "",
     countryId: "" as string,
     totalKits: 1,
+    wallAreaM2Total: "" as string,
+    plannedStartDate: "" as string,
+    durationWeeks: "" as string,
     description: "",
   });
 
@@ -37,8 +40,15 @@ export default function NewProjectPage() {
     setError(null);
     try {
       const payload = {
-        ...form,
+        name: form.name,
+        client: form.client || undefined,
+        location: form.location || undefined,
         countryId: form.countryId || undefined,
+        totalKits: form.totalKits,
+        wallAreaM2Total: form.wallAreaM2Total ? parseFloat(form.wallAreaM2Total) : 0,
+        plannedStartDate: form.plannedStartDate || undefined,
+        durationWeeks: form.durationWeeks ? parseInt(form.durationWeeks, 10) : undefined,
+        description: form.description || undefined,
       };
       const res = await fetch("/api/projects", {
         method: "POST",
@@ -107,6 +117,42 @@ export default function NewProjectPage() {
             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-vbt-blue"
           />
           <p className="text-xs text-gray-500 mt-0.5">e.g. 1 for single project (school), 100 for development (100 houses)</p>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Superficie en m²</label>
+          <input
+            type="number"
+            min={0}
+            step="0.01"
+            value={form.wallAreaM2Total}
+            onChange={(e) => update("wallAreaM2Total", e.target.value)}
+            placeholder="0"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-vbt-blue"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Fecha posible de comienzo</label>
+          <input
+            type="date"
+            value={form.plannedStartDate}
+            onChange={(e) => update("plannedStartDate", e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-vbt-blue"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Duración del proyecto (semanas)</label>
+          <input
+            type="number"
+            min={0}
+            value={form.durationWeeks}
+            onChange={(e) => update("durationWeeks", e.target.value)}
+            placeholder="e.g. 12"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-vbt-blue"
+          />
+          <p className="text-xs text-gray-500 mt-0.5">Para planificar producción y entrega</p>
         </div>
 
         <div>
