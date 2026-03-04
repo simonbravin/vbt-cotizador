@@ -118,10 +118,10 @@ export default function QuoteDetailPage() {
       {/* Wall Areas */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { label: "S80 Wall Area", value: `${quote.wallAreaM2S80.toFixed(1)} m²` },
-          { label: "S150 Wall Area", value: `${quote.wallAreaM2S150.toFixed(1)} m²` },
-          { label: "S200 Wall Area", value: `${quote.wallAreaM2S200.toFixed(1)} m²` },
-          { label: "Total Wall Area", value: `${quote.wallAreaM2Total.toFixed(1)} m²` },
+          { label: "S80 Wall Area", value: `${(Number(quote.wallAreaM2S80) || 0).toFixed(1)} m²` },
+          { label: "S150 Wall Area", value: `${(Number(quote.wallAreaM2S150) || 0).toFixed(1)} m²` },
+          { label: "S200 Wall Area", value: `${(Number(quote.wallAreaM2S200) || 0).toFixed(1)} m²` },
+          { label: "Total Wall Area", value: `${(Number(quote.wallAreaM2Total) || 0).toFixed(1)} m²` },
         ].map((s) => (
           <div key={s.label} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <p className="text-xs text-gray-400 uppercase">{s.label}</p>
@@ -181,7 +181,7 @@ export default function QuoteDetailPage() {
           <div className="space-y-2 text-sm">
             {[
               { label: `Factory Cost (${quote.costMethod})`, value: quote.factoryCostUsd },
-              { label: `Commission (${quote.commissionPct}% + ${fmt(quote.commissionFixed)})`, value: snapshot.commissionAmount ?? 0 },
+              { label: `Commission (${Number(quote.commissionPct) || 0}% + ${fmt(Number(quote.commissionFixed) || 0)})`, value: snapshot.commissionAmount ?? 0 },
               { label: "FOB", value: quote.fobUsd, bold: true },
               { label: `Freight (${quote.numContainers} containers)`, value: quote.freightCostUsd },
               { label: "CIF", value: quote.cifUsd, bold: true },
@@ -190,7 +190,7 @@ export default function QuoteDetailPage() {
             ].map((row) => (
               <div key={row.label} className={`flex justify-between ${row.bold ? "font-semibold border-t pt-2" : ""}`}>
                 <span className={row.bold ? "" : "text-gray-500"}>{row.label}</span>
-                <span>{fmt(row.value)}</span>
+                <span>{fmt(Number(row.value) || 0)}</span>
               </div>
             ))}
           </div>
@@ -204,12 +204,12 @@ export default function QuoteDetailPage() {
               {quote.taxLines.map((tl: any) => (
                 <div key={tl.id} className="flex justify-between">
                   <span className="text-gray-500">{tl.label}</span>
-                  <span className="font-medium">{fmt(tl.computedAmount)}</span>
+                  <span className="font-medium">{fmt(Number(tl.computedAmount) || 0)}</span>
                 </div>
               ))}
               <div className="flex justify-between font-semibold border-t pt-2">
                 <span>Total Taxes</span>
-                <span>{fmt(quote.taxesFeesUsd)}</span>
+                <span>{fmt(Number(quote.taxesFeesUsd) || 0)}</span>
               </div>
             </div>
           ) : (
@@ -223,14 +223,14 @@ export default function QuoteDetailPage() {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-white/70">Landed / DDP Total</p>
-            {quote.totalKits > 0 && (
+            {(Number(quote.totalKits) || 0) > 0 && (
               <p className="text-white/50 text-sm mt-1">
                 {quote.totalKits} kits · {quote.numContainers} containers ·{" "}
-                {fmt(quote.landedDdpUsd / Math.max(quote.numContainers, 1))}/container
+                {fmt((Number(quote.landedDdpUsd) || 0) / Math.max(Number(quote.numContainers) || 1, 1))}/container
               </p>
             )}
           </div>
-          <p className="text-4xl font-bold text-white">{fmt(quote.landedDdpUsd)}</p>
+          <p className="text-4xl font-bold text-white">{fmt(Number(quote.landedDdpUsd) || 0)}</p>
         </div>
       </div>
 
@@ -238,10 +238,10 @@ export default function QuoteDetailPage() {
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
         <h2 className="font-semibold text-gray-800 mb-3">Informational (not in cost)</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <div><p className="text-gray-400 text-xs">Concrete</p><p className="font-semibold">{quote.concreteM3.toFixed(1)} m³</p></div>
-          <div><p className="text-gray-400 text-xs">Steel Est.</p><p className="font-semibold">{quote.steelKgEst.toFixed(0)} kg</p></div>
-          <div><p className="text-gray-400 text-xs">Panel Weight</p><p className="font-semibold">{quote.totalWeightKg.toFixed(0)} kg</p></div>
-          <div><p className="text-gray-400 text-xs">Panel Volume</p><p className="font-semibold">{quote.totalVolumeM3.toFixed(2)} m³</p></div>
+          <div><p className="text-gray-400 text-xs">Concrete</p><p className="font-semibold">{(Number(quote.concreteM3) || 0).toFixed(1)} m³</p></div>
+          <div><p className="text-gray-400 text-xs">Steel Est.</p><p className="font-semibold">{(Number(quote.steelKgEst) || 0).toFixed(0)} kg</p></div>
+          <div><p className="text-gray-400 text-xs">Panel Weight</p><p className="font-semibold">{(Number(quote.totalWeightKg) || 0).toFixed(0)} kg</p></div>
+          <div><p className="text-gray-400 text-xs">Panel Volume</p><p className="font-semibold">{(Number(quote.totalVolumeM3) || 0).toFixed(2)} m³</p></div>
         </div>
       </div>
 

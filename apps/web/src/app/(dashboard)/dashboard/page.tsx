@@ -223,7 +223,7 @@ export default async function DashboardPage() {
                   </div>
                   <div className="text-right">
                     <p className="text-sm text-gray-600">
-                      {project.wallAreaM2Total.toFixed(0)} m²
+                      {(Number(project.wallAreaM2Total) || 0).toFixed(0)} m²
                     </p>
                   </div>
                 </Link>

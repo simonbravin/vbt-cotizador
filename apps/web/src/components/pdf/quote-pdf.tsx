@@ -1,5 +1,3 @@
-"use client";
-
 import React from "react";
 import {
   Document,
@@ -303,6 +301,9 @@ const fmt = (n: number) =>
 
 const fmtN = (n: number, d = 1) => n.toFixed(d);
 
+const safeFmt = (n: unknown) => fmt(Number(n) || 0);
+const safeFmtN = (n: unknown, d = 1) => fmtN(Number(n) || 0, d);
+
 // ─── Components ──────────────────────────────────────────────────────────────
 
 function InfoRow({ label, value }: { label: string; value: string }) {
@@ -402,25 +403,25 @@ export function QuotePdfDocument({ data }: { data: QuotePdfData }) {
             <View style={styles.infoBox}>
               <Text style={styles.infoBoxLabel}>S80 (80mm)</Text>
               <Text style={styles.infoBoxValue}>
-                {fmtN(data.wallAreaM2S80)} m²
+                {safeFmtN(data.wallAreaM2S80)} m²
               </Text>
             </View>
             <View style={styles.infoBox}>
               <Text style={styles.infoBoxLabel}>S150 (6in)</Text>
               <Text style={styles.infoBoxValue}>
-                {fmtN(data.wallAreaM2S150)} m²
+                {safeFmtN(data.wallAreaM2S150)} m²
               </Text>
             </View>
             <View style={styles.infoBox}>
               <Text style={styles.infoBoxLabel}>S200 (8in)</Text>
               <Text style={styles.infoBoxValue}>
-                {fmtN(data.wallAreaM2S200)} m²
+                {safeFmtN(data.wallAreaM2S200)} m²
               </Text>
             </View>
             <View style={styles.infoBox}>
               <Text style={styles.infoBoxLabel}>Total Wall Area</Text>
               <Text style={styles.infoBoxValue}>
-                {fmtN(data.wallAreaM2Total)} m²
+                {safeFmtN(data.wallAreaM2Total)} m²
               </Text>
             </View>
           </View>
@@ -433,7 +434,7 @@ export function QuotePdfDocument({ data }: { data: QuotePdfData }) {
               <View key={i} style={styles.alertBox}>
                 <Text style={styles.alertText}>
                   ⚠ Below min run: {line.description} – markup applied:{" "}
-                  {line.markupPct}%
+                  {line.markupPct ?? 0}%
                 </Text>
               </View>
             ))}
@@ -463,14 +464,14 @@ export function QuotePdfDocument({ data }: { data: QuotePdfData }) {
                   >
                     <Text style={styles.colDesc}>{line.description}</Text>
                     <Text style={styles.colSys}>{line.systemCode ?? "—"}</Text>
-                    <Text style={styles.colQty}>{fmtN(line.qty, 0)}</Text>
+                    <Text style={styles.colQty}>{safeFmtN(line.qty, 0)}</Text>
                     <Text style={styles.colLength}>
-                      {fmtN((line.heightMm ?? 0) / 1000)}
+                      {safeFmtN((line.heightMm ?? 0) / 1000)}
                     </Text>
-                    <Text style={styles.colM2}>{fmtN(line.m2Line ?? 0)}</Text>
-                    <Text style={styles.colPrice}>{fmt(line.unitPrice)}</Text>
+                    <Text style={styles.colM2}>{safeFmtN(line.m2Line ?? 0)}</Text>
+                    <Text style={styles.colPrice}>{safeFmt(line.unitPrice)}</Text>
                     <Text style={styles.colTotal}>
-                      {fmt(line.lineTotalWithMarkup)}
+                      {safeFmt(line.lineTotalWithMarkup)}
                     </Text>
                   </View>
                 ))}
@@ -484,20 +485,20 @@ export function QuotePdfDocument({ data }: { data: QuotePdfData }) {
           <View style={styles.summaryBox}>
             <SumRow
               label={`Factory Cost (${data.costMethod})`}
-              value={fmt(data.factoryCostUsd)}
+              value={safeFmt(data.factoryCostUsd)}
             />
             <SumRow
-              label={`Commission (${data.commissionPct}% + ${fmt(data.commissionFixed)} fixed)`}
-              value={fmt(data.commissionAmount)}
+              label={`Commission (${data.commissionPct}% + ${safeFmt(data.commissionFixed)} fixed)`}
+              value={safeFmt(data.commissionAmount)}
             />
-            <SumRow label="FOB" value={fmt(data.fobUsd)} bold />
+            <SumRow label="FOB" value={safeFmt(data.fobUsd)} bold />
             <SumRow
               label={`Freight (${data.numContainers} container${data.numContainers !== 1 ? "s" : ""})`}
-              value={fmt(data.freightCostUsd)}
+              value={safeFmt(data.freightCostUsd)}
             />
-            <SumRow label="CIF" value={fmt(data.cifUsd)} bold />
-            <SumRow label="Total taxes & fees" value={fmt(data.taxesFeesUsd)} />
-            <SumRow label="Landed DDP" value={fmt(data.landedDdpUsd)} bold />
+            <SumRow label="CIF" value={safeFmt(data.cifUsd)} bold />
+            <SumRow label="Total taxes & fees" value={safeFmt(data.taxesFeesUsd)} />
+            <SumRow label="Landed DDP" value={safeFmt(data.landedDdpUsd)} bold />
           </View>
         </View>
 
@@ -512,13 +513,13 @@ export function QuotePdfDocument({ data }: { data: QuotePdfData }) {
                 <View key={i} style={styles.taxLine}>
                   <Text style={styles.summaryLabel}>{tl.label}</Text>
                   <Text style={styles.summaryValue}>
-                    {fmt(tl.computedAmount)}
+                    {safeFmt(tl.computedAmount)}
                   </Text>
                 </View>
               ))}
               <SumRow
                 label="Total Taxes & Fees"
-                value={fmt(data.taxesFeesUsd)}
+                value={safeFmt(data.taxesFeesUsd)}
                 bold
               />
             </View>
@@ -529,9 +530,9 @@ export function QuotePdfDocument({ data }: { data: QuotePdfData }) {
         <View style={styles.summaryBox}>
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>LANDED / DDP TOTAL</Text>
-            <Text style={styles.totalValue}>{fmt(data.landedDdpUsd)}</Text>
+            <Text style={styles.totalValue}>{safeFmt(data.landedDdpUsd)}</Text>
           </View>
-          {data.totalKits > 0 && (
+          {(Number(data.totalKits) || 0) > 0 && (
             <View
               style={{
                 flexDirection: "row",
@@ -543,9 +544,9 @@ export function QuotePdfDocument({ data }: { data: QuotePdfData }) {
                 {data.totalKits} kits @ {data.kitsPerContainer}/container
               </Text>
               <Text style={{ fontSize: 8, color: "#666" }}>
-                {fmt(data.landedDdpUsd / Math.max(data.numContainers, 1))}
+                {safeFmt((Number(data.landedDdpUsd) || 0) / Math.max(Number(data.numContainers) || 1, 1))}
                 /container •{" "}
-                {fmt(data.landedDdpUsd / Math.max(data.totalKits, 1))}/kit
+                {safeFmt((Number(data.landedDdpUsd) || 0) / Math.max(Number(data.totalKits) || 1, 1))}/kit
               </Text>
             </View>
           )}
@@ -560,20 +561,20 @@ export function QuotePdfDocument({ data }: { data: QuotePdfData }) {
             <View style={styles.infoBox}>
               <Text style={styles.infoBoxLabel}>Concrete Required</Text>
               <Text style={styles.infoBoxValue}>
-                {fmtN(data.concreteM3)} m³
+                {safeFmtN(data.concreteM3)} m³
               </Text>
             </View>
             <View style={styles.infoBox}>
               <Text style={styles.infoBoxLabel}>Steel Estimate</Text>
               <Text style={styles.infoBoxValue}>
-                {fmtN(data.steelKgEst)} kg
+                {safeFmtN(data.steelKgEst)} kg
               </Text>
             </View>
             {data.totalWeightKgCored != null && (
               <View style={styles.infoBox}>
                 <Text style={styles.infoBoxLabel}>Panel Weight (cored)</Text>
                 <Text style={styles.infoBoxValue}>
-                  {fmtN(data.totalWeightKgCored)} kg
+                  {safeFmtN(data.totalWeightKgCored)} kg
                 </Text>
               </View>
             )}
@@ -581,7 +582,7 @@ export function QuotePdfDocument({ data }: { data: QuotePdfData }) {
               <View style={styles.infoBox}>
                 <Text style={styles.infoBoxLabel}>Panel Volume</Text>
                 <Text style={styles.infoBoxValue}>
-                  {fmtN(data.totalVolumeM3, 2)} m³
+                  {safeFmtN(data.totalVolumeM3, 2)} m³
                 </Text>
               </View>
             )}
