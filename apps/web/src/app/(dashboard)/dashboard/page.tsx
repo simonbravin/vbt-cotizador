@@ -199,7 +199,7 @@ export default async function DashboardPage() {
                       {quote.quoteNumber ?? quote.id.slice(0, 8).toUpperCase()}
                     </p>
                     <p className="text-gray-400 text-xs">
-                      {quote.project.name} • {quote.country?.name ?? "No destination"}
+                      {(quote as { project?: { name: string } | null; country?: { name: string } | null }).project?.name ?? "—"} • {(quote as { country?: { name: string } | null }).country?.name ?? "No destination"}
                     </p>
                   </div>
                   <div className="text-right">
