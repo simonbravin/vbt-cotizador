@@ -1,37 +1,70 @@
 import { requireAuth } from "@/lib/utils";
 import { prisma } from "@/lib/db";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { FileText, FolderOpen, Package, TrendingUp, Plus } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 
 export default async function DashboardPage() {
-  const user = await requireAuth();
-  const orgId = (user as any).orgId;
+  let user: Awaited<ReturnType<typeof requireAuth>>;
+  try {
+    user = await requireAuth();
+  } catch {
+    redirect("/login");
+  }
 
-  // Stats
-  const [projectCount, quoteCount, draftCount, sentCount] = await Promise.all([
-    prisma.project.count({ where: { orgId, isArchived: false } }),
-    prisma.quote.count({ where: { orgId } }),
-    prisma.quote.count({ where: { orgId, status: "DRAFT" } }),
-    prisma.quote.count({ where: { orgId, status: "SENT" } }),
-  ]);
+  const orgId = (user as { orgId?: string | null }).orgId;
+  if (orgId == null || orgId === "") {
+    redirect("/login");
+  }
 
-  const recentQuotes = await prisma.quote.findMany({
-    where: { orgId },
-    include: { project: true, country: true },
-    orderBy: { createdAt: "desc" },
-    take: 5,
-  });
+  let projectCount = 0;
+  let quoteCount = 0;
+  let draftCount = 0;
+  let sentCount = 0;
+  let recentQuotes: Awaited<ReturnType<typeof prisma.quote.findMany>> = [];
+  let recentProjects: Awaited<ReturnType<typeof prisma.project.findMany>> = [];
+  let pendingUsers = 0;
 
-  const recentProjects = await prisma.project.findMany({
-    where: { orgId, isArchived: false },
-    orderBy: { createdAt: "desc" },
-    take: 5,
-  });
+  try {
+    [projectCount, quoteCount, draftCount, sentCount] = await Promise.all([
+      prisma.project.count({ where: { orgId, isArchived: false } }),
+      prisma.quote.count({ where: { orgId } }),
+      prisma.quote.count({ where: { orgId, status: "DRAFT" } }),
+      prisma.quote.count({ where: { orgId, status: "SENT" } }),
+    ]);
 
-  const pendingUsers = (user as any).role === "SUPERADMIN"
-    ? await prisma.user.count({ where: { status: "PENDING" } })
-    : 0;
+    recentQuotes = await prisma.quote.findMany({
+      where: { orgId },
+      include: { project: true, country: true },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+    });
+
+    recentProjects = await prisma.project.findMany({
+      where: { orgId, isArchived: false },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+    });
+
+    if ((user as { role?: string }).role === "SUPERADMIN") {
+      pendingUsers = await prisma.user.count({ where: { status: "PENDING" } });
+    }
+  } catch (err) {
+    console.error("Dashboard data fetch error:", err);
+    return (
+      <div className="space-y-6">
+        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 text-center">
+          <p className="text-amber-800 font-medium">Unable to load dashboard data</p>
+          <p className="text-amber-700 text-sm mt-1">Please try again or contact support if the problem persists.</p>
+          <Link href="/dashboard" className="inline-block mt-4 px-4 py-2 bg-amber-100 text-amber-800 rounded-lg text-sm font-medium hover:bg-amber-200">
+            Retry
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

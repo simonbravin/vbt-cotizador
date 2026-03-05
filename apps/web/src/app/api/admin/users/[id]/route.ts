@@ -66,15 +66,23 @@ export async function PATCH(
     });
   }
 
-  const action = status === "ACTIVE" ? "USER_APPROVED" : "USER_REJECTED";
-  await createAuditLog({
-    orgId: currentUser.orgId,
-    userId: currentUser.id,
-    action: action as any,
-    entityType: "User",
-    entityId: params.id,
-    meta: { status, role },
-  });
+  const action = status === "ACTIVE"
+    ? "USER_APPROVED"
+    : status === "REJECTED" || status === "SUSPENDED"
+      ? "USER_REJECTED"
+      : role
+        ? "USER_ROLE_CHANGED"
+        : null;
+  if (action && currentUser.orgId) {
+    await createAuditLog({
+      orgId: currentUser.orgId,
+      userId: currentUser.id,
+      action: action as any,
+      entityType: "User",
+      entityId: params.id,
+      meta: { status, role },
+    });
+  }
 
   // Send email notification to the user
   if (process.env.RESEND_API_KEY && (status === "ACTIVE" || status === "REJECTED")) {
