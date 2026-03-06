@@ -5,7 +5,7 @@ import { prisma } from "@/lib/db";
 import { createAuditLog } from "@/lib/audit";
 import { z } from "zod";
 
-const projectStatusEnum = z.enum(["QUOTED", "IN_CONVERSATION", "SOLD", "ARCHIVED"]);
+const projectStatusEnum = z.enum(["DRAFT", "QUOTED", "QUOTE_SENT", "SOLD", "ARCHIVED"]);
 
 const updateSchema = z.object({
   name: z.string().min(1).optional(),

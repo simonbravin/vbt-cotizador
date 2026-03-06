@@ -31,8 +31,9 @@ type Summary = {
 };
 
 const statusLabel: Record<string, string> = {
+  DRAFT: "Draft",
   QUOTED: "Quoted",
-  IN_CONVERSATION: "In conversation",
+  QUOTE_SENT: "Quote sent",
   SOLD: "Sold",
   ARCHIVED: "Archived",
 };
@@ -159,8 +160,9 @@ export function ReportsClient({ countries, clients }: { countries: Country[]; cl
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
             >
               <option value="">All</option>
+              <option value="DRAFT">Draft</option>
               <option value="QUOTED">Quoted</option>
-              <option value="IN_CONVERSATION">In conversation</option>
+              <option value="QUOTE_SENT">Quote sent</option>
               <option value="SOLD">Sold</option>
               <option value="ARCHIVED">Archived</option>
             </select>
@@ -390,8 +392,9 @@ export function ReportsClient({ countries, clients }: { countries: Country[]; cl
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                           p.status === "SOLD" ? "bg-green-100 text-green-700" :
                           p.status === "ARCHIVED" ? "bg-gray-200 text-gray-600" :
-                          p.status === "IN_CONVERSATION" ? "bg-blue-100 text-blue-700" :
-                          "bg-amber-100 text-amber-700"
+                          p.status === "QUOTE_SENT" ? "bg-blue-100 text-blue-700" :
+                          p.status === "QUOTED" ? "bg-amber-100 text-amber-700" :
+                          "bg-gray-100 text-gray-600"
                         }`}>{statusLabel[p.status] ?? p.status}</span>
                       </td>
                       <td className="px-4 py-3">

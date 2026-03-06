@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
-const STATUS_VALUES = ["QUOTED", "IN_CONVERSATION", "SOLD", "ARCHIVED"] as const;
+const STATUS_VALUES = ["DRAFT", "QUOTED", "QUOTE_SENT", "SOLD", "ARCHIVED"] as const;
 
 export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
@@ -71,7 +71,7 @@ export async function GET(req: Request) {
     prisma.project.count({ where }),
     prisma.project.count({ where: { orgId: user.orgId, quotes: { some: {} } } }),
     prisma.project.count({
-      where: { orgId: user.orgId, status: { in: ["QUOTED", "IN_CONVERSATION"] } },
+      where: { orgId: user.orgId, status: { in: ["QUOTED", "QUOTE_SENT"] } },
     }),
     prisma.project.count({ where: { orgId: user.orgId, status: "SOLD" } }),
     prisma.project.count({ where: { orgId: user.orgId, status: "ARCHIVED" } }),

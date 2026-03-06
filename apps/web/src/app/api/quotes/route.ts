@@ -97,8 +97,8 @@ export async function POST(req: Request) {
   let pieceMeta: Record<string, any> = {};
 
   if (data.costMethod === "CSV" && data.revitImportId) {
-    const importData = await prisma.revitImport.findUnique({
-      where: { id: data.revitImportId },
+    const importData = await prisma.revitImport.findFirst({
+      where: { id: data.revitImportId, orgId: user.orgId },
       include: {
         lines: {
           include: {
@@ -121,6 +121,7 @@ export async function POST(req: Request) {
           qty: l.rawQty,
           heightMm: l.rawHeightMm,
           isIgnored: l.isIgnored,
+          manualPricePerM: l.pricePerM ?? undefined,
         }));
 
       // Build pieceMeta
@@ -295,6 +296,23 @@ export async function POST(req: Request) {
         }
       }
     }
+  }
+
+  // If project has exactly one quote, set it as baseline and move from DRAFT to QUOTED
+  const projectQuoteCount = await prisma.quote.count({ where: { projectId: data.projectId } });
+  if (projectQuoteCount === 1) {
+    const project = await prisma.project.findUnique({
+      where: { id: data.projectId },
+      select: { status: true },
+    });
+    const updateData: { baselineQuoteId: string; status?: "QUOTED" } = { baselineQuoteId: quote.id };
+    if (project?.status === "DRAFT") {
+      updateData.status = "QUOTED";
+    }
+    await prisma.project.update({
+      where: { id: data.projectId },
+      data: updateData,
+    });
   }
 
   await createAuditLog({

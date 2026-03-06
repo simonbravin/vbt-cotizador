@@ -134,6 +134,21 @@ export async function POST(
       },
     });
 
+    // Move project to QUOTE_SENT when a quote is sent (if still DRAFT or QUOTED)
+    if (quote.project?.id) {
+      const proj = await prisma.project.findUnique({
+        where: { id: quote.project.id },
+        select: { status: true },
+      });
+      const s = proj?.status as string | undefined;
+      if (s === "DRAFT" || s === "QUOTED") {
+        await prisma.project.update({
+          where: { id: quote.project.id },
+          data: { status: "QUOTE_SENT" } as any,
+        });
+      }
+    }
+
     await createAuditLog({
       orgId: user.orgId,
       userId: user.id,

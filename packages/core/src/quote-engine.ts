@@ -142,9 +142,10 @@ export function buildQuoteSnapshot(input: QuoteInput): QuoteSnapshot {
   const minRunFt = orgDefaults.minRunFt;
 
   const outputLines: QuoteOutputLine[] = [];
-  let wallAreaM2S80 = input.m2S80 ?? 0;
-  let wallAreaM2S150 = input.m2S150 ?? 0;
-  let wallAreaM2S200 = input.m2S200 ?? 0;
+  const isCsvWithLines = input.method === "CSV" && (input.lines?.length ?? 0) > 0;
+  let wallAreaM2S80 = isCsvWithLines ? 0 : (input.m2S80 ?? 0);
+  let wallAreaM2S150 = isCsvWithLines ? 0 : (input.m2S150 ?? 0);
+  let wallAreaM2S200 = isCsvWithLines ? 0 : (input.m2S200 ?? 0);
   let totalWeightKgCored = 0;
   let totalWeightKgUncored = 0;
   let totalVolumeM3 = 0;
@@ -245,7 +246,8 @@ export function buildQuoteSnapshot(input: QuoteInput): QuoteSnapshot {
     }
   }
 
-  const wallAreaM2Total = wallAreaM2S80 + wallAreaM2S150 + wallAreaM2S200 + (input.m2Total ?? 0);
+  const wallAreaM2Total =
+    wallAreaM2S80 + wallAreaM2S150 + wallAreaM2S200 + (isCsvWithLines ? 0 : (input.m2Total ?? 0));
 
   // ── Factory Cost ──────────────────────────────────────────────────────────
   let factoryCostUsd = 0;

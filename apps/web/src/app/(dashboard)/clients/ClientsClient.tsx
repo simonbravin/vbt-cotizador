@@ -34,6 +34,8 @@ type Stats = {
   topBySold: { clientId: string; clientName: string | null; totalSold: number }[];
 };
 
+const SEARCH_DEBOUNCE_MS = 350;
+
 const emptyForm = {
   name: "",
   legalName: "",
@@ -57,7 +59,7 @@ export function ClientsClient({
   countries: Country[];
 }) {
   const t = useT();
-  const [view, setView] = useState<"cards" | "table">("cards");
+  const [view, setView] = useState<"cards" | "table">("table");
   const [clients, setClients] = useState<Client[]>(initialClients);
   const [total, setTotal] = useState(initialTotal);
   const [search, setSearch] = useState("");
@@ -96,6 +98,25 @@ export function ClientsClient({
       })
       .finally(() => setSearching(false));
   }, [search.trim(), initialClients, initialTotal]);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (!search.trim()) {
+        setClients(initialClients);
+        setTotal(initialTotal);
+        return;
+      }
+      setSearching(true);
+      fetch(`/api/clients?search=${encodeURIComponent(search.trim())}&limit=50`)
+        .then((r) => r.json())
+        .then((data) => {
+          setClients(data.clients ?? []);
+          setTotal(data.total ?? 0);
+        })
+        .finally(() => setSearching(false));
+    }, SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(t);
+  }, [search, initialClients, initialTotal]);
 
   const refreshList = useCallback(() => {
     fetch(`/api/clients?limit=50`)

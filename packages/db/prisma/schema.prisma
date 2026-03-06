@@ -49,8 +49,9 @@ enum QuoteStatus {
 }
 
 enum ProjectStatus {
+  DRAFT
   QUOTED
-  IN_CONVERSATION
+  QUOTE_SENT
   SOLD
   ARCHIVED
 }
@@ -319,7 +320,7 @@ model Project {
   durationWeeks    Int?
   isArchived       Boolean   @default(false)
   // Pipeline & reporting
-  status           ProjectStatus @default(QUOTED)
+  status           ProjectStatus @default(DRAFT)
   baselineQuoteId  String?   @unique
   soldAt           DateTime?
   finalAmountUsd   Float?

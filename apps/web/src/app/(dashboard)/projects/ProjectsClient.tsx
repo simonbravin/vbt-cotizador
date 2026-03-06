@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { FolderOpen, MapPin, User, LayoutGrid, List, Search } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
+
+const SEARCH_DEBOUNCE_MS = 350;
 
 type Project = {
   id: string;
@@ -21,14 +23,15 @@ type Project = {
 };
 
 const statusLabel: Record<string, string> = {
+  DRAFT: "Draft",
   QUOTED: "Quoted",
-  IN_CONVERSATION: "In conversation",
+  QUOTE_SENT: "Quote sent",
   SOLD: "Sold",
   ARCHIVED: "Archived",
 };
 
 export function ProjectsClient({ projects: initialProjects, total: initialTotal }: { projects: Project[]; total: number }) {
-  const [view, setView] = useState<"cards" | "table">("cards");
+  const [view, setView] = useState<"cards" | "table">("table");
   const [projects, setProjects] = useState<Project[]>(initialProjects);
   const [total, setTotal] = useState(initialTotal);
   const [search, setSearch] = useState("");
@@ -50,6 +53,25 @@ export function ProjectsClient({ projects: initialProjects, total: initialTotal 
       })
       .finally(() => setSearching(false));
   }, [search.trim(), initialProjects, initialTotal]);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (!search.trim()) {
+        setProjects(initialProjects);
+        setTotal(initialTotal);
+        return;
+      }
+      setSearching(true);
+      fetch(`/api/projects?search=${encodeURIComponent(search.trim())}`)
+        .then((r) => r.json())
+        .then((data) => {
+          setProjects(data.projects ?? []);
+          setTotal(data.total ?? 0);
+        })
+        .finally(() => setSearching(false));
+    }, SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(t);
+  }, [search, initialProjects, initialTotal]);
 
   return (
     <div>
@@ -108,8 +130,9 @@ export function ProjectsClient({ projects: initialProjects, total: initialTotal 
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                       p.status === "SOLD" ? "bg-green-100 text-green-700" :
                       p.status === "ARCHIVED" ? "bg-gray-200 text-gray-600" :
-                      p.status === "IN_CONVERSATION" ? "bg-blue-100 text-blue-700" :
-                      "bg-amber-100 text-amber-700"
+                      p.status === "QUOTE_SENT" ? "bg-blue-100 text-blue-700" :
+                      p.status === "QUOTED" ? "bg-amber-100 text-amber-700" :
+                      "bg-gray-100 text-gray-600"
                     }`}>{statusLabel[p.status] ?? p.status}</span>
                   )}
                   <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full">
@@ -175,8 +198,9 @@ export function ProjectsClient({ projects: initialProjects, total: initialTotal 
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                         p.status === "SOLD" ? "bg-green-100 text-green-700" :
                         p.status === "ARCHIVED" ? "bg-gray-200 text-gray-600" :
-                        p.status === "IN_CONVERSATION" ? "bg-blue-100 text-blue-700" :
-                        "bg-amber-100 text-amber-700"
+                        p.status === "QUOTE_SENT" ? "bg-blue-100 text-blue-700" :
+                        p.status === "QUOTED" ? "bg-amber-100 text-amber-700" :
+                        "bg-gray-100 text-gray-600"
                       }`}>{statusLabel[p.status] ?? p.status}</span>
                     ) : (
                       <span className="text-gray-300">—</span>
