@@ -116,9 +116,8 @@ enum InvMoveType      { IN | OUT | TRANSFER | ADJUST | RESERVE | RELEASE }
 enum SystemCode       { S80 | S150 | S200 }
 enum TaxBase          { CIF | FOB | BASE_IMPONIBLE | FIXED_PER_CONTAINER | FIXED_TOTAL }
 enum MarkupType       { PERCENT | FIXED_USD | BOTH }
-enum AuditAction      { USER_APPROVED | USER_REJECTED | COST_UPDATED | TAX_RULE_CHANGED |
-                        QUOTE_SENT | QUOTE_CREATED | QUOTE_ARCHIVED | INV_MOVE |
-                        CATALOG_IMPORTED | PROJECT_CREATED | PROJECT_UPDATED }
+enum AuditAction      { USER_APPROVED | USER_REJECTED | ... | QUOTE_* | INV_MOVE | PROJECT_* | SALE_CREATED | SALE_UPDATED | PAYMENT_RECORDED }
+enum SaleStatus       { DRAFT | CONFIRMED | PARTIALLY_PAID | PAID | CANCELLED }
 ```
 
 ### Modelos — Relaciones resumidas
@@ -129,6 +128,10 @@ Org ──< Project ──< RevitImport ──< RevitImportLine >── PieceCat
 Org ──< Quote ──< QuoteLine
               ──< QuoteTaxLine
               ──< QuoteDoc
+Org ──< BillingEntity
+Org ──< Sale ──< SaleInvoice >── BillingEntity
+          ──< Payment >── BillingEntity
+Sale >── Client, Project, Quote?
 Org ──< Warehouse ──< InventoryItem >── PieceCatalog
                   ──< InventoryMove
 Org ──< CountryProfile ──< FreightRateProfile
@@ -394,6 +397,21 @@ Todas las rutas están bajo `/api/`. Autenticación via NextAuth session (cookie
 }
 ```
 
+### Sales
+| Método | Ruta | Notas |
+|--------|------|-------|
+| GET | `/api/sales` | List sales; query: page, limit, status, clientId, projectId, from, to, search |
+| POST | `/api/sales` | Create sale (clientId, projectId, quoteId?, quantity, financials, invoices[], status) |
+| GET | `/api/sales/[id]` | Sale detail with invoices and payments |
+| PATCH | `/api/sales/[id]` | Update sale and/or invoices |
+| POST | `/api/sales/[id]/payments` | Record payment (entityId, amountUsd, amountLocal?, exchangeRate?, paidAt?, notes?) |
+| GET | `/api/sales/entities` | List billing entities (Vision Latam, Vision Canada) |
+| GET/PATCH/DELETE | `/api/sales/entities/[id]` | Single entity (admin) |
+| GET | `/api/sales/statements` | Account statements; query: clientId, entityId, from, to |
+| GET | `/api/sales/statements/export` | Export CSV; same query params |
+| GET | `/api/sales/reports/summary` | KPIs: totalSales, totalValue, totalPaid, totalPending, byStatus, entitySummary |
+| GET | `/api/sales/notifications/due` | SaleInvoices due in next N days (default 7); query: days=7 |
+
 ### Catálogo
 | Método | Ruta | Notas |
 |--------|------|-------|
@@ -449,6 +467,10 @@ Todas las rutas están bajo `/api/`. Autenticación via NextAuth session (cookie
 /(dashboard)/quotes             # Lista de cotizaciones
 /(dashboard)/quotes/new         # Wizard de 6 pasos
 /(dashboard)/quotes/[id]        # Detalle de cotización con breakdown financiero
+/(dashboard)/sales              # Lista de ventas (tabla ancha: EXW, FOB, CIF, DDP, etc.)
+/(dashboard)/sales/new          # Nueva venta (cliente, proyecto, quote opcional, financials)
+/(dashboard)/sales/[id]         # Detalle venta, invoices, pagos, agregar pago
+/(dashboard)/sales/statements   # Estados de cuenta por cliente/entidad, export CSV
 /(dashboard)/admin/catalog      # Catálogo de piezas con filtros y edición
 /(dashboard)/admin/countries    # Gestión de países
 /(dashboard)/admin/freight      # Perfiles de flete por país

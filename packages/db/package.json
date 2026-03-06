@@ -2,6 +2,9 @@
   "name": "@vbt/db",
   "version": "1.0.0",
   "private": true,
+  "prisma": {
+    "seed": "tsx --env-file=.env prisma/seed.ts"
+  },
   "exports": {
     ".": "./src/index.ts"
   },

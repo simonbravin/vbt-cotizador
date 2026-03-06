@@ -20,6 +20,7 @@ import {
   BarChart3,
   ChevronDown,
   ChevronRight,
+  ShoppingCart,
 } from "lucide-react";
 import { useState } from "react";
 import { useT } from "@/lib/i18n/context";
@@ -37,6 +38,7 @@ const navigation: NavItem[] = [
   { labelKey: "nav.projects", href: "/projects", icon: FolderOpen },
   { labelKey: "nav.clients", href: "/clients", icon: Building2 },
   { labelKey: "nav.quotes", href: "/quotes", icon: FileText },
+  { labelKey: "nav.sales", href: "/sales", icon: ShoppingCart },
   { labelKey: "nav.reports", href: "/reports", icon: BarChart3 },
   {
     labelKey: "nav.inventory",
@@ -87,11 +89,11 @@ export function Sidebar({ role }: SidebarProps) {
       {/* Logo (horizontal) */}
       <div className="px-3 py-4 border-b border-white/10 flex items-center">
         <Image
-          src="/logo-vbt-white.png"
+          src="/logo-vbt-white-horizontal.png"
           alt="Vision Building Technologies"
-          width={220}
-          height={48}
-          className="w-full h-10 object-contain object-left"
+          width={240}
+          height={56}
+          className="w-full h-11 object-contain object-left"
         />
       </div>
 

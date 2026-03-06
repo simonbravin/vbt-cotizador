@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Download, Mail, Archive, Trash2, ChevronDown, ChevronRight, Pencil, Activity } from "lucide-react";
+import { ArrowLeft, Download, Mail, Archive, Trash2, ChevronDown, ChevronRight, Pencil, Activity, ShoppingCart } from "lucide-react";
 
 function fmt(n: number) {
   return n.toLocaleString("en-US", { style: "currency", currency: "USD" });
@@ -168,7 +168,15 @@ export default function QuoteDetailPage() {
           </div>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          {quote.projectId && (
+            <Link
+              href={`/sales/new?quoteId=${quote.id}&projectId=${quote.projectId}&clientId=${(quote.project as any)?.clientId ?? ""}`}
+              className="inline-flex items-center gap-2 px-3 py-2 bg-vbt-orange text-white rounded-lg text-sm font-medium hover:bg-orange-600"
+            >
+              <ShoppingCart className="w-4 h-4" /> Create sale
+            </Link>
+          )}
           <button
             onClick={openEdit}
             className="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50"

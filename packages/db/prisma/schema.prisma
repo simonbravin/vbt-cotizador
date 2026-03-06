@@ -56,6 +56,14 @@ enum ProjectStatus {
   ARCHIVED
 }
 
+enum SaleStatus {
+  DRAFT
+  CONFIRMED
+  PARTIALLY_PAID
+  PAID
+  CANCELLED
+}
+
 enum InvMoveType {
   IN
   OUT
@@ -81,6 +89,9 @@ enum AuditAction {
   PROJECT_CREATED
   PROJECT_UPDATED
   PROJECT_DELETED
+  SALE_CREATED
+  SALE_UPDATED
+  PAYMENT_RECORDED
 }
 
 enum SystemCode {
@@ -134,6 +145,9 @@ model Org {
   taxRuleSets    TaxRuleSet[]
   revitImports   RevitImport[]
   auditLogs      AuditLog[]
+  billingEntities BillingEntity[]
+  sales          Sale[]
+  payments       Payment[]
 
   @@map("orgs")
 }
@@ -150,6 +164,8 @@ model User {
   orgMembers   OrgMember[]
   quotesCreated Quote[]
   auditLogs    AuditLog[]
+  salesCreated Sale[]
+  paymentsCreated Payment[]
 
   @@map("users")
 }
@@ -209,6 +225,7 @@ model Client {
   org      Org             @relation(fields: [orgId], references: [id])
   country  CountryProfile? @relation(fields: [countryId], references: [id])
   projects Project[]
+  sales    Sale[]
 
   @@index([orgId])
   @@index([countryId])
@@ -333,6 +350,7 @@ model Project {
   baselineQuote  Quote?          @relation("ProjectBaselineQuote", fields: [baselineQuoteId], references: [id])
   revitImports   RevitImport[]
   quotes         Quote[]
+  sales          Sale[]
 
   @@index([orgId])
   @@index([clientId])
@@ -578,6 +596,7 @@ model Quote {
   lines             QuoteLine[]
   taxLines          QuoteTaxLine[]
   docs              QuoteDoc[]
+  sales             Sale[]
 
   @@index([orgId])
   @@index([projectId])
@@ -653,4 +672,111 @@ model QuoteDoc {
 
   @@index([quoteId])
   @@map("quote_docs")
+}
+
+// ─── Sales ───────────────────────────────────────────────────────────────────
+
+model BillingEntity {
+  id        String   @id @default(cuid())
+  orgId     String
+  name      String
+  slug      String   // VISION_LATAM, VISION_CANADA
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  org     Org           @relation(fields: [orgId], references: [id])
+  invoices SaleInvoice[]
+  payments Payment[]
+
+  @@unique([orgId, slug])
+  @@index([orgId])
+  @@map("billing_entities")
+}
+
+model Sale {
+  id          String     @id @default(cuid())
+  orgId       String
+  clientId    String
+  projectId   String
+  quoteId     String?
+  saleNumber  String?
+  quantity    Int        @default(1)
+  status      SaleStatus @default(DRAFT)
+  // Financial (totals, editable)
+  exwUsd              Float @default(0)
+  commissionPct       Float @default(0)
+  commissionAmountUsd Float @default(0)
+  fobUsd              Float @default(0)
+  freightUsd          Float @default(0)
+  cifUsd              Float @default(0)
+  taxesFeesUsd        Float @default(0)
+  landedDdpUsd        Float @default(0)
+  taxBreakdownJson    Json?
+  notes               String?
+  createdBy           String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  org           Org            @relation(fields: [orgId], references: [id])
+  client        Client         @relation(fields: [clientId], references: [id])
+  project       Project        @relation(fields: [projectId], references: [id])
+  quote         Quote?         @relation(fields: [quoteId], references: [id])
+  createdByUser User?          @relation(fields: [createdBy], references: [id])
+  invoices      SaleInvoice[]
+  payments      Payment[]
+
+  @@unique([orgId, saleNumber])
+  @@index([orgId])
+  @@index([clientId])
+  @@index([projectId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("sales")
+}
+
+model SaleInvoice {
+  id        String   @id @default(cuid())
+  saleId    String
+  entityId  String
+  amountUsd Float   @default(0)
+  dueDate   DateTime?
+  sequence  Int     @default(1)
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sale   Sale          @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  entity BillingEntity @relation(fields: [entityId], references: [id])
+
+  @@index([saleId])
+  @@index([entityId])
+  @@index([dueDate])
+  @@map("sale_invoices")
+}
+
+model Payment {
+  id             String    @id @default(cuid())
+  orgId          String
+  saleId         String
+  entityId       String
+  amountUsd      Float     @default(0)
+  amountLocal    Float?
+  currencyLocal  String?
+  exchangeRate   Float?
+  paidAt         DateTime  @default(now())
+  notes          String?
+  createdBy      String?
+  createdAt      DateTime  @default(now())
+
+  org           Org            @relation(fields: [orgId], references: [id])
+  sale          Sale           @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  entity        BillingEntity  @relation(fields: [entityId], references: [id])
+  createdByUser User?          @relation(fields: [createdBy], references: [id])
+
+  @@index([orgId])
+  @@index([saleId])
+  @@index([entityId])
+  @@index([paidAt])
+  @@map("payments")
 }

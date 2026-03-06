@@ -335,6 +335,22 @@ async function main() {
   });
   console.log("✅ TaxRuleSets created for PA and AR");
 
+  // ── 9. BillingEntities (Vision Latam, Vision Profile Canada) ───────────────
+  const allOrgs = await prisma.org.findMany({ select: { id: true } });
+  for (const o of allOrgs) {
+    await prisma.billingEntity.upsert({
+      where: { orgId_slug: { orgId: o.id, slug: "VISION_LATAM" } },
+      update: {},
+      create: { orgId: o.id, name: "Vision Latam", slug: "VISION_LATAM", isActive: true },
+    });
+    await prisma.billingEntity.upsert({
+      where: { orgId_slug: { orgId: o.id, slug: "VISION_CANADA" } },
+      update: {},
+      create: { orgId: o.id, name: "Vision Profile Extrusions (Canada)", slug: "VISION_CANADA", isActive: true },
+    });
+  }
+  console.log("✅ BillingEntities created for all orgs");
+
   console.log("\n🎉 Seeding complete!");
 }
 

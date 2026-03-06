@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { ArrowLeft, FileText, Plus, Pencil, Trash2 } from "lucide-react";
+import { ArrowLeft, FileText, Plus, Pencil, Trash2, ShoppingCart } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 
 type Country = { id: string; name: string; code: string };
@@ -42,6 +42,7 @@ type Project = {
 };
 
 type AuditEntry = { id: string; action: string; createdAt: string; userName: string | null; meta: { changed?: string[] } | null };
+type SaleRow = { id: string; saleNumber: string | null; status: string; landedDdpUsd: number };
 
 export function ProjectDetailClient({ initialProject }: { initialProject: Project }) {
   const router = useRouter();
@@ -57,6 +58,7 @@ export function ProjectDetailClient({ initialProject }: { initialProject: Projec
   const [newClientOpen, setNewClientOpen] = useState(false);
   const [newClientForm, setNewClientForm] = useState({ name: "", legalName: "", countryId: "", email: "", phone: "" });
   const [savingClient, setSavingClient] = useState(false);
+  const [sales, setSales] = useState<SaleRow[]>([]);
   const [form, setForm] = useState({
     name: project.name,
     client: project.client ?? "",
@@ -92,6 +94,13 @@ export function ProjectDetailClient({ initialProject }: { initialProject: Projec
       .then((d) => setClients(d.clients ?? []))
       .catch(() => setClients([]));
   }, []);
+
+  useEffect(() => {
+    fetch(`/api/sales?projectId=${project.id}&limit=50`)
+      .then((r) => r.json())
+      .then((d) => setSales(d.sales ?? []))
+      .catch(() => setSales([]));
+  }, [project.id]);
 
   const openEdit = () => {
     setForm({
@@ -420,6 +429,41 @@ export function ProjectDetailClient({ initialProject }: { initialProject: Projec
                   </button>
                 )}
               </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Sales */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+        <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+          <h2 className="font-semibold text-gray-800">Sales ({sales.length})</h2>
+          <Link
+            href={`/sales/new?projectId=${project.id}&clientId=${(project as any).clientId ?? (project as any).clientRecord?.id ?? ""}`}
+            className="inline-flex items-center gap-2 px-3 py-1.5 border border-vbt-orange text-vbt-orange rounded-lg text-sm font-medium hover:bg-orange-50"
+          >
+            <ShoppingCart className="w-3.5 h-3.5" /> New sale
+          </Link>
+        </div>
+        {sales.length === 0 ? (
+          <div className="p-10 text-center">
+            <ShoppingCart className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+            <p className="text-gray-400 text-sm">No sales for this project</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-50">
+            {sales.map((s) => (
+              <Link key={s.id} href={`/sales/${s.id}`} className="flex items-center justify-between p-4 hover:bg-gray-50 gap-3">
+                <div>
+                  <p className="font-medium text-gray-800">{s.saleNumber ?? s.id.slice(0, 8)}</p>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                    s.status === "PAID" ? "bg-green-100 text-green-700" :
+                    s.status === "CANCELLED" ? "bg-gray-200 text-gray-600" :
+                    s.status === "PARTIALLY_PAID" ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"
+                  }`}>{s.status.replace(/_/g, " ")}</span>
+                </div>
+                <p className="font-semibold text-gray-800">{formatCurrency(s.landedDdpUsd)}</p>
+              </Link>
             ))}
           </div>
         )}

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
-import { BarChart3, Download, Package, Mail } from "lucide-react";
+import { BarChart3, Download, Package, Mail, ShoppingCart } from "lucide-react";
 
 type Country = { id: string; name: string; code: string };
 type Project = {
@@ -61,6 +61,15 @@ export function ReportsClient({ countries, clients }: { countries: Country[]; cl
   const [emailSubject, setEmailSubject] = useState("");
   const [emailSending, setEmailSending] = useState(false);
   const [emailMessage, setEmailMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [salesSummary, setSalesSummary] = useState<{
+    totalSales: number;
+    totalValue: number;
+    totalInvoiced: number;
+    totalPaid: number;
+    totalPending: number;
+    byStatus: Record<string, number>;
+    entitySummary: { id: string; name: string; slug: string; invoiced: number; paid: number; balance: number }[];
+  } | null>(null);
   const limit = 20;
 
   const fetchReport = useCallback(async () => {
@@ -92,6 +101,13 @@ export function ReportsClient({ countries, clients }: { countries: Country[]; cl
     fetch("/api/reports/pieces?limit=15")
       .then((r) => r.json())
       .then((data) => setPieces(data))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/sales/reports/summary")
+      .then((r) => r.json())
+      .then((data) => setSalesSummary(data))
       .catch(() => {});
   }, []);
 
@@ -187,6 +203,56 @@ export function ReportsClient({ countries, clients }: { countries: Country[]; cl
     }
   };
 
+  const handleSalesExport = () => {
+    fetch("/api/sales?limit=5000")
+      .then((r) => r.json())
+      .then((data) => {
+        const rows = data.sales ?? [];
+        const escape = (v: unknown) => {
+          const s = String(v ?? "");
+          return s.includes(",") || s.includes('"') || s.includes("\n") ? `"${s.replace(/"/g, '""')}"` : s;
+        };
+        const headers = [
+          "Sale #",
+          "Client",
+          "Project",
+          "Status",
+          "Quantity",
+          "EXW",
+          "FOB",
+          "CIF",
+          "Landed DDP",
+          "Created",
+        ];
+        const csvRows = [
+          headers.join(","),
+          ...rows.map((s: { saleNumber: string | null; client?: { name: string }; project?: { name: string }; status: string; quantity: number; exwUsd: number; fobUsd: number; cifUsd: number; landedDdpUsd: number; createdAt: string }) =>
+            [
+              s.saleNumber ?? "",
+              s.client?.name ?? "",
+              s.project?.name ?? "",
+              s.status,
+              s.quantity,
+              s.exwUsd ?? "",
+              s.fobUsd ?? "",
+              s.cifUsd ?? "",
+              s.landedDdpUsd ?? "",
+              s.createdAt ? new Date(s.createdAt).toISOString().slice(0, 10) : "",
+            ].map(escape).join(",")
+          ),
+        ];
+        const csv = csvRows.join("\n");
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `vbt-sales-report-${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+      })
+      .catch(() => {});
+  };
+
   return (
     <div className="space-y-6">
       {/* Filters */}
@@ -270,6 +336,59 @@ export function ReportsClient({ countries, clients }: { countries: Country[]; cl
           </button>
         </div>
       </div>
+
+      {/* Sales KPIs */}
+      {salesSummary && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+            <h2 className="font-semibold text-gray-800 flex items-center gap-2">
+              <ShoppingCart className="w-4 h-4" /> Sales
+            </h2>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleSalesExport}
+                className="inline-flex items-center gap-1 px-2 py-1 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50"
+              >
+                <Download className="w-4 h-4" /> Export CSV
+              </button>
+              <Link href="/sales" className="text-sm text-vbt-blue hover:underline font-medium">View Sales →</Link>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div>
+              <div className="text-gray-500 text-xs">Total sales</div>
+              <p className="text-lg font-bold text-gray-900">{salesSummary.totalSales}</p>
+            </div>
+            <div>
+              <div className="text-gray-500 text-xs">Total value (DDP)</div>
+              <p className="text-lg font-bold text-gray-900">{formatCurrency(salesSummary.totalValue)}</p>
+            </div>
+            <div>
+              <div className="text-gray-500 text-xs">Invoiced</div>
+              <p className="text-lg font-bold text-gray-900">{formatCurrency(salesSummary.totalInvoiced)}</p>
+            </div>
+            <div>
+              <div className="text-gray-500 text-xs">Paid</div>
+              <p className="text-lg font-bold text-green-700">{formatCurrency(salesSummary.totalPaid)}</p>
+            </div>
+            <div>
+              <div className="text-gray-500 text-xs">Pending</div>
+              <p className="text-lg font-bold text-amber-600">{formatCurrency(salesSummary.totalPending)}</p>
+            </div>
+          </div>
+          {salesSummary.entitySummary?.length > 0 && (
+            <div className="mt-3 pt-3 border-t border-gray-100 space-y-1 text-sm text-gray-600">
+              {salesSummary.entitySummary.map((e) => (
+                <div key={e.id} className="flex justify-between gap-2 flex-wrap">
+                  <span className="font-medium text-gray-700">{e.name}</span>
+                  <span>Invoiced {formatCurrency(e.invoiced)} · Paid {formatCurrency(e.paid)} · Balance {formatCurrency(e.balance)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* KPIs */}
       {summary && (
