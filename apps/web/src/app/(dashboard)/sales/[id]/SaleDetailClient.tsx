@@ -43,7 +43,7 @@ export function SaleDetailClient({ saleId }: { saleId: string }) {
   const [sale, setSale] = useState<Sale | null>(null);
   const [loading, setLoading] = useState(true);
   const [paymentOpen, setPaymentOpen] = useState(false);
-  const [entities, setEntities] = useState<{ id: string; name: string }[]>([]);
+  const [entities, setEntities] = useState<{ id: string; name: string; isActive?: boolean }[]>([]);
   const [payEntityId, setPayEntityId] = useState("");
   const [payAmountUsd, setPayAmountUsd] = useState("");
   const [payAmountLocal, setPayAmountLocal] = useState("");
@@ -273,11 +273,11 @@ export function SaleDetailClient({ saleId }: { saleId: string }) {
                   required
                 >
                   <option value="">Select entity</option>
-                  {entities.filter((e: { isActive?: boolean }) => e.isActive !== false).length === 0 ? (
+                  {entities.filter((e) => e.isActive !== false).length === 0 ? (
                     <option value="" disabled>No entities—add in Admin → Entities</option>
                   ) : (
                     entities
-                      .filter((e: { isActive?: boolean }) => e.isActive !== false)
+                      .filter((e) => e.isActive !== false)
                       .map((e) => (
                         <option key={e.id} value={e.id}>{e.name}</option>
                       ))
