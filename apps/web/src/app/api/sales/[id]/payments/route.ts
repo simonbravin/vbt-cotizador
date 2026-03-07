@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { createAuditLog } from "@/lib/audit";
+import { getInvoicedAmount } from "@/lib/sales";
 import { z } from "zod";
 
 const createSchema = z.object({
@@ -29,7 +30,7 @@ export async function POST(
 
   const sale = await prisma.sale.findFirst({
     where: { id: saleId, orgId: user.orgId },
-    select: { id: true, status: true },
+    select: { id: true, status: true, exwUsd: true, fobUsd: true, cifUsd: true, landedDdpUsd: true, invoicedBasis: true },
   });
   if (!sale) return NextResponse.json({ error: "Sale not found" }, { status: 404 });
   if (sale.status === "CANCELLED") {
@@ -72,23 +73,9 @@ export async function POST(
     where: { saleId },
     select: { amountUsd: true, entityId: true },
   });
-  const invoices = await prisma.saleInvoice.findMany({
-    where: { saleId },
-    select: { amountUsd: true, entityId: true },
-  });
-  let allPaid = true;
-  const byEntity: Record<string, { inv: number; pay: number }> = {};
-  for (const i of invoices) {
-    byEntity[i.entityId] = byEntity[i.entityId] ?? { inv: 0, pay: 0 };
-    byEntity[i.entityId].inv += i.amountUsd;
-  }
-  for (const p of payments) {
-    byEntity[p.entityId] = byEntity[p.entityId] ?? { inv: 0, pay: 0 };
-    byEntity[p.entityId].pay += p.amountUsd;
-  }
-  for (const v of Object.values(byEntity)) {
-    if (v.pay < v.inv) allPaid = false;
-  }
+  const totalPaid = payments.reduce((a, p) => a + p.amountUsd, 0);
+  const invoicedAmount = getInvoicedAmount(sale!);
+  const allPaid = totalPaid >= invoicedAmount;
   const newStatus = allPaid ? "PAID" : "PARTIALLY_PAID";
   await prisma.sale.update({
     where: { id: saleId },

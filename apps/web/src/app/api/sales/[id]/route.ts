@@ -26,6 +26,7 @@ const updateSchema = z.object({
   cifUsd: z.number().min(0).optional(),
   taxesFeesUsd: z.number().min(0).optional(),
   landedDdpUsd: z.number().min(0).optional(),
+  invoicedBasis: z.enum(["EXW", "FOB", "CIF", "DDP"]).optional().nullable(),
   taxBreakdownJson: z.any().optional().nullable(),
   notes: z.string().optional().nullable(),
   invoices: z.array(invoiceSchema).optional(),
@@ -123,6 +124,7 @@ export async function PATCH(
   if (data.cifUsd != null) updatePayload.cifUsd = data.cifUsd;
   if (data.taxesFeesUsd != null) updatePayload.taxesFeesUsd = data.taxesFeesUsd;
   if (data.landedDdpUsd != null) updatePayload.landedDdpUsd = data.landedDdpUsd;
+  if (data.invoicedBasis !== undefined) updatePayload.invoicedBasis = data.invoicedBasis;
   if (data.taxBreakdownJson !== undefined) updatePayload.taxBreakdownJson = data.taxBreakdownJson;
   if (data.notes !== undefined) updatePayload.notes = data.notes;
 

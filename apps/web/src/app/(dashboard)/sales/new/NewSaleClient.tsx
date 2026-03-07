@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
+import { INVOICED_BASIS_OPTIONS } from "@/lib/sales";
 import { ArrowLeft } from "lucide-react";
 
 type Client = { id: string; name: string };
@@ -31,6 +32,7 @@ export function NewSaleClient() {
   const [cifUsd, setCifUsd] = useState(0);
   const [taxesFeesUsd, setTaxesFeesUsd] = useState(0);
   const [landedDdpUsd, setLandedDdpUsd] = useState(0);
+  const [invoicedBasis, setInvoicedBasis] = useState<"EXW" | "FOB" | "CIF" | "DDP">("DDP");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -127,6 +129,7 @@ export function NewSaleClient() {
           cifUsd: Number(cifUsd.toFixed(2)),
           taxesFeesUsd: Number(taxesFeesUsd.toFixed(2)),
           landedDdpUsd: Number(landedDdpUsd.toFixed(2)),
+          invoicedBasis,
           notes: notes || undefined,
           invoices: [],
         }),
@@ -220,6 +223,19 @@ export function NewSaleClient() {
               <option value="DRAFT">Draft</option>
               <option value="CONFIRMED">Confirmed</option>
             </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Sales condition (Incoterm for invoiced amount)</label>
+            <select
+              value={invoicedBasis}
+              onChange={(e) => setInvoicedBasis(e.target.value as "EXW" | "FOB" | "CIF" | "DDP")}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+            >
+              {INVOICED_BASIS_OPTIONS.map((b) => (
+                <option key={b} value={b}>{b}</option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-500 mt-0.5">Determines which amount is used as &quot;Invoiced&quot; and for Fully paid / Partially paid status.</p>
           </div>
         </div>
       </div>

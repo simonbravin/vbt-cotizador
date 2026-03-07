@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { getInvoicedAmount } from "@/lib/sales";
 
 function escapeCsv(s: string | number | null | undefined): string {
   if (s == null) return "";
@@ -56,50 +57,25 @@ export async function GET(req: Request) {
 
   if (format === "csv") {
     const rows: string[][] = [
-      ["Client", "Project", "Sale #", "Date", "Entity", "Invoiced", "Paid", "Balance"],
+      ["Client", "Project", "Sale #", "Date", "Sales condition", "Invoiced", "Paid", "Balance"],
     ];
     for (const sale of filtered) {
-      const entities = new Set<string>();
-      sale.invoices.forEach((i) => entities.add(i.entity.name));
-      sale.payments.forEach((p) => entities.add(p.entity.name));
-      const invByEntity: Record<string, number> = {};
-      const payByEntity: Record<string, number> = {};
-      for (const i of sale.invoices) {
-        if (entityId && i.entityId !== entityId) continue;
-        invByEntity[i.entity.name] = (invByEntity[i.entity.name] ?? 0) + i.amountUsd;
-      }
-      for (const p of sale.payments) {
-        if (entityId && p.entityId !== entityId) continue;
-        payByEntity[p.entity.name] = (payByEntity[p.entity.name] ?? 0) + p.amountUsd;
-      }
+      const invTotal = getInvoicedAmount(sale);
+      const payTotal = entityId
+        ? sale.payments.filter((p: { entityId: string }) => p.entityId === entityId).reduce((a: number, p: { amountUsd: number }) => a + p.amountUsd, 0)
+        : sale.payments.reduce((a: number, p: { amountUsd: number }) => a + p.amountUsd, 0);
       const dateStr = sale.createdAt.toISOString().slice(0, 10);
-      if (entities.size === 0) {
-        rows.push([
-          sale.client.name,
-          sale.project.name,
-          sale.saleNumber ?? "",
-          dateStr,
-          "",
-          "0",
-          "0",
-          "0",
-        ]);
-      } else {
-        for (const en of entities) {
-          const inv = invByEntity[en] ?? 0;
-          const pay = payByEntity[en] ?? 0;
-          rows.push([
-            sale.client.name,
-            sale.project.name,
-            sale.saleNumber ?? "",
-            dateStr,
-            en,
-            String(inv),
-            String(pay),
-            String(inv - pay),
-          ]);
-        }
-      }
+      const basis = (sale.invoicedBasis || "DDP").toUpperCase();
+      rows.push([
+        sale.client.name,
+        sale.project.name,
+        sale.saleNumber ?? "",
+        dateStr,
+        basis,
+        String(invTotal),
+        String(payTotal),
+        String(invTotal - payTotal),
+      ]);
     }
     const csv = rows.map((r) => r.map(escapeCsv).join(",")).join("\n");
     const filename = `sales-statement-${new Date().toISOString().slice(0, 10)}.csv`;

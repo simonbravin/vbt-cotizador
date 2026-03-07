@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
-import { Plus, ShoppingCart, Bell } from "lucide-react";
+import { Plus, ShoppingCart, Bell, Download } from "lucide-react";
 
 type Sale = {
   id: string;
@@ -20,6 +20,7 @@ type Sale = {
   cifUsd: number;
   taxesFeesUsd: number;
   landedDdpUsd: number;
+  invoicedBasis?: string | null;
   createdAt: string;
   client: { id: string; name: string };
   project: { id: string; name: string };
@@ -43,6 +44,8 @@ export function SalesClient() {
   const [status, setStatus] = useState("");
   const [clientId, setClientId] = useState("");
   const [projectId, setProjectId] = useState("");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
   const [search, setSearch] = useState("");
   const [clients, setClients] = useState<{ id: string; name: string }[]>([]);
   const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
@@ -57,6 +60,8 @@ export function SalesClient() {
     if (status) params.set("status", status);
     if (clientId) params.set("clientId", clientId);
     if (projectId) params.set("projectId", projectId);
+    if (from) params.set("from", from);
+    if (to) params.set("to", to);
     if (search.trim()) params.set("search", search.trim());
     const res = await fetch(`/api/sales?${params}`);
     const data = await res.json();
@@ -65,7 +70,7 @@ export function SalesClient() {
       setTotal(data.total ?? 0);
     }
     setLoading(false);
-  }, [page, limit, status, clientId, projectId, search]);
+  }, [page, limit, status, clientId, projectId, from, to, search]);
 
   useEffect(() => {
     fetchSales();
@@ -105,6 +110,14 @@ export function SalesClient() {
           >
             Statements
           </Link>
+          <a
+            href={`/api/sales/export?${new URLSearchParams({ ...(from && { from }), ...(to && { to }), ...(status && { status }), ...(clientId && { clientId }), ...(projectId && { projectId }) }).toString()}`}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Download className="w-4 h-4" /> Export CSV
+          </a>
           {dueCount > 0 && (
             <Link
               href="/sales/statements"
@@ -154,6 +167,8 @@ export function SalesClient() {
             <option key={p.id} value={p.id}>{(p as any).name}</option>
           ))}
         </select>
+        <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm" placeholder="From" />
+        <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm" placeholder="To" />
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
@@ -182,6 +197,7 @@ export function SalesClient() {
                 <th className="text-right px-2 py-2 font-medium text-gray-700">CIF</th>
                 <th className="text-right px-2 py-2 font-medium text-gray-700">Taxes</th>
                 <th className="text-right px-2 py-2 font-medium text-gray-700">DDP</th>
+                <th className="text-center px-2 py-2 font-medium text-gray-700">Sales condition</th>
                 <th className="text-left px-2 py-2 font-medium text-gray-700">Status</th>
                 <th className="text-left px-4 py-2 font-medium text-gray-700">Actions</th>
               </tr>
@@ -208,6 +224,7 @@ export function SalesClient() {
                   <td className="px-2 py-2 text-right text-gray-700">{formatCurrency(s.cifUsd)}</td>
                   <td className="px-2 py-2 text-right text-gray-700">{formatCurrency(s.taxesFeesUsd)}</td>
                   <td className="px-2 py-2 text-right font-medium text-gray-900">{formatCurrency(s.landedDdpUsd)}</td>
+                  <td className="px-2 py-2 text-center text-gray-700 font-medium">{(s.invoicedBasis || "DDP").toUpperCase()}</td>
                   <td className="px-2 py-2">
                     <span
                       className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${

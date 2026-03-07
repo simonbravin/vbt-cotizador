@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { getInvoicedAmount } from "@/lib/sales";
 
 export async function DELETE(
   _req: Request,
@@ -25,25 +26,15 @@ export async function DELETE(
 
   const payments = await prisma.payment.findMany({
     where: { saleId: payment.saleId },
-    select: { amountUsd: true, entityId: true },
+    select: { amountUsd: true },
   });
-  const invoices = await prisma.saleInvoice.findMany({
-    where: { saleId: payment.saleId },
-    select: { amountUsd: true, entityId: true },
+  const sale = await prisma.sale.findFirst({
+    where: { id: payment.saleId, orgId: user.orgId },
+    select: { exwUsd: true, fobUsd: true, cifUsd: true, landedDdpUsd: true, invoicedBasis: true },
   });
-  const byEntity: Record<string, { inv: number; pay: number }> = {};
-  for (const i of invoices) {
-    byEntity[i.entityId] = byEntity[i.entityId] ?? { inv: 0, pay: 0 };
-    byEntity[i.entityId].inv += i.amountUsd;
-  }
-  for (const p of payments) {
-    byEntity[p.entityId] = byEntity[p.entityId] ?? { inv: 0, pay: 0 };
-    byEntity[p.entityId].pay += p.amountUsd;
-  }
-  let allPaid = true;
-  for (const v of Object.values(byEntity)) {
-    if (v.pay < v.inv) allPaid = false;
-  }
+  const totalPaid = payments.reduce((a, p) => a + p.amountUsd, 0);
+  const invoicedAmount = sale ? getInvoicedAmount(sale) : 0;
+  const allPaid = totalPaid >= invoicedAmount;
   const newStatus = allPaid ? "PAID" : payments.length === 0 ? "CONFIRMED" : "PARTIALLY_PAID";
   await prisma.sale.update({
     where: { id: payment.saleId },

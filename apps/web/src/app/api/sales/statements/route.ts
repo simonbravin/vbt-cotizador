@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { getInvoicedAmount } from "@/lib/sales";
 
 export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
@@ -53,9 +54,7 @@ export async function GET(req: Request) {
       byClient[cid] = { client: sale.client, sales: [], totalInvoiced: 0, totalPaid: 0, balance: 0 };
     }
     byClient[cid].sales.push(sale);
-    const invTotal = entityId
-      ? sale.invoices.filter((i) => i.entityId === entityId).reduce((a, i) => a + i.amountUsd, 0)
-      : sale.invoices.reduce((a, i) => a + i.amountUsd, 0);
+    const invTotal = getInvoicedAmount(sale);
     const payTotal = entityId
       ? sale.payments.filter((p) => p.entityId === entityId).reduce((a, p) => a + p.amountUsd, 0)
       : sale.payments.reduce((a, p) => a + p.amountUsd, 0);

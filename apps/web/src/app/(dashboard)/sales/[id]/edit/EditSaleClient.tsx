@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
+import { INVOICED_BASIS_OPTIONS } from "@/lib/sales";
 import { ArrowLeft } from "lucide-react";
 
 const statusOptions = ["DRAFT", "CONFIRMED", "PARTIALLY_PAID", "PAID", "CANCELLED"] as const;
@@ -29,6 +30,7 @@ export function EditSaleClient({ saleId }: { saleId: string }) {
   const [cifUsd, setCifUsd] = useState(0);
   const [taxesFeesUsd, setTaxesFeesUsd] = useState(0);
   const [landedDdpUsd, setLandedDdpUsd] = useState(0);
+  const [invoicedBasis, setInvoicedBasis] = useState<"EXW" | "FOB" | "CIF" | "DDP">("DDP");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,6 +51,7 @@ export function EditSaleClient({ saleId }: { saleId: string }) {
           setCifUsd(round2(d.cifUsd ?? 0));
           setTaxesFeesUsd(round2(d.taxesFeesUsd ?? 0));
           setLandedDdpUsd(round2(d.landedDdpUsd ?? 0));
+          setInvoicedBasis((d.invoicedBasis || "DDP").toUpperCase() as "EXW" | "FOB" | "CIF" | "DDP");
           setNotes(d.notes ?? "");
         }
         setLoading(false);
@@ -79,6 +82,7 @@ export function EditSaleClient({ saleId }: { saleId: string }) {
           cifUsd: Number(cifUsd.toFixed(2)),
           taxesFeesUsd: Number(taxesFeesUsd.toFixed(2)),
           landedDdpUsd: Number(landedDdpUsd.toFixed(2)),
+          invoicedBasis,
           notes: notes || undefined,
         }),
       });
@@ -123,6 +127,14 @@ export function EditSaleClient({ saleId }: { saleId: string }) {
             <option key={s} value={s}>{s.replace(/_/g, " ")}</option>
           ))}
         </select>
+        <div className="mt-3">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Sales condition (Incoterm for invoiced amount)</label>
+          <select value={invoicedBasis} onChange={(e) => setInvoicedBasis(e.target.value as "EXW" | "FOB" | "CIF" | "DDP")} className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-lg text-sm">
+            {INVOICED_BASIS_OPTIONS.map((b) => (
+              <option key={b} value={b}>{b}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">

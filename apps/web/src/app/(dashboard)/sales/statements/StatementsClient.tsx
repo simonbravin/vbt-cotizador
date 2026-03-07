@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
+import { getInvoicedAmount } from "@/lib/sales";
 import { ArrowLeft, Download } from "lucide-react";
 
 type Statement = {
@@ -115,7 +116,7 @@ export function StatementsClient() {
                   </thead>
                   <tbody>
                     {st.sales.map((sale: any) => {
-                      const invTotal = sale.invoices?.reduce((a: number, i: any) => a + (i.amountUsd ?? 0), 0) ?? 0;
+                      const invTotal = getInvoicedAmount(sale);
                       const payTotal = sale.payments?.reduce((a: number, p: any) => a + (p.amountUsd ?? 0), 0) ?? 0;
                       return (
                         <tr key={sale.id} className="border-b border-gray-50">

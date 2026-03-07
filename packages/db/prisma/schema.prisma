@@ -713,6 +713,7 @@ model Sale {
   cifUsd              Float @default(0)
   taxesFeesUsd        Float @default(0)
   landedDdpUsd        Float @default(0)
+  invoicedBasis       String?  // EXW | FOB | CIF | DDP — which amount is used as "invoiced" and for paid status
   taxBreakdownJson    Json?
   notes               String?
   createdBy           String?
