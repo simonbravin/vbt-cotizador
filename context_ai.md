@@ -235,6 +235,19 @@ interface TaxRule {
 - `FIXED_PER_CONTAINER` → `fixedAmount * numContainers`
 - `FIXED_TOTAL` → `fixedAmount`
 
+### Modelo: `BillingEntity`
+Entidades de facturación por org (ej. Vision Latam SA, VBT Argentina SA). Se usan en SaleInvoice y Payment para indicar qué entidad emite la factura o recibe el pago.
+
+| Campo | Tipo | Notas |
+|-------|------|-------|
+| `id` | cuid | PK |
+| `orgId` | String | FK Org |
+| `name` | String | Nombre para mostrar |
+| `slug` | String | Identificador único por org (ej. VISION_LATAM, VBT_ARGENTINA); único con orgId |
+| `isActive` | Boolean | Si false, no aparece en dropdowns (ej. Add payment) |
+
+Gestión: **Admin → Entities** (solo SUPERADMIN). GET lista para todos los usuarios; POST/PATCH/DELETE solo SUPERADMIN.
+
 ### Modelo: `InventoryItem` + `InventoryMove`
 Inventario de piezas por warehouse. `qtyAvailable = qtyOnHand - qtyReserved`.
 
@@ -405,8 +418,9 @@ Todas las rutas están bajo `/api/`. Autenticación via NextAuth session (cookie
 | GET | `/api/sales/[id]` | Sale detail with invoices and payments |
 | PATCH | `/api/sales/[id]` | Update sale and/or invoices |
 | POST | `/api/sales/[id]/payments` | Record payment (entityId, amountUsd, amountLocal?, exchangeRate?, paidAt?, notes?) |
-| GET | `/api/sales/entities` | List billing entities (Vision Latam, Vision Canada) |
-| GET/PATCH/DELETE | `/api/sales/entities/[id]` | Single entity (admin) |
+| GET | `/api/sales/entities` | List billing entities for org (todos los usuarios autenticados) |
+| POST | `/api/sales/entities` | Create entity (SUPERADMIN only) |
+| GET/PATCH/DELETE | `/api/sales/entities/[id]` | Single entity; PATCH/DELETE SUPERADMIN only |
 | GET | `/api/sales/statements` | Account statements; query: clientId, entityId, from, to |
 | GET | `/api/sales/statements/export` | Export CSV; same query params |
 | GET | `/api/sales/reports/summary` | KPIs: totalSales, totalValue, totalPaid, totalPending, byStatus, entitySummary |
@@ -472,6 +486,7 @@ Todas las rutas están bajo `/api/`. Autenticación via NextAuth session (cookie
 /(dashboard)/sales/[id]         # Detalle venta, invoices, pagos, agregar pago
 /(dashboard)/sales/statements   # Estados de cuenta por cliente/entidad, export CSV
 /(dashboard)/admin/catalog      # Catálogo de piezas con filtros y edición
+/(dashboard)/admin/entities     # Billing entities: listar, crear, editar (SUPERADMIN only)
 /(dashboard)/admin/countries    # Gestión de países
 /(dashboard)/admin/freight      # Perfiles de flete por país
 /(dashboard)/admin/inventory    # Inventario por warehouse
@@ -485,7 +500,7 @@ Todas las rutas están bajo `/api/`. Autenticación via NextAuth session (cookie
 - `VIEWER` — solo lectura
 - `SALES` — crear/editar proyectos y cotizaciones
 - `ADMIN` — todo + gestión de catálogo, impuestos, flete
-- `SUPERADMIN` — todo + gestión de usuarios y org
+- `SUPERADMIN` — todo + gestión de usuarios, org y **Billing Entities** (Admin → Entities)
 
 ---
 

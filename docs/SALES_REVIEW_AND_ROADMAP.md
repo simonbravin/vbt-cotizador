@@ -9,7 +9,8 @@
   (Cierra el dev server si da EPERM al generar.)
 - **Comando:** Desde la raíz: `pnpm run db:seed` o `pnpm --filter @vbt/db seed`.
 - Se añadió `prisma.seed` en `packages/db/package.json` para que `npx prisma db seed` (desde `packages/db`) también funcione.
-- El seed crea, para cada org existente, dos `BillingEntity`: **Vision Latam** y **Vision Profile Extrusions (Canada)**. Es idempotente (upsert por `orgId` + `slug`).
+- El seed crea, para cada org existente, cuatro `BillingEntity`: **Vision Profile Extrusions LTD**, **Vision Latam SA**, **VBT Argentina SA**, **VBT Panama SA** (slugs: VISION_PROFILE_EXTRUSIONS, VISION_LATAM, VBT_ARGENTINA, VBT_PANAMA). Es idempotente (upsert por `orgId` + `slug`).
+- Las entidades también se pueden gestionar en la app: **Admin → Entities** (solo SUPERADMIN). Ahí se listan, crean y editan (nombre, slug, activo/inactivo).
 - Si el seed falla con `Cannot read properties of undefined (reading 'upsert')`, es que el client no tiene aún `billingEntity`: ejecuta `prisma generate` y vuelve a lanzar el seed.
 
 ---
@@ -68,7 +69,7 @@
 
 ### UX y consistencia
 
-- **Permisos por rol:** Dejar documentado (o implementar) qué puede hacer VIEWER vs SALES vs ADMIN en Sales (solo lectura, crear/editar venta, editar/eliminar pago, gestionar entidades).
+- **Permisos por rol:** VIEWER solo lectura; SALES/ADMIN crean y editan ventas y pagan; **SUPERADMIN** además gestiona Billing Entities en Admin → Entities (crear, editar nombre/slug/activo, eliminar si no en uso).
 - **Validación en cliente:** En “New sale”, validar que DDP ≥ CIF ≥ FOB ≥ EXW y que los importes no sean negativos antes de enviar.
 - **Traducciones:** Revisar que todas las cadenas nuevas de Sales (labels, botones, mensajes) tengan clave en i18n y valor en español donde corresponda.
 

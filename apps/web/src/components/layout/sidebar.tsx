@@ -10,6 +10,7 @@ import {
   FileText,
   Package,
   Building2,
+  Building,
   Users,
   Settings,
   Globe,
@@ -52,6 +53,7 @@ const navigation: NavItem[] = [
     roles: ["SUPERADMIN", "ADMIN"],
     children: [
       { labelKey: "nav.users", href: "/admin/users", icon: Users },
+      { labelKey: "nav.entities", href: "/admin/entities", icon: Building, roles: ["SUPERADMIN"] },
       { labelKey: "nav.catalog", href: "/admin/catalog", icon: BookOpen },
       { labelKey: "nav.warehouses", href: "/admin/warehouses", icon: Warehouse },
       { labelKey: "nav.countries", href: "/admin/countries", icon: Globe },

@@ -25,7 +25,7 @@ export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const user = session.user as { orgId: string; role: string };
-  if (!["SUPERADMIN", "ADMIN"].includes(user.role)) {
+  if (user.role !== "SUPERADMIN") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

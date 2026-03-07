@@ -273,12 +273,14 @@ export function SaleDetailClient({ saleId }: { saleId: string }) {
                   required
                 >
                   <option value="">Select entity</option>
-                  {entities.length === 0 ? (
-                    <option value="" disabled>No entities—run db:seed or add in Admin</option>
+                  {entities.filter((e: { isActive?: boolean }) => e.isActive !== false).length === 0 ? (
+                    <option value="" disabled>No entities—add in Admin → Entities</option>
                   ) : (
-                    entities.map((e) => (
-                      <option key={e.id} value={e.id}>{e.name}</option>
-                    ))
+                    entities
+                      .filter((e: { isActive?: boolean }) => e.isActive !== false)
+                      .map((e) => (
+                        <option key={e.id} value={e.id}>{e.name}</option>
+                      ))
                   )}
                 </select>
               </div>
