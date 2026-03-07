@@ -335,19 +335,22 @@ async function main() {
   });
   console.log("✅ TaxRuleSets created for PA and AR");
 
-  // ── 9. BillingEntities (Vision Latam, Vision Profile Canada) ───────────────
+  // ── 9. BillingEntities ────────────────────────────────────────────────────
+  const billingEntities: { name: string; slug: string }[] = [
+    { name: "Vision Profile Extrusions LTD", slug: "VISION_PROFILE_EXTRUSIONS" },
+    { name: "Vision Latam SA", slug: "VISION_LATAM" },
+    { name: "VBT Argentina SA", slug: "VBT_ARGENTINA" },
+    { name: "VBT Panama SA", slug: "VBT_PANAMA" },
+  ];
   const allOrgs = await prisma.org.findMany({ select: { id: true } });
   for (const o of allOrgs) {
-    await prisma.billingEntity.upsert({
-      where: { orgId_slug: { orgId: o.id, slug: "VISION_LATAM" } },
-      update: {},
-      create: { orgId: o.id, name: "Vision Latam", slug: "VISION_LATAM", isActive: true },
-    });
-    await prisma.billingEntity.upsert({
-      where: { orgId_slug: { orgId: o.id, slug: "VISION_CANADA" } },
-      update: {},
-      create: { orgId: o.id, name: "Vision Profile Extrusions (Canada)", slug: "VISION_CANADA", isActive: true },
-    });
+    for (const be of billingEntities) {
+      await prisma.billingEntity.upsert({
+        where: { orgId_slug: { orgId: o.id, slug: be.slug } },
+        update: { name: be.name },
+        create: { orgId: o.id, name: be.name, slug: be.slug, isActive: true },
+      });
+    }
   }
   console.log("✅ BillingEntities created for all orgs");
 
