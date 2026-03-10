@@ -18,7 +18,7 @@ export function getInvoicedAmount(sale: {
 }
 
 /** Round to 2 decimals for money comparisons (avoids floating-point issues). */
-function roundMoney(n: number): number {
+export function roundMoney(n: number): number {
   return Math.round(n * 100) / 100;
 }
 

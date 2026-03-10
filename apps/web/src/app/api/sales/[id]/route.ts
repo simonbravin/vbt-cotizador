@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { createAuditLog } from "@/lib/audit";
-import { getInvoicedAmount, computeSaleStatus } from "@/lib/sales";
+import { getInvoicedAmount, computeSaleStatus, roundMoney } from "@/lib/sales";
 import { z } from "zod";
 
 const saleStatusEnum = z.enum(["DRAFT", "CONFIRMED", "PARTIALLY_PAID", "PAID", "DUE", "CANCELLED"]);
@@ -148,8 +148,7 @@ export async function PATCH(
     const totalPaid = payments.reduce((a, p) => a + p.amountUsd, 0);
     const merged = { ...existing, ...updatePayload } as typeof existing;
     const invoiced = getInvoicedAmount(merged);
-    const round2 = (n: number) => Math.round(n * 100) / 100;
-    if (round2(totalPaid) < round2(invoiced)) {
+    if (roundMoney(totalPaid) < roundMoney(invoiced)) {
       return NextResponse.json(
         { error: "Cannot set status to PAID: total payments are less than invoiced amount" },
         { status: 400 }
@@ -167,8 +166,8 @@ export async function PATCH(
 
   if (data.invoices != null) {
     const mergedForInv = { ...existing, ...updatePayload } as typeof existing;
-    const invoicedTotal = getInvoicedAmount(mergedForInv);
-    const invoicesSum = data.invoices.reduce((a, inv) => a + inv.amountUsd, 0);
+    const invoicedTotal = roundMoney(getInvoicedAmount(mergedForInv));
+    const invoicesSum = roundMoney(data.invoices.reduce((a, inv) => a + inv.amountUsd, 0));
     if (invoicesSum > invoicedTotal) {
       return NextResponse.json(
         { error: `Sum of invoice amounts (${invoicesSum.toFixed(2)}) cannot exceed invoiced amount for selected basis (${invoicedTotal.toFixed(2)})` },

@@ -2,10 +2,8 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { getInvoicedAmount, computeSaleStatus } from "@/lib/sales";
+import { getInvoicedAmount, computeSaleStatus, roundMoney } from "@/lib/sales";
 import { z } from "zod";
-
-const round2 = (n: number) => Math.round(n * 100) / 100;
 
 const updateSchema = z
   .object({
@@ -73,7 +71,7 @@ export async function PATCH(
 
   const updateData: Record<string, unknown> = {};
   if (parsed.data.entityId != null) updateData.entityId = parsed.data.entityId;
-  if (parsed.data.amountUsd != null) updateData.amountUsd = round2(parsed.data.amountUsd);
+  if (parsed.data.amountUsd != null) updateData.amountUsd = roundMoney(parsed.data.amountUsd);
   if (parsed.data.dueDate !== undefined) updateData.dueDate = parsed.data.dueDate ? new Date(parsed.data.dueDate) : null;
   if (parsed.data.sequence != null) updateData.sequence = parsed.data.sequence;
   if (parsed.data.referenceNumber !== undefined) updateData.referenceNumber = parsed.data.referenceNumber ?? null;
@@ -137,8 +135,7 @@ export async function DELETE(
     const payments = await prisma.payment.findMany({ where: { saleId }, select: { amountUsd: true } });
     const totalPaid = payments.reduce((a, p) => a + p.amountUsd, 0);
     const todayStart = new Date(new Date().setHours(0, 0, 0, 0));
-    const remaining = sale.invoices.filter((i) => i.id !== invoiceId);
-    const hasOverdueInvoice = remaining.some((i) => i.dueDate && new Date(i.dueDate) < todayStart);
+    const hasOverdueInvoice = sale.invoices.some((i) => i.dueDate && new Date(i.dueDate) < todayStart);
     const newStatus = computeSaleStatus(sale.status, sale, totalPaid, hasOverdueInvoice);
     if (newStatus !== sale.status) {
       await prisma.sale.update({ where: { id: saleId }, data: { status: newStatus } });

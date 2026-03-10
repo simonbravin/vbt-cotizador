@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, parseJsonSafe } from "@/lib/utils";
 import { getInvoicedAmount } from "@/lib/sales";
 import { ArrowLeft, Plus, Pencil, Trash2 } from "lucide-react";
 
@@ -126,9 +126,8 @@ export function SaleDetailClient({ saleId }: { saleId: string }) {
           notes: payNotes || undefined,
         }),
       });
-      const text = await res.text();
-      const data = text ? (() => { try { return JSON.parse(text); } catch { return {}; } })() : {};
-      if (!res.ok) throw new Error((data as { error?: string }).error ?? "Failed to add payment");
+      const data = parseJsonSafe<{ error?: string }>(await res.text());
+      if (!res.ok) throw new Error(data.error ?? "Failed to add payment");
       setPaymentOpen(false);
       setPayAmountUsd("");
       setPayAmountLocal("");
@@ -190,18 +189,16 @@ export function SaleDetailClient({ saleId }: { saleId: string }) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
         });
-        const text = await res.text();
-        const data = text ? (() => { try { return JSON.parse(text); } catch { return {}; } })() : {};
-        if (!res.ok) throw new Error((data as { error?: string }).error ?? "Failed to update invoice");
+        const data = parseJsonSafe<{ error?: string }>(await res.text());
+        if (!res.ok) throw new Error(data.error ?? "Failed to update invoice");
       } else {
         const res = await fetch(`/api/sales/${saleId}/invoices`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
         });
-        const text = await res.text();
-        const data = text ? (() => { try { return JSON.parse(text); } catch { return {}; } })() : {};
-        if (!res.ok) throw new Error((data as { error?: string }).error ?? "Failed to add invoice");
+        const data = parseJsonSafe<{ error?: string }>(await res.text());
+        if (!res.ok) throw new Error(data.error ?? "Failed to add invoice");
       }
       setInvoiceModalMode(null);
       refetchSale();
@@ -222,8 +219,8 @@ export function SaleDetailClient({ saleId }: { saleId: string }) {
         setDeleteInvoiceId(null);
         refetchSale();
       } else {
-        const data = await res.json().catch(() => ({}));
-        setDeleteInvoiceError((data as { error?: string }).error ?? "Failed to remove invoice");
+        const data = parseJsonSafe<{ error?: string }>(await res.text());
+        setDeleteInvoiceError(data.error ?? "Failed to remove invoice");
       }
     } catch {
       setDeleteInvoiceError("Failed to remove invoice");
@@ -242,7 +239,7 @@ export function SaleDetailClient({ saleId }: { saleId: string }) {
         setDeletePaymentId(null);
         refetchSale();
       } else {
-        const data = await res.json().catch(() => ({}));
+        const data = parseJsonSafe<{ error?: string }>(await res.text());
         setDeletePaymentError(data.error ?? "Failed to remove payment");
       }
     } catch {
@@ -262,9 +259,8 @@ export function SaleDetailClient({ saleId }: { saleId: string }) {
         router.push("/sales");
         return;
       }
-      const text = await res.text();
-      const data = text ? (() => { try { return JSON.parse(text); } catch { return {}; } })() : {};
-      setDeleteSaleError((data as { error?: string }).error ?? "Failed to delete sale");
+      const data = parseJsonSafe<{ error?: string }>(await res.text());
+      setDeleteSaleError(data.error ?? "Failed to delete sale");
     } catch {
       setDeleteSaleError("Failed to delete sale");
     } finally {

@@ -2,10 +2,8 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { getInvoicedAmount } from "@/lib/sales";
+import { getInvoicedAmount, roundMoney } from "@/lib/sales";
 import { z } from "zod";
-
-const round2 = (n: number) => Math.round(n * 100) / 100;
 
 const createSchema = z.object({
   entityId: z.string().min(1),
@@ -56,8 +54,8 @@ export async function POST(
     select: { amountUsd: true },
   });
   const currentSum = existingInvoices.reduce((a, i) => a + i.amountUsd, 0);
-  const maxInvoiced = round2(getInvoicedAmount(sale));
-  if (round2(currentSum + parsed.data.amountUsd) > maxInvoiced) {
+  const maxInvoiced = roundMoney(getInvoicedAmount(sale));
+  if (roundMoney(currentSum + parsed.data.amountUsd) > maxInvoiced) {
     return NextResponse.json(
       {
         error: `Sum of invoice amounts would exceed invoiced amount for this sale (max ${maxInvoiced.toFixed(2)} USD for current sales condition).`,
@@ -77,7 +75,7 @@ export async function POST(
     data: {
       saleId,
       entityId: parsed.data.entityId,
-      amountUsd: round2(parsed.data.amountUsd),
+      amountUsd: roundMoney(parsed.data.amountUsd),
       dueDate: parsed.data.dueDate ? new Date(parsed.data.dueDate) : null,
       sequence: parsed.data.sequence ?? 1,
       referenceNumber: parsed.data.referenceNumber ?? null,

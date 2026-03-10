@@ -28,6 +28,16 @@ export async function requireRole(
   return user;
 }
 
+/** Parse JSON from fetch response text; returns fallback on empty or invalid. */
+export function parseJsonSafe<T = Record<string, unknown>>(text: string, fallback: T = {} as T): T {
+  if (!text?.trim()) return fallback;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return fallback;
+  }
+}
+
 export function formatCurrency(
   amount: number,
   currency = "USD",
