@@ -109,7 +109,7 @@ export function Step5Destination({ state, update }: Props) {
           <h3 className="font-medium text-gray-700">Freight</h3>
 
           {freightProfiles.length > 0 && (
-            <div>
+            <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">Freight Profile</label>
               <select
                 value={state.freightProfileId ?? ""}
@@ -130,6 +130,21 @@ export function Step5Destination({ state, update }: Props) {
                   </option>
                 ))}
               </select>
+              {(() => {
+                const selected = freightProfiles.find((p: any) => p.id === state.freightProfileId);
+                if (!selected?.expiryDate) return null;
+                const exp = new Date(selected.expiryDate);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                exp.setHours(0, 0, 0, 0);
+                if (exp >= today) return null;
+                return (
+                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+                    <p className="font-medium">This freight rate has expired ({exp.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}).</p>
+                    <p className="text-amber-700 text-xs mt-0.5">Consider re-quoting with the carrier. You can still continue with this quote.</p>
+                  </div>
+                );
+              })()}
             </div>
           )}
 

@@ -520,6 +520,7 @@ model FreightRateProfile {
   freightPerContainer Float  @default(0)
   isDefault       Boolean  @default(false)
   validFrom       DateTime @default(now())
+  expiryDate      DateTime?  // carrier offer validity (e.g. 30/45/60 days)
   notes           String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -746,15 +747,16 @@ model Sale {
 }
 
 model SaleInvoice {
-  id        String   @id @default(cuid())
-  saleId    String
-  entityId  String
-  amountUsd Float   @default(0)
-  dueDate   DateTime?
-  sequence  Int     @default(1)
-  notes     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id              String    @id @default(cuid())
+  saleId          String
+  entityId        String
+  amountUsd       Float     @default(0)
+  dueDate         DateTime?
+  sequence        Int       @default(1)
+  referenceNumber String?   // external invoice number (e.g. from billing system)
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   sale   Sale          @relation(fields: [saleId], references: [id], onDelete: Cascade)
   entity BillingEntity @relation(fields: [entityId], references: [id])

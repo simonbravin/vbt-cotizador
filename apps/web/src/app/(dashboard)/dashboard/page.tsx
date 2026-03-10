@@ -2,8 +2,9 @@ import { requireAuth } from "@/lib/utils";
 import { prisma } from "@/lib/db";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { FileText, FolderOpen, Package, TrendingUp, Plus } from "lucide-react";
+import { FileText, FolderOpen, Package, TrendingUp, Plus, DollarSign, Send } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
+import { getInvoicedAmount } from "@/lib/sales";
 
 export default async function DashboardPage() {
   let user: Awaited<ReturnType<typeof requireAuth>>;
@@ -22,17 +23,32 @@ export default async function DashboardPage() {
   let quoteCount = 0;
   let draftCount = 0;
   let sentCount = 0;
+  let salesYtd = 0;
+  let quotesSentYtd = 0;
   let recentQuotes: Awaited<ReturnType<typeof prisma.quote.findMany>> = [];
   let recentProjects: Awaited<ReturnType<typeof prisma.project.findMany>> = [];
   let pendingUsers = 0;
 
+  const startOfYear = new Date(new Date().getFullYear(), 0, 1);
+
   try {
-    [projectCount, quoteCount, draftCount, sentCount] = await Promise.all([
+    [projectCount, quoteCount, draftCount, sentCount, quotesSentYtd] = await Promise.all([
       prisma.project.count({ where: { orgId, isArchived: false } }),
       prisma.quote.count({ where: { orgId } }),
       prisma.quote.count({ where: { orgId, status: "DRAFT" } }),
       prisma.quote.count({ where: { orgId, status: "SENT" } }),
+      prisma.quote.count({ where: { orgId, status: "SENT", createdAt: { gte: startOfYear } } }),
     ]);
+
+    const salesYtdRows = await prisma.sale.findMany({
+      where: {
+        orgId,
+        createdAt: { gte: startOfYear },
+        status: { notIn: ["DRAFT", "CANCELLED"] },
+      },
+      select: { exwUsd: true, fobUsd: true, cifUsd: true, landedDdpUsd: true, invoicedBasis: true },
+    });
+    salesYtd = salesYtdRows.reduce((sum, s) => sum + getInvoicedAmount(s), 0);
 
     recentQuotes = await prisma.quote.findMany({
       where: { orgId },
@@ -118,7 +134,7 @@ export default async function DashboardPage() {
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         {[
           {
             label: "Active Projects",
@@ -150,6 +166,22 @@ export default async function DashboardPage() {
             icon: Package,
             color: "text-green-600",
             bg: "bg-green-50",
+            href: "/quotes?status=SENT",
+          },
+          {
+            label: "Sales (YTD)",
+            value: formatCurrency(salesYtd),
+            icon: DollarSign,
+            color: "text-emerald-600",
+            bg: "bg-emerald-50",
+            href: "/sales",
+          },
+          {
+            label: "Quotes sent (YTD)",
+            value: quotesSentYtd,
+            icon: Send,
+            color: "text-vbt-blue",
+            bg: "bg-blue-50",
             href: "/quotes?status=SENT",
           },
         ].map((stat) => (

@@ -5,7 +5,23 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatCurrency } from "@/lib/utils";
+import { getInvoicedAmount } from "@/lib/sales";
 import { ArrowLeft, Plus, Pencil, Trash2 } from "lucide-react";
+
+const DUE_SOON_DAYS = 7;
+
+function getInvoiceDueStatus(dueDate: string | null): "overdue" | "due_soon" | null {
+  if (!dueDate) return null;
+  const d = new Date(dueDate);
+  d.setHours(0, 0, 0, 0);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  if (d < today) return "overdue";
+  const limit = new Date(today);
+  limit.setDate(limit.getDate() + DUE_SOON_DAYS);
+  if (d <= limit) return "due_soon";
+  return null;
+}
 
 type Sale = {
   id: string;
@@ -14,6 +30,7 @@ type Sale = {
   projectId: string;
   quantity: number;
   status: string;
+  invoicedBasis?: string | null;
   exwUsd: number;
   commissionPct: number;
   commissionAmountUsd: number;
@@ -27,7 +44,7 @@ type Sale = {
   client: { id: string; name: string; email: string | null };
   project: { id: string; name: string };
   quote: { id: string; quoteNumber: string | null } | null;
-  invoices: { id: string; entityId: string; amountUsd: number; dueDate: string | null; sequence: number; entity: { name: string; slug: string } }[];
+  invoices: { id: string; entityId: string; amountUsd: number; dueDate: string | null; sequence: number; referenceNumber: string | null; notes: string | null; entity: { name: string; slug: string } }[];
   payments: { id: string; entityId: string; amountUsd: number; amountLocal: number | null; currencyLocal: string | null; exchangeRate: number | null; paidAt: string; notes: string | null; entity: { name: string; slug: string } }[];
   invoiceStatusByEntity?: Record<string, { paid: number; invoiced: number; status: string }>;
 };
@@ -60,8 +77,22 @@ export function SaleDetailClient({ saleId }: { saleId: string }) {
   const [deleteSaleOpen, setDeleteSaleOpen] = useState(false);
   const [deletingSale, setDeletingSale] = useState(false);
   const [deleteSaleError, setDeleteSaleError] = useState<string | null>(null);
+  const [invoiceModalMode, setInvoiceModalMode] = useState<null | "add" | string>(null);
+  const [invEntityId, setInvEntityId] = useState("");
+  const [invAmountUsd, setInvAmountUsd] = useState("");
+  const [invDueDate, setInvDueDate] = useState("");
+  const [invSequence, setInvSequence] = useState(1);
+  const [invReferenceNumber, setInvReferenceNumber] = useState("");
+  const [invNotes, setInvNotes] = useState("");
+  const [invSubmitting, setInvSubmitting] = useState(false);
+  const [invError, setInvError] = useState<string | null>(null);
+  const [deleteInvoiceId, setDeleteInvoiceId] = useState<string | null>(null);
+  const [deletingInvoice, setDeletingInvoice] = useState(false);
+  const [deleteInvoiceError, setDeleteInvoiceError] = useState<string | null>(null);
 
   const router = useRouter();
+
+  const refetchSale = () => fetch(`/api/sales/${saleId}`).then((r) => r.json()).then(setSale);
 
   useEffect(() => {
     fetch(`/api/sales/${saleId}`)
@@ -103,11 +134,101 @@ export function SaleDetailClient({ saleId }: { saleId: string }) {
       setPayAmountLocal("");
       setPayExchangeRate("");
       setPayNotes("");
-      fetch(`/api/sales/${saleId}`).then((r) => r.json()).then(setSale);
+      refetchSale();
     } catch (err: any) {
       setPayError(err.message ?? "Failed");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const openAddInvoice = () => {
+    setInvEntityId("");
+    setInvAmountUsd("");
+    setInvDueDate("");
+    setInvSequence((sale?.invoices?.length ?? 0) + 1);
+    setInvReferenceNumber("");
+    setInvNotes("");
+    setInvError(null);
+    setInvoiceModalMode("add");
+  };
+
+  const openEditInvoice = (inv: Sale["invoices"][0]) => {
+    setInvEntityId(inv.entityId);
+    setInvAmountUsd(String(inv.amountUsd));
+    setInvDueDate(inv.dueDate ? new Date(inv.dueDate).toISOString().slice(0, 10) : "");
+    setInvSequence(inv.sequence ?? 1);
+    setInvReferenceNumber(inv.referenceNumber ?? "");
+    setInvNotes(inv.notes ?? "");
+    setInvError(null);
+    setInvoiceModalMode(inv.id);
+  };
+
+  const handleSaveInvoice = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!sale) return;
+    setInvError(null);
+    const amount = parseFloat(invAmountUsd);
+    if (!invEntityId || isNaN(amount) || amount < 0) {
+      setInvError("Entity and amount (USD) are required");
+      return;
+    }
+    setInvSubmitting(true);
+    try {
+      const isEdit = invoiceModalMode && invoiceModalMode !== "add";
+      const body = {
+        entityId: invEntityId,
+        amountUsd: amount,
+        dueDate: invDueDate || null,
+        sequence: invSequence,
+        referenceNumber: invReferenceNumber.trim() || null,
+        notes: invNotes.trim() || null,
+      };
+      if (isEdit) {
+        const res = await fetch(`/api/sales/${saleId}/invoices/${invoiceModalMode}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const text = await res.text();
+        const data = text ? (() => { try { return JSON.parse(text); } catch { return {}; } })() : {};
+        if (!res.ok) throw new Error((data as { error?: string }).error ?? "Failed to update invoice");
+      } else {
+        const res = await fetch(`/api/sales/${saleId}/invoices`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const text = await res.text();
+        const data = text ? (() => { try { return JSON.parse(text); } catch { return {}; } })() : {};
+        if (!res.ok) throw new Error((data as { error?: string }).error ?? "Failed to add invoice");
+      }
+      setInvoiceModalMode(null);
+      refetchSale();
+    } catch (err: unknown) {
+      setInvError(err instanceof Error ? err.message : "Failed");
+    } finally {
+      setInvSubmitting(false);
+    }
+  };
+
+  const handleDeleteInvoice = async () => {
+    if (!deleteInvoiceId) return;
+    setDeletingInvoice(true);
+    setDeleteInvoiceError(null);
+    try {
+      const res = await fetch(`/api/sales/${saleId}/invoices/${deleteInvoiceId}`, { method: "DELETE" });
+      if (res.ok) {
+        setDeleteInvoiceId(null);
+        refetchSale();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setDeleteInvoiceError((data as { error?: string }).error ?? "Failed to remove invoice");
+      }
+    } catch {
+      setDeleteInvoiceError("Failed to remove invoice");
+    } finally {
+      setDeletingInvoice(false);
     }
   };
 
@@ -119,8 +240,7 @@ export function SaleDetailClient({ saleId }: { saleId: string }) {
       const res = await fetch(`/api/sales/payments/${deletePaymentId}`, { method: "DELETE" });
       if (res.ok) {
         setDeletePaymentId(null);
-        const d = await fetch(`/api/sales/${saleId}`).then((r) => r.json());
-        setSale(d);
+        refetchSale();
       } else {
         const data = await res.json().catch(() => ({}));
         setDeletePaymentError(data.error ?? "Failed to remove payment");
@@ -230,19 +350,57 @@ export function SaleDetailClient({ saleId }: { saleId: string }) {
 
         <div className="space-y-6">
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h2 className="font-semibold text-gray-800 mb-3">Invoices / due dates</h2>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-semibold text-gray-800">Invoices / due dates</h2>
+              {sale.status !== "CANCELLED" && (
+                <button
+                  type="button"
+                  onClick={openAddInvoice}
+                  className="inline-flex items-center gap-1 px-2 py-1 bg-vbt-orange text-white rounded text-sm font-medium hover:bg-orange-600"
+                >
+                  <Plus className="w-4 h-4" /> Add line
+                </button>
+              )}
+            </div>
             {sale.invoices.length === 0 ? (
-              <p className="text-gray-500 text-sm">No invoices defined</p>
+              <p className="text-gray-500 text-sm">No invoices defined. Click &quot;Add line&quot; to add invoice lines and due dates.</p>
             ) : (
               <ul className="space-y-2 text-sm">
-                {[...sale.invoices].sort((a, b) => (a.sequence ?? 1) - (b.sequence ?? 1)).map((inv) => (
-                  <li key={inv.id} className="flex justify-between items-center">
-                    <span>{inv.entity?.name ?? "—"} – {formatCurrency(inv.amountUsd)}{inv.dueDate ? ` due ${new Date(inv.dueDate).toLocaleDateString()}` : ""}</span>
-                    {sale.invoiceStatusByEntity?.[inv.entityId] && (
-                      <span className="text-xs text-gray-500">{sale.invoiceStatusByEntity[inv.entityId].status}</span>
-                    )}
-                  </li>
-                ))}
+                {[...sale.invoices].sort((a, b) => (a.sequence ?? 1) - (b.sequence ?? 1)).map((inv) => {
+                  const dueStatus = getInvoiceDueStatus(inv.dueDate);
+                  return (
+                    <li key={inv.id} className="flex flex-wrap justify-between items-center gap-2 py-2 border-b border-gray-100 last:border-0">
+                      <div>
+                        <span className="font-medium">{inv.entity?.name ?? "—"}</span>
+                        {" – "}
+                        {formatCurrency(inv.amountUsd)}
+                        {inv.dueDate && <span className="text-gray-500"> due {new Date(inv.dueDate).toLocaleDateString()}</span>}
+                        {inv.referenceNumber && <span className="text-gray-500 block text-xs">Ref: {inv.referenceNumber}</span>}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {dueStatus === "overdue" && (
+                          <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">Overdue</span>
+                        )}
+                        {dueStatus === "due_soon" && (
+                          <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">Due soon</span>
+                        )}
+                        {sale.invoiceStatusByEntity?.[inv.entityId] && (
+                          <span className="text-xs text-gray-500">{sale.invoiceStatusByEntity[inv.entityId].status}</span>
+                        )}
+                        {sale.status !== "CANCELLED" && (
+                          <>
+                            <button type="button" onClick={() => openEditInvoice(inv)} className="p-1 text-gray-400 hover:text-vbt-blue rounded" title="Edit">
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                            <button type="button" onClick={() => setDeleteInvoiceId(inv.id)} className="p-1 text-gray-400 hover:text-red-600 rounded" title="Remove">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </div>
@@ -437,6 +595,75 @@ export function SaleDetailClient({ saleId }: { saleId: string }) {
                 className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50"
               >
                 {deletingSale ? "Deleting..." : "Delete sale"}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {invoiceModalMode && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4" onClick={(e) => e.target === e.currentTarget && !invSubmitting && setInvoiceModalMode(null)}>
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-semibold text-gray-800 mb-4">{invoiceModalMode === "add" ? "Add invoice line" : "Edit invoice line"}</h3>
+            <p className="text-xs text-gray-500 mb-3">Sum of invoice amounts cannot exceed the sale&apos;s invoiced amount ({sale && formatCurrency(getInvoicedAmount(sale))} for {sale?.invoicedBasis ?? "DDP"}).</p>
+            <form onSubmit={handleSaveInvoice} className="space-y-4">
+              {invError && <p className="text-sm text-red-600">{invError}</p>}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Entity *</label>
+                <select value={invEntityId} onChange={(e) => setInvEntityId(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" required>
+                  <option value="">Select entity</option>
+                  {entities.filter((e) => e.isActive !== false).map((ent) => (
+                    <option key={ent.id} value={ent.id}>{ent.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Amount (USD) *</label>
+                <input type="number" min="0" step="0.01" value={invAmountUsd} onChange={(e) => setInvAmountUsd(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Due date</label>
+                <input type="date" value={invDueDate} onChange={(e) => setInvDueDate(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Sequence</label>
+                <input type="number" min={1} value={invSequence} onChange={(e) => setInvSequence(parseInt(e.target.value, 10) || 1)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Reference number</label>
+                <input type="text" value={invReferenceNumber} onChange={(e) => setInvReferenceNumber(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="External invoice #" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                <input type="text" value={invNotes} onChange={(e) => setInvNotes(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button type="submit" disabled={invSubmitting} className="px-4 py-2 bg-vbt-orange text-white rounded-lg text-sm font-medium disabled:opacity-50">
+                  {invSubmitting ? "Saving..." : "Save"}
+                </button>
+                <button type="button" onClick={() => { setInvoiceModalMode(null); setInvError(null); }} className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {deleteInvoiceId && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4" onClick={(e) => e.target === e.currentTarget && !deletingInvoice && setDeleteInvoiceId(null)}>
+          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-semibold text-gray-800 mb-2">Remove invoice line?</h3>
+            <p className="text-sm text-gray-600 mb-4">This will delete the invoice line and may update the sale status. This cannot be undone.</p>
+            {deleteInvoiceError && <p className="text-sm text-red-600 mb-3">{deleteInvoiceError}</p>}
+            <div className="flex gap-2">
+              <button type="button" onClick={() => { setDeleteInvoiceId(null); setDeleteInvoiceError(null); }} className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium">
+                Cancel
+              </button>
+              <button type="button" onClick={handleDeleteInvoice} disabled={deletingInvoice} className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50">
+                {deletingInvoice ? "Removing..." : "Remove"}
               </button>
             </div>
           </div>

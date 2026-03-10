@@ -9,6 +9,7 @@ const createSchema = z.object({
   name: z.string().min(1),
   freightPerContainer: z.number().min(0),
   isDefault: z.boolean().default(false),
+  expiryDate: z.string().optional(), // YYYY-MM-DD
   notes: z.string().optional(),
 });
 
@@ -40,8 +41,9 @@ export async function POST(req: Request) {
   const parsed = createSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
 
+  const { expiryDate: expiryStr, ...rest } = parsed.data as { expiryDate?: string; countryId: string; name: string; freightPerContainer: number; isDefault: boolean; notes?: string };
   const profile = await prisma.freightRateProfile.create({
-    data: { ...parsed.data, orgId: user.orgId },
+    data: { ...rest, orgId: user.orgId, expiryDate: expiryStr ? new Date(expiryStr) : undefined },
   });
   return NextResponse.json(profile, { status: 201 });
 }

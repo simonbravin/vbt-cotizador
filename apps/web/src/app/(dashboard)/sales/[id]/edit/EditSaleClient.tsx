@@ -10,7 +10,7 @@ import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 /** Only these statuses are editable; Paid / Partially paid / Due are set automatically by payments and due dates. */
 const statusOptions = ["DRAFT", "CONFIRMED", "CANCELLED"] as const;
 
-type InvoiceLine = { entityId: string; amountUsd: number; dueDate: string; sequence: number; notes: string };
+type InvoiceLine = { entityId: string; amountUsd: number; dueDate: string; sequence: number; referenceNumber: string; notes: string };
 type Entity = { id: string; name: string; slug?: string };
 
 function validateFinancials(data: { exwUsd: number; fobUsd: number; cifUsd: number; landedDdpUsd: number }): string | null {
@@ -72,11 +72,12 @@ export function EditSaleClient({ saleId }: { saleId: string }) {
           setInvoicedBasis((d.invoicedBasis || "DDP").toUpperCase() as "EXW" | "FOB" | "CIF" | "DDP");
           setNotes(d.notes ?? "");
           setInvoices(
-            (d.invoices ?? []).map((inv: { entityId: string; amountUsd: number; dueDate: string | null; sequence?: number; notes?: string | null }) => ({
+            (d.invoices ?? []).map((inv: { entityId: string; amountUsd: number; dueDate: string | null; sequence?: number; referenceNumber?: string | null; notes?: string | null }) => ({
               entityId: inv.entityId,
               amountUsd: round2(inv.amountUsd ?? 0),
               dueDate: inv.dueDate ? new Date(inv.dueDate).toISOString().slice(0, 10) : "",
               sequence: inv.sequence ?? 1,
+              referenceNumber: inv.referenceNumber ?? "",
               notes: inv.notes ?? "",
             }))
           );
@@ -125,6 +126,7 @@ export function EditSaleClient({ saleId }: { saleId: string }) {
               amountUsd: Number(Number(inv.amountUsd).toFixed(2)),
               dueDate: inv.dueDate ? inv.dueDate : null,
               sequence: inv.sequence || 1,
+              referenceNumber: inv.referenceNumber?.trim() || undefined,
               notes: inv.notes || undefined,
             })),
         }),
@@ -248,7 +250,7 @@ export function EditSaleClient({ saleId }: { saleId: string }) {
           <h2 className="font-semibold text-gray-800">Invoices / due dates</h2>
           <button
             type="button"
-            onClick={() => setInvoices((prev) => [...prev, { entityId: "", amountUsd: 0, dueDate: "", sequence: prev.length + 1, notes: "" }])}
+            onClick={() => setInvoices((prev) => [...prev, { entityId: "", amountUsd: 0, dueDate: "", sequence: prev.length + 1, referenceNumber: "", notes: "" }])}
             className="inline-flex items-center gap-1 px-2 py-1 text-sm font-medium text-vbt-blue hover:bg-blue-50 rounded-lg"
           >
             <Plus className="w-4 h-4" /> Add line
@@ -307,6 +309,16 @@ export function EditSaleClient({ saleId }: { saleId: string }) {
                     value={inv.sequence}
                     onChange={(e) => setInvoices((prev) => prev.map((p, i) => (i === idx ? { ...p, sequence: parseInt(e.target.value, 10) || 1 } : p)))}
                     className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm"
+                  />
+                </div>
+                <div className="min-w-[120px] flex-1">
+                  <label className="block text-xs font-medium text-gray-600 mb-0.5">Ref. number</label>
+                  <input
+                    type="text"
+                    value={inv.referenceNumber}
+                    onChange={(e) => setInvoices((prev) => prev.map((p, i) => (i === idx ? { ...p, referenceNumber: e.target.value } : p)))}
+                    className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm"
+                    placeholder="External invoice #"
                   />
                 </div>
                 <div className="flex-1 min-w-[100px]">

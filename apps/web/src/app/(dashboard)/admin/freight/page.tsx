@@ -13,6 +13,7 @@ export default function FreightPage() {
     countryId: "",
     freightPerContainer: 0,
     isDefault: false,
+    expiryDate: "",
     notes: "",
   });
   const [saving, setSaving] = useState(false);
@@ -27,7 +28,7 @@ export default function FreightPage() {
   }, []);
 
   const openAdd = () => {
-    setForm({ name: "", countryId: "", freightPerContainer: 0, isDefault: false, notes: "" });
+    setForm({ name: "", countryId: "", freightPerContainer: 0, isDefault: false, expiryDate: "", notes: "" });
     setEditItem(null);
     setShowAdd(true);
   };
@@ -38,26 +39,37 @@ export default function FreightPage() {
       countryId: p.countryId ?? "",
       freightPerContainer: p.freightPerContainer ?? 0,
       isDefault: p.isDefault ?? false,
+      expiryDate: p.expiryDate ? new Date(p.expiryDate).toISOString().slice(0, 10) : "",
       notes: p.notes ?? "",
     });
     setEditItem(p);
     setShowAdd(true);
   };
 
+  const getStatus = (p: { expiryDate?: string | null }) => {
+    if (!p.expiryDate) return { label: "Active", className: "bg-green-100 text-green-700" };
+    const exp = new Date(p.expiryDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    exp.setHours(0, 0, 0, 0);
+    return exp < today ? { label: "Expired", className: "bg-amber-100 text-amber-800" } : { label: "Active", className: "bg-green-100 text-green-700" };
+  };
+
   const save = async () => {
     if (!form.name || !form.countryId) return;
     setSaving(true);
+    const payload = { ...form, expiryDate: form.expiryDate ? form.expiryDate : (editItem ? null : undefined) };
     if (editItem) {
       await fetch(`/api/freight/${editItem.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
     } else {
       await fetch("/api/freight", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
     }
     setSaving(false);
@@ -87,15 +99,17 @@ export default function FreightPage() {
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
-              {["Profile", "Country", "Cost / Container", "Default", "Actions"].map((h) => (
+              {["Profile", "Country", "Cost / Container", "Expiry date", "Status", "Default", "Actions"].map((h) => (
                 <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase whitespace-nowrap">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
             {profiles.length === 0 ? (
-              <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400">No freight profiles yet</td></tr>
-            ) : profiles.map((p) => (
+              <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400">No freight profiles yet</td></tr>
+            ) : profiles.map((p) => {
+              const status = getStatus(p);
+              return (
               <tr key={p.id} className="hover:bg-gray-50">
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
@@ -109,6 +123,12 @@ export default function FreightPage() {
                 <td className="px-4 py-3 text-gray-600">{p.country?.name ?? "—"}</td>
                 <td className="px-4 py-3 font-medium">
                   {p.freightPerContainer != null ? fmt(p.freightPerContainer) : "—"}
+                </td>
+                <td className="px-4 py-3 text-gray-600">
+                  {p.expiryDate ? new Date(p.expiryDate).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : "—"}
+                </td>
+                <td className="px-4 py-3">
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${status.className}`}>{status.label}</span>
                 </td>
                 <td className="px-4 py-3">
                   {p.isDefault && (
@@ -124,7 +144,7 @@ export default function FreightPage() {
                   </button>
                 </td>
               </tr>
-            ))}
+            );})}
           </tbody>
         </table>
       </div>
@@ -169,6 +189,16 @@ export default function FreightPage() {
                       className="w-full pl-6 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-vbt-blue"
                     />
                   </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Expiry date</label>
+                  <input
+                    type="date"
+                    value={form.expiryDate}
+                    onChange={(e) => setForm(p => ({ ...p, expiryDate: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-vbt-blue"
+                  />
+                  <p className="text-xs text-gray-500 mt-0.5">Carrier offer validity (e.g. 30–60 days)</p>
                 </div>
                 <div className="col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>

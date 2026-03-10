@@ -13,6 +13,7 @@ const invoiceSchema = z.object({
   amountUsd: z.number().min(0),
   dueDate: z.string().optional(),
   sequence: z.number().int().min(1).optional().default(1),
+  referenceNumber: z.string().optional().nullable(),
   notes: z.string().optional(),
 });
 
@@ -225,6 +226,7 @@ export async function POST(req: Request) {
               amountUsd: inv.amountUsd,
               dueDate: inv.dueDate ? new Date(inv.dueDate) : null,
               sequence: inv.sequence ?? 1,
+              referenceNumber: inv.referenceNumber ?? null,
               notes: inv.notes ?? null,
             },
           });

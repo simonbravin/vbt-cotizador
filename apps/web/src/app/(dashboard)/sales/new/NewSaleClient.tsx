@@ -12,7 +12,7 @@ type Project = { id: string; name: string; clientId: string | null };
 type Quote = { id: string; quoteNumber: string | null; factoryCostUsd: number; commissionPct: number; commissionFixed: number; fobUsd: number; freightCostUsd: number; cifUsd: number; taxesFeesUsd: number; landedDdpUsd: number };
 type Entity = { id: string; name: string; slug: string };
 
-type InvoiceLine = { entityId: string; amountUsd: number; dueDate: string; sequence: number; notes: string };
+type InvoiceLine = { entityId: string; amountUsd: number; dueDate: string; sequence: number; referenceNumber: string; notes: string };
 
 export function NewSaleClient() {
   const router = useRouter();
@@ -156,6 +156,7 @@ export function NewSaleClient() {
               amountUsd: Number(Number(inv.amountUsd).toFixed(2)),
               dueDate: inv.dueDate || undefined,
               sequence: inv.sequence || 1,
+              referenceNumber: inv.referenceNumber?.trim() || undefined,
               notes: inv.notes || undefined,
             })),
         }),
@@ -324,7 +325,7 @@ export function NewSaleClient() {
           <h2 className="font-semibold text-gray-800">Invoices / due dates</h2>
           <button
             type="button"
-            onClick={() => setInvoices((prev) => [...prev, { entityId: "", amountUsd: 0, dueDate: "", sequence: prev.length + 1, notes: "" }])}
+            onClick={() => setInvoices((prev) => [...prev, { entityId: "", amountUsd: 0, dueDate: "", sequence: prev.length + 1, referenceNumber: "", notes: "" }])}
             className="inline-flex items-center gap-1 px-2 py-1 text-sm font-medium text-vbt-blue hover:bg-blue-50 rounded-lg"
           >
             <Plus className="w-4 h-4" /> Add line
@@ -383,6 +384,16 @@ export function NewSaleClient() {
                     value={inv.sequence}
                     onChange={(e) => setInvoices((prev) => prev.map((p, i) => (i === idx ? { ...p, sequence: parseInt(e.target.value, 10) || 1 } : p)))}
                     className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm"
+                  />
+                </div>
+                <div className="min-w-[120px] flex-1">
+                  <label className="block text-xs font-medium text-gray-600 mb-0.5">Ref. number</label>
+                  <input
+                    type="text"
+                    value={inv.referenceNumber}
+                    onChange={(e) => setInvoices((prev) => prev.map((p, i) => (i === idx ? { ...p, referenceNumber: e.target.value } : p)))}
+                    className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm"
+                    placeholder="External invoice #"
                   />
                 </div>
                 <div className="flex-1 min-w-[100px]">

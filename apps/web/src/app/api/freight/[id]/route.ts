@@ -8,6 +8,7 @@ const updateSchema = z.object({
   name: z.string().optional(),
   freightPerContainer: z.number().min(0).optional(),
   isDefault: z.boolean().optional(),
+  expiryDate: z.string().nullable().optional(), // YYYY-MM-DD or null to clear
   notes: z.string().optional(),
 }).partial();
 
@@ -27,7 +28,12 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   const body = await req.json();
   const parsed = updateSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
-  const profile = await prisma.freightRateProfile.update({ where: { id: params.id }, data: parsed.data });
+  const data = parsed.data as { expiryDate?: string | null; [k: string]: unknown };
+  const updateData = { ...data };
+  if ("expiryDate" in data) {
+    (updateData as { expiryDate: Date | null }).expiryDate = data.expiryDate ? new Date(data.expiryDate) : null;
+  }
+  const profile = await prisma.freightRateProfile.update({ where: { id: params.id }, data: updateData });
   return NextResponse.json(profile);
 }
 
