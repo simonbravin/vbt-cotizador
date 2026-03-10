@@ -218,20 +218,39 @@ export default function QuoteDetailPage() {
         </div>
       )}
 
-      {/* Wall Areas */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: "S80 Wall Area", value: `${(Number(quote.wallAreaM2S80) || 0).toFixed(1)} m²` },
-          { label: "S150 Wall Area", value: `${(Number(quote.wallAreaM2S150) || 0).toFixed(1)} m²` },
-          { label: "S200 Wall Area", value: `${(Number(quote.wallAreaM2S200) || 0).toFixed(1)} m²` },
-          { label: "Total Wall Area", value: `${(Number(quote.wallAreaM2Total) || 0).toFixed(1)} m²` },
-        ].map((s) => (
-          <div key={s.label} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-            <p className="text-xs text-gray-400 uppercase">{s.label}</p>
-            <p className="text-xl font-bold text-gray-800 mt-1">{s.value}</p>
+      {/* Wall Areas — S80/S150/S200 and Total are per kit; total wall area = per kit × totalKits */}
+      {(() => {
+        const tk = Math.max(Number(quote.totalKits) || 1, 1);
+        const totalM2PerKit = Number(quote.wallAreaM2Total) || 0;
+        const totalM2Total = totalM2PerKit * tk;
+        return (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+              <p className="text-xs text-gray-400 uppercase">S80 Wall Area</p>
+              <p className="text-xl font-bold text-gray-800 mt-1">{(Number(quote.wallAreaM2S80) || 0).toFixed(1)} m²</p>
+            </div>
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+              <p className="text-xs text-gray-400 uppercase">S150 Wall Area</p>
+              <p className="text-xl font-bold text-gray-800 mt-1">{(Number(quote.wallAreaM2S150) || 0).toFixed(1)} m²</p>
+            </div>
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+              <p className="text-xs text-gray-400 uppercase">S200 Wall Area</p>
+              <p className="text-xl font-bold text-gray-800 mt-1">{(Number(quote.wallAreaM2S200) || 0).toFixed(1)} m²</p>
+            </div>
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+              <p className="text-xs text-gray-400 uppercase">Total Wall Area</p>
+              {tk > 1 ? (
+                <>
+                  <p className="text-sm font-semibold text-gray-800 mt-1">Per kit: {totalM2PerKit.toFixed(1)} m²</p>
+                  <p className="text-lg font-bold text-gray-800">Total: {totalM2Total.toFixed(1)} m²</p>
+                </>
+              ) : (
+                <p className="text-xl font-bold text-gray-800 mt-1">Total: {totalM2Total.toFixed(1)} m²</p>
+              )}
+            </div>
           </div>
-        ))}
-      </div>
+        );
+      })()}
 
       {/* Material Lines (collapsible) */}
       {quote.lines?.length > 0 && (
@@ -331,41 +350,49 @@ export default function QuoteDetailPage() {
           <div>
             <p className="text-white/70">Landed / DDP Total</p>
             {(Number(quote.totalKits) || 0) > 0 && (
-              <p className="text-white/50 text-sm mt-1">
-                {quote.totalKits} kits · {quote.numContainers} containers ·{" "}
-                {fmt((Number(quote.landedDdpUsd) || 0) / Math.max(Number(quote.numContainers) || 1, 1))}/container
-              </p>
+              <div className="text-white/50 text-sm mt-1 space-y-0.5">
+                <p>
+                  {quote.totalKits} kits · {quote.numContainers} container{Number(quote.numContainers) !== 1 ? "s" : ""} ·{" "}
+                  {fmt((Number(quote.landedDdpUsd) || 0) / Math.max(Number(quote.numContainers) || 1, 1))}/container
+                </p>
+                <p>
+                  {fmt((Number(quote.landedDdpUsd) || 0) / Math.max(Number(quote.totalKits) || 1, 1))}/kit
+                </p>
+              </div>
             )}
           </div>
           <p className="text-4xl font-bold text-white">{fmt(Number(quote.landedDdpUsd) || 0)}</p>
         </div>
       </div>
 
-      {/* Informational */}
+      {/* Informational — stored values are per kit (CSV = one kit); total = per kit × totalKits. Show "Por kit" only when totalKits > 1. */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
         <h2 className="font-semibold text-gray-800 mb-3">Informational (not in cost)</h2>
         {(() => {
           const tk = Math.max(Number(quote.totalKits) || 1, 1);
-          const m2 = Number(quote.wallAreaM2Total) || 0;
-          const m3 = Number(quote.concreteM3) || 0;
-          const kg = Number(quote.steelKgEst) || 0;
+          const m2PerKit = Number(quote.wallAreaM2Total) || 0;
+          const m3PerKit = Number(quote.concreteM3) || 0;
+          const kgPerKit = Number(quote.steelKgEst) || 0;
+          const m2Total = m2PerKit * tk;
+          const m3Total = m3PerKit * tk;
+          const kgTotal = kgPerKit * tk;
           return (
             <div className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
                 <div className="bg-gray-50 rounded-lg p-3">
                   <p className="text-gray-500 text-xs font-medium uppercase mb-1">Muros (m²)</p>
-                  <p className="font-semibold text-gray-800">Por kit: {(m2 / tk).toLocaleString("en-US", { minimumFractionDigits: 2 })} m²</p>
-                  <p className="text-gray-600">Total: {m2.toLocaleString("en-US", { minimumFractionDigits: 2 })} m²</p>
+                  {tk > 1 && <p className="font-semibold text-gray-800">Por kit: {m2PerKit.toLocaleString("en-US", { minimumFractionDigits: 2 })} m²</p>}
+                  <p className={tk > 1 ? "text-gray-600" : "font-semibold text-gray-800"}>Total: {m2Total.toLocaleString("en-US", { minimumFractionDigits: 2 })} m²</p>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-3">
                   <p className="text-gray-500 text-xs font-medium uppercase mb-1">Hormigón (m³)</p>
-                  <p className="font-semibold text-gray-800">Por kit: {(m3 / tk).toLocaleString("en-US", { minimumFractionDigits: 2 })} m³</p>
-                  <p className="text-gray-600">Total: {m3.toLocaleString("en-US", { minimumFractionDigits: 2 })} m³</p>
+                  {tk > 1 && <p className="font-semibold text-gray-800">Por kit: {m3PerKit.toLocaleString("en-US", { minimumFractionDigits: 2 })} m³</p>}
+                  <p className={tk > 1 ? "text-gray-600" : "font-semibold text-gray-800"}>Total: {m3Total.toLocaleString("en-US", { minimumFractionDigits: 2 })} m³</p>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-3">
                   <p className="text-gray-500 text-xs font-medium uppercase mb-1">Acero (kg)</p>
-                  <p className="font-semibold text-gray-800">Por kit: {(kg / tk).toLocaleString("en-US", { minimumFractionDigits: 1 })} kg</p>
-                  <p className="text-gray-600">Total: {kg.toLocaleString("en-US", { minimumFractionDigits: 1 })} kg</p>
+                  {tk > 1 && <p className="font-semibold text-gray-800">Por kit: {kgPerKit.toLocaleString("en-US", { minimumFractionDigits: 1 })} kg</p>}
+                  <p className={tk > 1 ? "text-gray-600" : "font-semibold text-gray-800"}>Total: {kgTotal.toLocaleString("en-US", { minimumFractionDigits: 1 })} kg</p>
                 </div>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm border-t border-gray-100 pt-3">

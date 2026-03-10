@@ -584,21 +584,24 @@ export function QuotePdfDocument({ data, options = {} }: { data: QuotePdfData; o
           )}
         </View>
 
-        {/* ── Informational (per kit & total) ────────────────────────────── */}
+        {/* ── Informational (stored = per kit; total = per kit × totalKits; show "Per kit" only when totalKits > 1) ────────────────────────────── */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
             Informational (not included in cost)
           </Text>
           {(() => {
             const tk = Math.max(Number(data.totalKits) || 1, 1);
-            const m2 = Number(data.wallAreaM2Total) || 0;
-            const m3 = Number(data.concreteM3) || 0;
-            const kg = Number(data.steelKgEst) || 0;
+            const m2PerKit = Number(data.wallAreaM2Total) || 0;
+            const m3PerKit = Number(data.concreteM3) || 0;
+            const kgPerKit = Number(data.steelKgEst) || 0;
+            const m2Total = m2PerKit * tk;
+            const m3Total = m3PerKit * tk;
+            const kgTotal = kgPerKit * tk;
             return (
               <View style={styles.summaryBox}>
-                <SumRow label="Muros (m²)" value={`Per kit: ${safeFmtN(m2 / tk)} · Total: ${safeFmtN(m2)} m²`} />
-                <SumRow label="Hormigón (m³)" value={`Per kit: ${safeFmtN(m3 / tk)} · Total: ${safeFmtN(m3)} m³`} />
-                <SumRow label="Acero (kg)" value={`Per kit: ${safeFmtN(kg / tk, 1)} · Total: ${safeFmtN(kg, 1)} kg`} />
+                <SumRow label="Muros (m²)" value={tk > 1 ? `Per kit: ${safeFmtN(m2PerKit)} · Total: ${safeFmtN(m2Total)} m²` : `Total: ${safeFmtN(m2Total)} m²`} />
+                <SumRow label="Hormigón (m³)" value={tk > 1 ? `Per kit: ${safeFmtN(m3PerKit)} · Total: ${safeFmtN(m3Total)} m³` : `Total: ${safeFmtN(m3Total)} m³`} />
+                <SumRow label="Acero (kg)" value={tk > 1 ? `Per kit: ${safeFmtN(kgPerKit, 1)} · Total: ${safeFmtN(kgTotal, 1)} kg` : `Total: ${safeFmtN(kgTotal, 1)} kg`} />
                 {data.totalWeightKgCored != null && (
                   <SumRow label="Panel weight (cored)" value={`${safeFmtN(data.totalWeightKgCored)} kg`} />
                 )}
