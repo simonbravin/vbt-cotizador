@@ -61,6 +61,11 @@ function LoginForm() {
     <div className="bg-slate-800/95 backdrop-blur-sm rounded-2xl shadow-2xl border border-white/20 p-8 ring-1 ring-white/10">
       <h2 className="text-xl font-semibold text-white mb-6">{t("auth.signIn")}</h2>
 
+      {searchParams.get("reset") === "success" && (
+        <div className="mb-4 p-3 bg-green-900/50 border border-green-400/50 rounded-lg text-green-200 text-sm">
+          {t("auth.resetSuccess")}
+        </div>
+      )}
       {searchParams.get("error") === "INACTIVE" && (
         <div className="mb-4 p-3 bg-red-900/50 border border-red-400/50 rounded-lg text-red-200 text-sm">
           {t("auth.suspended")}
@@ -129,6 +134,11 @@ className="w-full px-3 py-2 pr-10 bg-white text-gray-900 border border-white/30 
         >
           {loading ? t("auth.signingIn") : t("auth.signInBtn")}
         </button>
+        <p className="text-center mt-3">
+          <Link href="/forgot-password" className="text-sm text-white/80 hover:text-vbt-orange hover:underline">
+            {t("auth.forgotPassword")}
+          </Link>
+        </p>
       </form>
 
       <div className="mt-6 text-center">
