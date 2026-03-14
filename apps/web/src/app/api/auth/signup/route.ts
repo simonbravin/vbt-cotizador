@@ -83,7 +83,7 @@ export async function POST(req: Request) {
         });
         await resend.emails.send({
           from: process.env.RESEND_FROM_EMAIL ?? "noreply@visionlatam.com",
-          to: process.env.SUPERADMIN_EMAIL ?? "simon@visionlatam.com",
+          to: process.env.SUPERADMIN_EMAIL ?? "simon@visionbuildingtechs.com",
           subject: "New VBT Cotizador account request",
           html,
         });

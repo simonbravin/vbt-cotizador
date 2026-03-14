@@ -35,30 +35,37 @@ async function loginRawFallback(
   let row: RawUserRow | null = null;
 
   try {
-    const rows = await prisma.$queryRaw<RawUserRow[]>`
-      SELECT id, email, password_hash AS "passwordHash"
+    const rows = await prisma.$queryRaw<(RawUserRow & { is_active?: boolean; is_platform_superadmin?: boolean })[]>`
+      SELECT id, email, password_hash AS "passwordHash", is_active, is_platform_superadmin
       FROM users
       WHERE LOWER(email) = LOWER(${emailNorm})
       LIMIT 1
     `;
     if (rows[0]) {
-      row = { ...rows[0], isActive: true, isPlatformSuperadmin: rows[0].email?.toLowerCase() === SUPERADMIN_EMAIL.toLowerCase() };
+      const r = rows[0];
+      const fromDb = r.is_active !== false; // treat undefined/null as true
+      const superadminFromDb = r.is_platform_superadmin === true;
+      const superadminFromEmail = r.email?.toLowerCase() === SUPERADMIN_EMAIL.toLowerCase();
+      row = { ...r, isActive: fromDb, isPlatformSuperadmin: superadminFromDb || superadminFromEmail };
     }
   } catch {
+    // Columns is_active / is_platform_superadmin may not exist in some DBs; use minimal select and email-based superadmin
     try {
       const rows = await prisma.$queryRaw<RawUserRow[]>`
-        SELECT id, email, "passwordHash"
+        SELECT id, email, password_hash AS "passwordHash"
         FROM users
         WHERE LOWER(email) = LOWER(${emailNorm})
         LIMIT 1
       `;
       if (rows[0]) {
-        row = { ...rows[0], isActive: true, isPlatformSuperadmin: rows[0].email?.toLowerCase() === SUPERADMIN_EMAIL.toLowerCase() };
+        const emailMatch = rows[0].email?.toLowerCase() === SUPERADMIN_EMAIL.toLowerCase();
+        row = { ...rows[0], isActive: true, isPlatformSuperadmin: emailMatch };
       }
     } catch {
       return null;
     }
   }
+  if (!row) return null;
 
   if (!row) return null;
 
@@ -139,8 +146,10 @@ export const authOptions: NextAuthOptions = {
         }
 
         if (!user) return null;
-        const isSuperadmin = user.isPlatformSuperadmin === true || user.email?.toLowerCase() === SUPERADMIN_EMAIL.toLowerCase();
-        if (!user.isActive && !isSuperadmin) {
+        // Never block: configured superadmin email (SUPERADMIN_EMAIL) or DB is_platform_superadmin; only block when explicitly inactive
+        const isSuperadmin =
+          user.email?.toLowerCase() === SUPERADMIN_EMAIL.toLowerCase() || user.isPlatformSuperadmin === true;
+        if (user.isActive === false && !isSuperadmin) {
           throw new Error("PENDING");
         }
 
