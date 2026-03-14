@@ -84,15 +84,15 @@ export async function POST(req: Request) {
     } catch (updateErr: unknown) {
       const err = updateErr as { code?: string; meta?: { column?: string } };
       console.error("Reset password update failed:", err?.code, err?.meta);
-      // Production DB may use different column name ("passwordHash" or password_hash)
+      // Write to same column auth reads (password_hash); fallback to "passwordHash"
       try {
         await prisma.$executeRaw(
-          Prisma.sql`UPDATE users SET "passwordHash" = ${passwordHash} WHERE id = ${payload.userId}`
+          Prisma.sql`UPDATE users SET password_hash = ${passwordHash} WHERE id = ${payload.userId}`
         );
       } catch {
         try {
           await prisma.$executeRaw(
-            Prisma.sql`UPDATE users SET password_hash = ${passwordHash} WHERE id = ${payload.userId}`
+            Prisma.sql`UPDATE users SET "passwordHash" = ${passwordHash} WHERE id = ${payload.userId}`
           );
         } catch (rawErr) {
           console.error("Reset password raw update failed:", rawErr);

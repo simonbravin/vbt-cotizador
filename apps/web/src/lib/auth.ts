@@ -29,9 +29,15 @@ export const authOptions: NextAuthOptions = {
 
         const { email, password } = parsed.data;
 
+        // Select only columns that exist in all environments (avoid full_name if DB uses "name")
         const user = await prisma.user.findUnique({
           where: { email },
-          include: {
+          select: {
+            id: true,
+            email: true,
+            passwordHash: true,
+            isActive: true,
+            isPlatformSuperadmin: true,
             orgMembers: {
               where: { status: "active" },
               include: { organization: true },
@@ -54,7 +60,7 @@ export const authOptions: NextAuthOptions = {
         return {
           id: user.id,
           email: user.email,
-          name: user.fullName,
+          name: user.email,
           activeOrgId: activeMembership?.organization.id ?? null,
           activeOrgName: activeMembership?.organization.name ?? null,
           role: (activeMembership?.role ?? "viewer") as string,
