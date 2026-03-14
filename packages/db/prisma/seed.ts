@@ -5,8 +5,10 @@ const prisma = new PrismaClient();
 
 const SUPERADMIN_EMAIL =
   process.env.SUPERADMIN_EMAIL ?? "simon@visionbuildingtechs.com";
-const SUPERADMIN_PASSWORD =
-  process.env.SUPERADMIN_PASSWORD ?? "ChangeMe123!";
+const SUPERADMIN_PASSWORD = process.env.SUPERADMIN_PASSWORD;
+if (!SUPERADMIN_PASSWORD || SUPERADMIN_PASSWORD.length < 8) {
+  throw new Error("SUPERADMIN_PASSWORD must be set (min 8 chars) when running seed. Set it in .env or the environment.");
+}
 
 async function main() {
   console.log("🌱 Seeding Partner SaaS (Vision Latam)...");

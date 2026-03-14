@@ -21,6 +21,9 @@ Thumbs.db
 npm-debug.log*
 pnpm-debug.log*
 
+# Local editor/IDE config (may contain secrets)
+.claude
+
 # Editor
 .vscode
 .idea

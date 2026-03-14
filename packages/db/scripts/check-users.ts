@@ -5,7 +5,7 @@
  * Or: DATABASE_URL="postgresql://..." pnpm exec tsx packages/db/scripts/check-users.ts
  *
  * Fix superadmin (set simon@visionbuildingtechs.com as superadmin and set password):
- *   FIX_SUPERADMIN=1 NEW_PASSWORD=YourNewPassword pnpm exec tsx packages/db/scripts/check-users.ts
+ *   FIX_SUPERADMIN=1 NEW_PASSWORD='<your-new-password>' pnpm exec tsx packages/db/scripts/check-users.ts
  */
 
 import { PrismaClient } from "@prisma/client";
