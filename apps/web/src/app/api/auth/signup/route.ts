@@ -77,7 +77,7 @@ export async function POST(req: Request) {
           bodyHtml: `
             <p style="margin: 0 0 12px 0;"><strong>Name:</strong> ${escapeHtml(name)}</p>
             <p style="margin: 0 0 16px 0;"><strong>Email:</strong> ${escapeHtml(email)}</p>
-            <p style="margin: 0;"><a href="${escapeHtml(`${appUrl}/admin/users`)}" style="color: ${VBT_EMAIL.accent}; font-weight: 600;">Review in Admin Panel</a></p>
+            <p style="margin: 0;"><a href="${escapeHtml(`${appUrl}/superadmin/admin/users`)}" style="color: ${VBT_EMAIL.accent}; font-weight: 600;">Review in Admin Panel</a></p>
           `.trim(),
           footerText: "This notification was sent by the VBT Cotizador signup flow.",
         });

@@ -115,7 +115,7 @@ export default async function DashboardPage() {
             </div>
           </div>
           <Link
-            href="/admin/users"
+            href="/superadmin/admin/users"
             className="text-amber-700 hover:text-amber-900 text-sm font-medium underline"
           >
             Review →

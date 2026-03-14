@@ -10,14 +10,8 @@ import {
   FileText,
   Package,
   Building2,
-  Building,
   Users,
   Settings,
-  Globe,
-  Truck,
-  BookOpen,
-  Warehouse,
-  TrendingUp,
   BarChart3,
   ChevronDown,
   ChevronRight,
@@ -58,24 +52,9 @@ const navigation: NavItem[] = [
   },
   {
     labelKey: "nav.inventory",
-    href: "/admin/inventory",
+    href: "/superadmin/admin/inventory",
     icon: Package,
     roles: ["SUPERADMIN"],
-  },
-  {
-    labelKey: "nav.admin",
-    icon: Settings,
-    roles: ["SUPERADMIN"],
-    children: [
-      { labelKey: "nav.users", href: "/admin/users", icon: Users },
-      { labelKey: "nav.entities", href: "/admin/entities", icon: Building, roles: ["SUPERADMIN"] },
-      { labelKey: "nav.catalog", href: "/admin/catalog", icon: BookOpen },
-      { labelKey: "nav.warehouses", href: "/admin/warehouses", icon: Warehouse },
-      { labelKey: "nav.countries", href: "/admin/countries", icon: Globe },
-      { labelKey: "nav.freight", href: "/admin/freight", icon: Truck },
-      { labelKey: "nav.taxes", href: "/admin/taxes", icon: TrendingUp },
-      { labelKey: "nav.settings", href: "/admin/settings", icon: Settings },
-    ],
   },
 ];
 
@@ -86,7 +65,7 @@ interface SidebarProps {
 export function Sidebar({ role }: SidebarProps) {
   const pathname = usePathname();
   const t = useT();
-  const [expanded, setExpanded] = useState<string[]>(["nav.admin", "nav.settings"]);
+  const [expanded, setExpanded] = useState<string[]>(["nav.settings"]);
 
   const toggle = (key: string) => {
     setExpanded((prev) =>

@@ -16,6 +16,13 @@ import {
   ChevronRight,
   FileBarChart,
   UserCheck,
+  Users,
+  Building,
+  Warehouse,
+  Globe,
+  Truck,
+  TrendingUp,
+  Package,
 } from "lucide-react";
 import { useState } from "react";
 import { useT } from "@/lib/i18n/context";
@@ -29,7 +36,7 @@ interface NavItem {
 
 const superadminNavigation: NavItem[] = [
   { labelKey: "nav.superadmin.dashboard", href: "/superadmin/dashboard", icon: LayoutDashboard },
-  { labelKey: "nav.superadmin.pendingApprovals", href: "/admin/users", icon: UserCheck },
+  { labelKey: "nav.superadmin.pendingApprovals", href: "/superadmin/admin/users", icon: UserCheck },
   { labelKey: "nav.superadmin.partners", href: "/superadmin/partners", icon: Building2 },
   { labelKey: "nav.superadmin.analytics", href: "/superadmin/analytics", icon: BarChart3 },
   { labelKey: "nav.superadmin.reports", href: "/superadmin/reports", icon: FileBarChart },
@@ -43,12 +50,27 @@ const superadminNavigation: NavItem[] = [
     ],
   },
   { labelKey: "nav.superadmin.settings", href: "/superadmin/settings", icon: Settings },
+  {
+    labelKey: "nav.admin",
+    icon: Settings,
+    children: [
+      { labelKey: "nav.superadmin.pendingApprovals", href: "/superadmin/admin/users", icon: Users },
+      { labelKey: "nav.entities", href: "/superadmin/admin/entities", icon: Building },
+      { labelKey: "nav.catalog", href: "/superadmin/admin/catalog", icon: BookOpen },
+      { labelKey: "nav.warehouses", href: "/superadmin/admin/warehouses", icon: Warehouse },
+      { labelKey: "nav.countries", href: "/superadmin/admin/countries", icon: Globe },
+      { labelKey: "nav.freight", href: "/superadmin/admin/freight", icon: Truck },
+      { labelKey: "nav.taxes", href: "/superadmin/admin/taxes", icon: TrendingUp },
+      { labelKey: "nav.settings", href: "/superadmin/admin/settings", icon: Settings },
+      { labelKey: "nav.inventory", href: "/superadmin/admin/inventory", icon: Package },
+    ],
+  },
 ];
 
 export function SuperadminSidebar() {
   const pathname = usePathname();
   const t = useT();
-  const [expanded, setExpanded] = useState<string[]>(["nav.superadmin.content"]);
+  const [expanded, setExpanded] = useState<string[]>(["nav.superadmin.content", "nav.admin"]);
 
   const toggle = (key: string) => {
     setExpanded((prev) =>
