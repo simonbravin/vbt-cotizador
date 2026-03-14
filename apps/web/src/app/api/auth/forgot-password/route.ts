@@ -4,6 +4,7 @@ import { Resend } from "resend";
 import { buildVbtEmailHtml, escapeHtml, VBT_EMAIL } from "@/lib/email-templates";
 import { z } from "zod";
 import crypto from "crypto";
+import { createPasswordResetToken } from "@/lib/password-reset-token";
 
 const bodySchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -33,26 +34,33 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true, message: "If that email exists, we sent a reset link." });
     }
 
-    const token = crypto.randomBytes(32).toString("hex");
-    const expiresAt = new Date(Date.now() + TOKEN_EXPIRY_HOURS * 60 * 60 * 1000);
+    let token: string;
+    let usedDbToken = false;
 
+    // Prefer DB token when table exists; fallback to signed JWT so reset works without migrations
     try {
+      const randomToken = crypto.randomBytes(32).toString("hex");
+      const expiresAt = new Date(Date.now() + TOKEN_EXPIRY_HOURS * 60 * 60 * 1000);
       await prisma.passwordResetToken.create({
         data: {
-          token,
+          token: randomToken,
           userId: user.id,
           expiresAt,
         },
       });
-    } catch (createErr) {
-      console.error("Forgot password: token create failed (table may be missing – run migrations)", createErr);
-      return NextResponse.json(
-        {
-          error:
-            "Password reset is temporarily unavailable. Contact support or ensure database migrations have been applied.",
-        },
-        { status: 503 }
-      );
+      token = randomToken;
+      usedDbToken = true;
+    } catch {
+      // Table missing or other DB error: use signed token (no DB table required)
+      try {
+        token = createPasswordResetToken(user.id, user.email);
+      } catch (e) {
+        console.error("Password reset token creation failed (missing NEXTAUTH_SECRET?)", e);
+        return NextResponse.json(
+          { error: "Password reset is temporarily unavailable. Contact support." },
+          { status: 503 }
+        );
+      }
     }
 
     const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
@@ -80,10 +88,12 @@ export async function POST(req: Request) {
         });
       } catch (emailErr) {
         console.warn("Failed to send password reset email:", emailErr);
-        try {
-          await prisma.passwordResetToken.deleteMany({ where: { token } });
-        } catch {
-          // ignore if table missing or delete fails
+        if (usedDbToken) {
+          try {
+            await prisma.passwordResetToken.deleteMany({ where: { token } });
+          } catch {
+            // ignore
+          }
         }
         return NextResponse.json(
           { error: "Failed to send email. Try again later or contact support." },
@@ -91,10 +101,12 @@ export async function POST(req: Request) {
         );
       }
     } else {
-      try {
-        await prisma.passwordResetToken.deleteMany({ where: { token } });
-      } catch {
-        // ignore
+      if (usedDbToken) {
+        try {
+          await prisma.passwordResetToken.deleteMany({ where: { token } });
+        } catch {
+          // ignore
+        }
       }
       return NextResponse.json(
         { error: "Password reset emails are not configured. Contact an administrator." },
