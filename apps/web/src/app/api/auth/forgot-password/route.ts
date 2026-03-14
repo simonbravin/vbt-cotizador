@@ -23,8 +23,10 @@ export async function POST(req: Request) {
     }
     const { email } = parsed.data;
 
+    // Select only id and email so we don't require columns that may not exist in all DBs (e.g. full_name vs name)
     const user = await prisma.user.findUnique({
       where: { email: email.toLowerCase().trim() },
+      select: { id: true, email: true },
     });
     // Always return success to avoid email enumeration
     if (!user) {
@@ -34,13 +36,24 @@ export async function POST(req: Request) {
     const token = crypto.randomBytes(32).toString("hex");
     const expiresAt = new Date(Date.now() + TOKEN_EXPIRY_HOURS * 60 * 60 * 1000);
 
-    await prisma.passwordResetToken.create({
-      data: {
-        token,
-        userId: user.id,
-        expiresAt,
-      },
-    });
+    try {
+      await prisma.passwordResetToken.create({
+        data: {
+          token,
+          userId: user.id,
+          expiresAt,
+        },
+      });
+    } catch (createErr) {
+      console.error("Forgot password: token create failed (table may be missing – run migrations)", createErr);
+      return NextResponse.json(
+        {
+          error:
+            "Password reset is temporarily unavailable. Contact support or ensure database migrations have been applied.",
+        },
+        { status: 503 }
+      );
+    }
 
     const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
     const resetUrl = `${appUrl}/reset-password?token=${encodeURIComponent(token)}`;
@@ -52,7 +65,7 @@ export async function POST(req: Request) {
           title: "Reset your password",
           subtitle: "Vision Building Technologies",
           bodyHtml: `
-            <p style="margin: 0 0 12px 0;">Hi ${escapeHtml(user.fullName)},</p>
+            <p style="margin: 0 0 12px 0;">Hi,</p>
             <p style="margin: 0 0 16px 0;">You requested a password reset. Click the link below to set a new password. This link expires in ${TOKEN_EXPIRY_HOURS} hour(s).</p>
             <p style="margin: 0 0 16px 0;"><a href="${escapeHtml(resetUrl)}" style="color: ${VBT_EMAIL.accent}; font-weight: 600;">Reset password</a></p>
             <p style="margin: 0; color: #666; font-size: 13px;">If you didn't request this, you can ignore this email.</p>
@@ -67,15 +80,22 @@ export async function POST(req: Request) {
         });
       } catch (emailErr) {
         console.warn("Failed to send password reset email:", emailErr);
-        await prisma.passwordResetToken.deleteMany({ where: { token } });
+        try {
+          await prisma.passwordResetToken.deleteMany({ where: { token } });
+        } catch {
+          // ignore if table missing or delete fails
+        }
         return NextResponse.json(
           { error: "Failed to send email. Try again later or contact support." },
           { status: 503 }
         );
       }
     } else {
-      // No Resend: remove token so it can't be used; inform user
-      await prisma.passwordResetToken.deleteMany({ where: { token } });
+      try {
+        await prisma.passwordResetToken.deleteMany({ where: { token } });
+      } catch {
+        // ignore
+      }
       return NextResponse.json(
         { error: "Password reset emails are not configured. Contact an administrator." },
         { status: 503 }
