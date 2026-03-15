@@ -27,7 +27,14 @@ export default async function QuotesPage({ searchParams }: { searchParams: { sta
   const organizationId = effectiveOrgId ?? (user as { activeOrgId?: string; orgId?: string }).activeOrgId ?? (user as { orgId?: string }).orgId;
   if (!organizationId) return null;
 
-  let quotes: Awaited<ReturnType<typeof prisma.quote.findMany>> = [];
+  type QuoteWithProject = Awaited<
+    ReturnType<
+      typeof prisma.quote.findMany<{
+        include: { project: { select: { projectName: true; id: true; countryCode: true; client: { select: { name: true } } } } };
+      }>
+    >
+  >;
+  let quotes: QuoteWithProject = [];
   let dataLoadError: string | null = null;
 
   try {

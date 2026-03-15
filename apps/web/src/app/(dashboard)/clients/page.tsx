@@ -40,11 +40,15 @@ export default async function ClientsPage() {
   }
 
   const countries: { id: string; name: string; code: string }[] = [];
-  const clients = clientsRows.map((c) => ({
-    ...c,
-    legalName: null as string | null,
-    country: c.countryCode ? { id: c.countryCode, name: c.countryCode, code: c.countryCode } : null,
-  }));
+  const clients = clientsRows.map((c) => {
+    const row = c as typeof c & { _count?: { projects: number } };
+    return {
+      ...row,
+      legalName: null as string | null,
+      country: row.countryCode ? { id: row.countryCode, name: row.countryCode, code: row.countryCode } : null,
+      _count: row._count ?? { projects: 0 },
+    };
+  });
 
   return (
     <div className="space-y-6">
