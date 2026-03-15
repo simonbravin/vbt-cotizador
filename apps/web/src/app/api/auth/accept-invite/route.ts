@@ -50,12 +50,15 @@ export async function POST(req: Request) {
 
     if (!user) {
       const passwordHash = await bcrypt.hash(password, 12);
+      const now = new Date();
       user = await prisma.user.create({
         data: {
           email: emailNorm,
           fullName: fullName.trim(),
           passwordHash,
           isActive: true,
+          createdAt: now,
+          updatedAt: now,
         },
       });
     }
