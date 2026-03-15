@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma, Prisma } from "@/lib/db";
+import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import { API_ROLE_TO_ORG } from "@vbt/core";
 import { z } from "zod";
@@ -65,15 +65,19 @@ export async function POST(req: Request) {
       if (!user) {
         const passwordHash = await bcrypt.hash(password, 12);
         const id = crypto.randomUUID();
+        const fullNameTrimmed = fullName.trim();
         const nowIso = now.toISOString();
-        // Solución definitiva: INSERT explícito con cast ::timestamp. Prisma create() no envía @updatedAt
-        // de forma fiable; la migración 20250318000000 normaliza la tabla y pone DEFAULT. Aquí enviamos
-        // ISO string y casteamos en SQL para que funcione igual en todos los entornos (driver envía text).
-        await tx.$executeRaw(
-          Prisma.sql`
-            INSERT INTO users (id, full_name, email, password_hash, is_active, is_platform_superadmin, created_at, updated_at)
-            VALUES (${id}, ${fullName.trim()}, ${emailNorm}, ${passwordHash}, true, false, ${nowIso}::timestamp, ${nowIso}::timestamp)
-          `
+        // La tabla users en Neon tiene createdAt/updatedAt (camelCase) y a veces created_at/updated_at;
+        // si no se rellenan las NOT NULL, falla 23502. Insertamos todas las columnas de timestamp y status.
+        await tx.$executeRawUnsafe(
+          `INSERT INTO users (id, full_name, email, password_hash, status, is_active, is_platform_superadmin, "createdAt", "updatedAt", created_at, updated_at)
+           VALUES ($1, $2, $3, $4, 'ACTIVE', true, false, $5::timestamp, $6::timestamp, $5::timestamp, $6::timestamp)`,
+          id,
+          fullNameTrimmed,
+          emailNorm,
+          passwordHash,
+          nowIso,
+          nowIso
         );
         user = { id };
       }
