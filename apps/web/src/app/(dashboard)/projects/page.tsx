@@ -25,13 +25,36 @@ export default async function ProjectsPage() {
     organizationId: orgId,
     isPlatformSuperadmin: user.isPlatformSuperadmin ?? false,
   };
-  const { projects, total } = await listProjects(prisma, tenantCtx, {
-    limit: 50,
-    offset: 0,
-  });
+
+  let projects: Awaited<ReturnType<typeof listProjects>>["projects"] = [];
+  let total = 0;
+  let dataLoadError: string | null = null;
+
+  try {
+    const result = await listProjects(prisma, tenantCtx, {
+      limit: 50,
+      offset: 0,
+    });
+    projects = result.projects;
+    total = result.total;
+  } catch (err) {
+    console.error("Projects page data fetch error:", err);
+    dataLoadError = err instanceof Error ? err.message : String(err);
+  }
 
   return (
     <div className="space-y-6">
+      {dataLoadError && (
+        <div className="bg-amber-500/15 border border-amber-500/40 rounded-xl px-4 py-3 text-sm flex items-center justify-between gap-4 flex-wrap">
+          <p className="text-foreground">
+            <span className="font-medium">{t("dashboard.errorLoad")}</span>
+            <span className="text-muted-foreground ml-1">{t("dashboard.errorHelp")}</span>
+          </p>
+          <Link href="/projects" className="shrink-0 px-3 py-1.5 bg-muted text-foreground rounded-lg text-sm font-medium hover:bg-muted/80">
+            {t("common.retry")}
+          </Link>
+        </div>
+      )}
       <div className="flex flex-col sm:flex-row justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">{t("projects.title")}</h1>

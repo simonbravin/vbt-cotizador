@@ -27,26 +27,45 @@ export default async function QuotesPage({ searchParams }: { searchParams: { sta
   const organizationId = effectiveOrgId ?? (user as { activeOrgId?: string; orgId?: string }).activeOrgId ?? (user as { orgId?: string }).orgId;
   if (!organizationId) return null;
 
-  const quotes = await prisma.quote.findMany({
-    where: {
-      organizationId,
-      ...(searchParams.status
-        ? { status: searchParams.status as "draft" | "sent" | "accepted" | "rejected" | "expired" }
-        : {}),
-    },
-    include: {
-      project: {
-        select: { projectName: true, id: true, countryCode: true, client: { select: { name: true } } },
+  let quotes: Awaited<ReturnType<typeof prisma.quote.findMany>> = [];
+  let dataLoadError: string | null = null;
+
+  try {
+    quotes = await prisma.quote.findMany({
+      where: {
+        organizationId,
+        ...(searchParams.status
+          ? { status: searchParams.status as "draft" | "sent" | "accepted" | "rejected" | "expired" }
+          : {}),
       },
-    },
-    orderBy: { createdAt: "desc" },
-    take: 100,
-  });
+      include: {
+        project: {
+          select: { projectName: true, id: true, countryCode: true, client: { select: { name: true } } },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+    });
+  } catch (err) {
+    console.error("Quotes page data fetch error:", err);
+    dataLoadError = err instanceof Error ? err.message : String(err);
+  }
 
   const statuses = ["draft", "sent", "accepted", "rejected", "expired"];
 
   return (
     <div className="space-y-6">
+      {dataLoadError && (
+        <div className="bg-amber-500/15 border border-amber-500/40 rounded-xl px-4 py-3 text-sm flex items-center justify-between gap-4 flex-wrap">
+          <p className="text-foreground">
+            <span className="font-medium">{t("dashboard.errorLoad")}</span>
+            <span className="text-muted-foreground ml-1">{t("dashboard.errorHelp")}</span>
+          </p>
+          <Link href="/quotes" className="shrink-0 px-3 py-1.5 bg-muted text-foreground rounded-lg text-sm font-medium hover:bg-muted/80">
+            {t("common.retry")}
+          </Link>
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">{t("quotes.title")}</h1>

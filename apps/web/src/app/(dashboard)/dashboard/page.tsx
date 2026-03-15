@@ -45,6 +45,7 @@ export default async function DashboardPage(props: PageProps) {
   let pendingUsers = 0;
 
   const startOfYear = new Date(new Date().getFullYear(), 0, 1);
+  let dataLoadError: string | null = null;
 
   try {
     [projectCount, quoteCount, draftCount, sentCount, quotesSentYtd] = await Promise.all([
@@ -70,18 +71,8 @@ export default async function DashboardPage(props: PageProps) {
     });
   } catch (err) {
     console.error("Dashboard data fetch error:", err);
-    return (
-      <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-foreground">{t("dashboard.title")}</h1>
-        <div className="bg-alert-warning border border-alert-warningBorder rounded-xl p-6 text-center">
-          <p className="text-foreground font-medium">{t("dashboard.errorLoad")}</p>
-          <p className="text-muted-foreground text-sm mt-1">{t("dashboard.errorHelp")}</p>
-          <Link href="/dashboard" className="inline-block mt-4 px-4 py-2 bg-muted text-foreground rounded-lg text-sm font-medium hover:bg-muted/80">
-            {t("common.retry")}
-          </Link>
-        </div>
-      </div>
-    );
+    dataLoadError = err instanceof Error ? err.message : String(err);
+    // Keep default values (0, []) so the partner always sees the dashboard layout
   }
 
   return (
@@ -89,6 +80,17 @@ export default async function DashboardPage(props: PageProps) {
       {accessDeniedSuperadmin && (
         <div className="bg-destructive/15 border border-destructive/30 text-destructive rounded-xl px-4 py-3 text-sm">
           No tenés acceso al portal de administración. Estás en tu panel de partner.
+        </div>
+      )}
+      {dataLoadError && (
+        <div className="bg-alert-warning border border-alert-warningBorder rounded-xl px-4 py-3 text-sm flex items-center justify-between gap-4 flex-wrap">
+          <p className="text-foreground">
+            <span className="font-medium">{t("dashboard.errorLoad")}</span>
+            <span className="text-muted-foreground ml-1">{t("dashboard.errorHelp")}</span>
+          </p>
+          <Link href="/dashboard" className="shrink-0 px-3 py-1.5 bg-muted text-foreground rounded-lg text-sm font-medium hover:bg-muted/80">
+            {t("common.retry")}
+          </Link>
         </div>
       )}
       {/* Header */}
