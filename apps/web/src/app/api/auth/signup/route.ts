@@ -84,7 +84,7 @@ export async function POST(req: Request) {
         });
         await resend.emails.send({
           from: getResendFrom(),
-          to: process.env.SUPERADMIN_EMAIL ?? "simon@visionbuildingtechs.com",
+          to: process.env.SUPERADMIN_EMAIL ?? "admin@visionbuildingtechs.com",
           subject: EMAIL_SUBJECTS.signupRequest,
           html,
         });

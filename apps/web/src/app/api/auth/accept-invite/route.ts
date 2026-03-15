@@ -92,9 +92,12 @@ export async function POST(req: Request) {
     });
   } catch (e) {
     console.error("[accept-invite]", e);
-    const message = e instanceof Error ? e.message : "Something went wrong";
+    const raw = e instanceof Error ? e.message : String(e);
+    // Include error in response so we can debug 500 in production (e.g. Prisma constraint)
+    const safeMessage =
+      raw.length > 200 ? raw.slice(0, 200) + "…" : raw;
     return NextResponse.json(
-      { error: process.env.NODE_ENV === "development" ? message : "Something went wrong" },
+      { error: "Something went wrong", debug: safeMessage },
       { status: 500 }
     );
   }

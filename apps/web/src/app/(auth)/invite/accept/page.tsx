@@ -70,7 +70,8 @@ function InviteAcceptContent() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setSubmitError(data.error ?? t("auth.errorGeneric"));
+        const msg = data.error ?? t("auth.errorGeneric");
+        setSubmitError(data.debug ? `${msg}: ${data.debug}` : msg);
         return;
       }
       setSuccess(true);
