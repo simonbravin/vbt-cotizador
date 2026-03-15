@@ -46,6 +46,7 @@ export async function listQuotes(
     prisma.quote.findMany({
       where,
       include: {
+        organization: { select: { name: true } },
         project: {
           select: {
             id: true,
@@ -75,6 +76,7 @@ export async function getQuoteById(
   return prisma.quote.findFirst({
     where: { id: quoteId, ...orgWhere },
     include: {
+      organization: { select: { name: true } },
       project: true,
       items: { orderBy: { sortOrder: "asc" } },
       preparedByUser: { select: { id: true, fullName: true } },
@@ -171,7 +173,12 @@ export async function createQuote(
 
 export type UpdateQuoteInput = Partial<
   Omit<CreateQuoteInput, "projectId" | "quoteNumber" | "version" | "items">
-> & { items?: CreateQuoteItemInput[] };
+> & {
+  items?: CreateQuoteItemInput[];
+  superadminComment?: string | null;
+  reviewedAt?: Date | null;
+  approvedByUserId?: string | null;
+};
 
 export async function updateQuote(
   prisma: PrismaClient,
@@ -204,6 +211,8 @@ export async function updateQuote(
           ...(data.totalPrice != null && { totalPrice: data.totalPrice }),
           ...(data.validUntil !== undefined && { validUntil: data.validUntil }),
           ...(data.approvedByUserId !== undefined && { approvedByUserId: data.approvedByUserId }),
+          ...(data.superadminComment !== undefined && { superadminComment: data.superadminComment }),
+          ...(data.reviewedAt !== undefined && { reviewedAt: data.reviewedAt }),
         },
       });
       await tx.quoteItem.deleteMany({ where: { quoteId } });
@@ -246,6 +255,8 @@ export async function updateQuote(
       ...(data.totalPrice != null && { totalPrice: data.totalPrice }),
       ...(data.validUntil !== undefined && { validUntil: data.validUntil }),
       ...(data.approvedByUserId !== undefined && { approvedByUserId: data.approvedByUserId }),
+      ...(data.superadminComment !== undefined && { superadminComment: data.superadminComment }),
+      ...(data.reviewedAt !== undefined && { reviewedAt: data.reviewedAt }),
     },
   });
 }

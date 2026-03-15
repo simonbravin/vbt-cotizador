@@ -49,6 +49,8 @@ export default async function EditPartnerPage({ params }: PageProps) {
           partnerType: partner.organizationType as "commercial_partner" | "master_partner",
           engineeringFeeMode: partner.partnerProfile?.engineeringFeeMode ?? "",
           status: partner.status ?? "active",
+          visionLatamCommissionPct: partner.partnerProfile?.visionLatamCommissionPct != null ? String(partner.partnerProfile.visionLatamCommissionPct) : "",
+          visionLatamCommissionFixedUsd: partner.partnerProfile?.visionLatamCommissionFixedUsd != null ? String(partner.partnerProfile.visionLatamCommissionFixedUsd) : "",
         }}
       />
     </div>

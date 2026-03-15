@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getTenantContext, requireActiveOrg } from "@/lib/tenant";
 import { TenantError } from "@/lib/tenant";
-import { listQuotes, createQuote } from "@vbt/core";
+import { listQuotes, createQuote, getVisionLatamCommissionPctForOrg } from "@vbt/core";
 import { createQuoteSchema, listQuotesQuerySchema } from "@vbt/core/validation";
 import { generateQuoteNumber } from "@/lib/utils";
 import { createActivityLog } from "@/lib/audit";
@@ -33,17 +33,15 @@ async function getHandler(req: Request) {
     limit: parsed.data.limit ?? 50,
     offset: parsed.data.offset ?? 0,
   });
-  // Partners must not see factory cost; expose basePriceForPartner only
+  // Partners must not see factory cost; expose basePriceForPartner using quote's stored VL %
   if (!ctx.isPlatformSuperadmin && result.quotes.length > 0) {
-    const platformRow = await prisma.platformConfig.findFirst({ select: { configJson: true } });
-    const raw = (platformRow?.configJson as { pricing?: { visionLatamCommissionPct?: number } })?.pricing;
-    const commissionPct = raw?.visionLatamCommissionPct ?? 20;
     const quotes = result.quotes.map((q) => {
       const factory = Number((q as { factoryCostTotal?: number }).factoryCostTotal ?? 0);
+      const pct = Number((q as { visionLatamMarkupPct?: number }).visionLatamMarkupPct ?? 0);
       const payload = JSON.parse(JSON.stringify(q)) as Record<string, unknown>;
       payload.factoryCostTotal = null;
       payload.factoryCostUsd = null;
-      payload.basePriceForPartner = factory * (1 + commissionPct / 100);
+      payload.basePriceForPartner = factory * (1 + pct / 100);
       return payload;
     });
     return NextResponse.json({ quotes, total: result.total });
@@ -63,9 +61,27 @@ async function postHandler(req: Request) {
     organizationId: user.activeOrgId ?? null,
     isPlatformSuperadmin: user.isPlatformSuperadmin,
   };
-  const quote = await createQuote(prisma, tenantCtx, {
+  // Resolve org for the quote (tenant org or project's org when superadmin creates without active org)
+  const projectOrg = await prisma.project.findUnique({ where: { id: data.projectId }, select: { organizationId: true } });
+  const orgId = tenantCtx.organizationId ?? projectOrg?.organizationId ?? null;
+  const visionLatamMarkupPct =
+    tenantCtx.isPlatformSuperadmin && data.visionLatamMarkupPct != null
+      ? data.visionLatamMarkupPct
+      : orgId
+        ? await getVisionLatamCommissionPctForOrg(prisma, orgId)
+        : 20;
+  if (!orgId) {
+    return NextResponse.json(
+      { error: "Organization could not be resolved for this quote (project may be invalid)." },
+      { status: 400 }
+    );
+  }
+  // When superadmin has no active org, pass project's org so the quote is created with correct organizationId
+  const quoteCtx = { ...tenantCtx, organizationId: orgId };
+  const quote = await createQuote(prisma, quoteCtx, {
     ...data,
     quoteNumber,
+    visionLatamMarkupPct,
     items: data.items,
   });
   await createActivityLog({

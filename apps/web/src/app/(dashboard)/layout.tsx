@@ -28,40 +28,53 @@ export default async function DashboardLayout({
     name?: string | null;
     role?: string;
     activeOrgId?: string | null;
+    activeOrgName?: string | null;
     isPlatformSuperadmin?: boolean;
   };
-  // Partners only: superadmin must use superadmin portal, not partner layout
-  if (user.isPlatformSuperadmin) {
-    redirect("/superadmin/dashboard");
-  }
 
-  const effectiveOrgId = await getEffectiveActiveOrgId(user as import("@/lib/auth").SessionUser);
-  // No effective active org → pending / onboarding
-  if (!effectiveOrgId) {
-    redirect("/pending");
-  }
+  try {
+    // Partners only: superadmin must use superadmin portal, not partner layout
+    if (user.isPlatformSuperadmin) {
+      redirect("/superadmin/dashboard");
+    }
 
-  // Resolve org name: only query when we have a valid id (never pass null to findUnique)
-  let activeOrgName: string | null = (user as { activeOrgName?: string | null }).activeOrgName ?? null;
-  if (effectiveOrgId !== user.activeOrgId) {
-    const org = await prisma.organization.findUnique({ where: { id: effectiveOrgId }, select: { name: true } });
-    activeOrgName = org?.name ?? null;
-  }
+    const effectiveOrgId = await getEffectiveActiveOrgId(user as import("@/lib/auth").SessionUser);
+    // No effective active org → pending / onboarding
+    if (!effectiveOrgId) {
+      redirect("/pending");
+    }
 
-  const safeUser = {
-    name: user.name ?? null,
-    email: user.email ?? null,
-    role: user.isPlatformSuperadmin ? "SUPERADMIN" : (typeof user.role === "string" ? user.role : "viewer"),
-    activeOrgName,
-  };
+    // Resolve org name: only query when we have a valid id (never pass null to findUnique)
+    let activeOrgName: string | null = user.activeOrgName ?? null;
+    if (effectiveOrgId !== user.activeOrgId) {
+      try {
+        const org = await prisma.organization.findUnique({ where: { id: effectiveOrgId }, select: { name: true } });
+        activeOrgName = org?.name ?? null;
+      } catch {
+        activeOrgName = user.activeOrgName ?? null;
+      }
+    }
 
-  return (
-    <div className="flex h-screen bg-muted overflow-hidden">
-      <Sidebar role={safeUser.role} />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <TopBar user={safeUser} activeOrgName={safeUser.activeOrgName} />
-        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+    const safeUser = {
+      name: user.name ?? null,
+      email: user.email ?? null,
+      role: typeof user.role === "string" ? user.role : "viewer",
+      activeOrgName,
+    };
+
+    return (
+      <div className="flex h-screen bg-muted overflow-hidden">
+        <Sidebar role={safeUser.role} />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <TopBar user={safeUser} activeOrgName={safeUser.activeOrgName} />
+          <main className="flex-1 overflow-y-auto p-6">{children}</main>
+        </div>
       </div>
-    </div>
-  );
+    );
+  } catch (e) {
+    // Next.js redirect() throws NEXT_REDIRECT; must rethrow so redirect works
+    if ((e as Error)?.message === "NEXT_REDIRECT") throw e;
+    console.error("[dashboard layout]", e);
+    redirect("/login");
+  }
 }

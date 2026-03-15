@@ -22,6 +22,29 @@ function requirePlatformAdmin(ctx: TenantContext) {
   if (!ctx.isPlatformSuperadmin) throw new Error("Platform superadmin required");
 }
 
+/**
+ * Resolves Vision Latam commission % for a given organization (partner).
+ * Uses PartnerProfile.visionLatamCommissionPct if set; otherwise platform_config default.
+ * Used when creating a quote so the stored visionLatamMarkupPct is per-partner.
+ */
+export async function getVisionLatamCommissionPctForOrg(
+  prisma: PrismaClient,
+  organizationId: string
+): Promise<number> {
+  const profile = await prisma.partnerProfile.findUnique({
+    where: { organizationId },
+    select: { visionLatamCommissionPct: true },
+  });
+  if (profile?.visionLatamCommissionPct != null) {
+    return profile.visionLatamCommissionPct;
+  }
+  const row = await prisma.platformConfig.findFirst({
+    select: { configJson: true },
+  });
+  const raw = (row?.configJson as { pricing?: { visionLatamCommissionPct?: number } })?.pricing;
+  return raw?.visionLatamCommissionPct ?? 20;
+}
+
 export async function getPlatformConfig(
   prisma: PrismaClient,
   ctx: TenantContext

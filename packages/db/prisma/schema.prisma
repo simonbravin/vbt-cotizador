@@ -248,6 +248,8 @@ model PartnerProfile {
   agreementStartDate    DateTime? @map("agreement_start_date")
   agreementEndDate      DateTime? @map("agreement_end_date")
   agreementStatus       String?   @map("agreement_status")
+  visionLatamCommissionPct Float? @map("vision_latam_commission_pct")
+  visionLatamCommissionFixedUsd Float? @map("vision_latam_commission_fixed_usd")
   createdAt             DateTime  @default(now()) @map("created_at")
   updatedAt             DateTime  @updatedAt @map("updated_at")
 
@@ -427,6 +429,8 @@ model Quote {
   validUntil            DateTime? @map("valid_until")
   preparedByUserId      String?   @map("prepared_by_user_id")
   approvedByUserId      String?   @map("approved_by_user_id")
+  superadminComment     String?   @map("superadmin_comment")
+  reviewedAt            DateTime? @map("reviewed_at")
   createdAt             DateTime  @default(now()) @map("created_at")
   updatedAt             DateTime  @updatedAt @map("updated_at")
 

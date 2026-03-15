@@ -20,6 +20,7 @@ const quoteItemSchema = z.object({
 
 const patchSchema = z.object({
   status: z.enum(["draft", "sent", "accepted", "rejected", "expired"]).optional(),
+  superadminComment: z.string().nullable().optional(),
   currency: z.string().optional(),
   factoryCostTotal: z.number().optional(),
   visionLatamMarkupPct: z.number().optional(),
@@ -48,14 +49,12 @@ export async function GET(
     const quote = await getQuoteById(prisma, tenantCtx, params.id);
     if (!quote) return NextResponse.json({ error: "Not found" }, { status: 404 });
     if (!ctx.isPlatformSuperadmin) {
-      const platformRow = await prisma.platformConfig.findFirst({ select: { configJson: true } });
-      const raw = (platformRow?.configJson as { pricing?: { visionLatamCommissionPct?: number } })?.pricing;
-      const commissionPct = raw?.visionLatamCommissionPct ?? 20;
       const factory = Number(quote.factoryCostTotal ?? 0);
+      const pct = Number(quote.visionLatamMarkupPct ?? 0);
       const payload = JSON.parse(JSON.stringify(quote)) as Record<string, unknown>;
       payload.factoryCostTotal = null;
       payload.factoryCostUsd = null;
-      payload.basePriceForPartner = factory * (1 + commissionPct / 100);
+      payload.basePriceForPartner = factory * (1 + pct / 100);
       return NextResponse.json(payload);
     }
     return NextResponse.json(quote);
@@ -90,6 +89,7 @@ export async function PATCH(
     const data = parsed.data;
     // Partners cannot change factory cost or Vision Latam commission (superadmin-only)
     const isSuperadmin = !!user.isPlatformSuperadmin;
+    const now = new Date();
     const updateData: Parameters<typeof updateQuote>[3] = {
       status: data.status,
       currency: data.currency,
@@ -119,28 +119,52 @@ export async function PATCH(
         totalPrice: it.totalPrice ?? 0,
         sortOrder: it.sortOrder ?? i,
       })),
+      ...(isSuperadmin && data.superadminComment !== undefined && {
+        superadminComment: data.superadminComment,
+        reviewedAt: now,
+      }),
+      ...(isSuperadmin && data.status === "accepted" && { approvedByUserId: user.userId ?? user.id }),
     };
     const quote = await updateQuote(prisma, tenantCtx, params.id, updateData);
+    const quoteOrgId = (quote as { organizationId?: string }).organizationId;
+    const quoteNumber = (quote as { quoteNumber?: string }).quoteNumber;
+    const metadataBase = { quoteNumber, organizationId: quoteOrgId, comment: data.superadminComment ?? undefined };
     if (data.status === "accepted") {
       await createActivityLog({
-        organizationId: user.activeOrgId ?? null,
+        organizationId: user.activeOrgId ?? quoteOrgId ?? null,
         userId: user.userId ?? user.id,
-        action: "quote_accepted",
+        action: "quote_approved",
         entityType: "quote",
         entityId: params.id,
-        metadata: { quoteNumber: (quote as { quoteNumber?: string }).quoteNumber },
+        metadata: metadataBase,
+      });
+    } else if (data.status === "rejected") {
+      await createActivityLog({
+        organizationId: user.activeOrgId ?? quoteOrgId ?? null,
+        userId: user.userId ?? user.id,
+        action: "quote_rejected",
+        entityType: "quote",
+        entityId: params.id,
+        metadata: metadataBase,
+      });
+    } else if (isSuperadmin && (data.superadminComment !== undefined || data.factoryCostTotal != null || data.visionLatamMarkupPct != null || data.totalPrice != null || data.items !== undefined)) {
+      await createActivityLog({
+        organizationId: user.activeOrgId ?? quoteOrgId ?? null,
+        userId: user.userId ?? user.id,
+        action: "quote_modified_by_superadmin",
+        entityType: "quote",
+        entityId: params.id,
+        metadata: metadataBase,
       });
     }
     // Partners must not see factory cost in PATCH response
     if (!isSuperadmin) {
-      const platformRow = await prisma.platformConfig.findFirst({ select: { configJson: true } });
-      const raw = (platformRow?.configJson as { pricing?: { visionLatamCommissionPct?: number } })?.pricing;
-      const commissionPct = raw?.visionLatamCommissionPct ?? 20;
       const factory = Number((quote as { factoryCostTotal?: number }).factoryCostTotal ?? 0);
+      const pct = Number((quote as { visionLatamMarkupPct?: number }).visionLatamMarkupPct ?? 0);
       const payload = JSON.parse(JSON.stringify(quote)) as Record<string, unknown>;
       payload.factoryCostTotal = null;
       payload.factoryCostUsd = null;
-      payload.basePriceForPartner = factory * (1 + commissionPct / 100);
+      payload.basePriceForPartner = factory * (1 + pct / 100);
       return NextResponse.json(payload);
     }
     return NextResponse.json(quote);

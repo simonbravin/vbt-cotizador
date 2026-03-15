@@ -22,6 +22,7 @@ import {
   Truck,
   TrendingUp,
   Package,
+  ClipboardList,
 } from "lucide-react";
 import { useState } from "react";
 import { useT } from "@/lib/i18n/context";
@@ -36,6 +37,7 @@ interface NavItem {
 const superadminNavigation: NavItem[] = [
   { labelKey: "nav.superadmin.dashboard", href: "/superadmin/dashboard", icon: LayoutDashboard },
   { labelKey: "nav.superadmin.partners", href: "/superadmin/partners", icon: Building2 },
+  { labelKey: "nav.superadmin.quotes", href: "/superadmin/quotes", icon: ClipboardList },
   { labelKey: "nav.superadmin.analytics", href: "/superadmin/analytics", icon: BarChart3 },
   { labelKey: "nav.superadmin.reports", href: "/superadmin/reports", icon: FileBarChart },
   { labelKey: "nav.superadmin.activity", href: "/superadmin/activity", icon: Activity },

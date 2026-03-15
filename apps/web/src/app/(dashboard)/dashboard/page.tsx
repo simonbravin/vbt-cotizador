@@ -11,10 +11,12 @@ import type { SessionUser } from "@/lib/auth";
 import { getT, LOCALE_COOKIE_NAME } from "@/lib/i18n/translations";
 import type { Locale } from "@/lib/i18n/translations";
 
-type PageProps = { searchParams?: { access_denied?: string } };
+type PageProps = { searchParams?: Promise<{ access_denied?: string }> | { access_denied?: string } };
 
 export default async function DashboardPage(props: PageProps) {
-  const accessDeniedSuperadmin = props.searchParams?.access_denied === "superadmin";
+  const raw = props.searchParams;
+  const searchParams = raw instanceof Promise ? await raw : raw;
+  const accessDeniedSuperadmin = searchParams?.access_denied === "superadmin";
 
   const cookieStore = await cookies();
   const locale = (cookieStore.get(LOCALE_COOKIE_NAME)?.value === "es" ? "es" : "en") as Locale;

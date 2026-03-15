@@ -25,14 +25,12 @@ export async function GET(
 
   const isPlatformSuperadmin = !!(user as { isPlatformSuperadmin?: boolean }).isPlatformSuperadmin;
   if (!isPlatformSuperadmin) {
-    const platformRow = await prisma.platformConfig.findFirst({ select: { configJson: true } });
-    const raw = (platformRow?.configJson as { pricing?: { visionLatamCommissionPct?: number } })?.pricing;
-    const commissionPct = raw?.visionLatamCommissionPct ?? 20;
     const factory = Number((quote as { factoryCostTotal?: number }).factoryCostTotal ?? 0);
+    const pct = Number((quote as { visionLatamMarkupPct?: number }).visionLatamMarkupPct ?? 0);
     const payload = JSON.parse(JSON.stringify(quote)) as Record<string, unknown>;
     payload.factoryCostTotal = null;
     payload.factoryCostUsd = null;
-    payload.basePriceForPartner = factory * (1 + commissionPct / 100);
+    payload.basePriceForPartner = factory * (1 + pct / 100);
     return NextResponse.json(payload);
   }
   return NextResponse.json(quote);

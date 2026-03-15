@@ -26,6 +26,8 @@ const patchSchema = z.object({
   agreementStartDate: z.string().nullable().optional(),
   agreementEndDate: z.string().nullable().optional(),
   agreementStatus: z.string().nullable().optional(),
+  visionLatamCommissionPct: z.number().min(0).max(100).nullable().optional(),
+  visionLatamCommissionFixedUsd: z.number().min(0).nullable().optional(),
 });
 
 export async function GET(
@@ -93,6 +95,8 @@ export async function PATCH(
       agreementStartDate: data.agreementStartDate ?? undefined,
       agreementEndDate: data.agreementEndDate ?? undefined,
       agreementStatus: data.agreementStatus ?? undefined,
+      visionLatamCommissionPct: data.visionLatamCommissionPct,
+      visionLatamCommissionFixedUsd: data.visionLatamCommissionFixedUsd,
     });
     await createActivityLog({
       organizationId: partner.id,

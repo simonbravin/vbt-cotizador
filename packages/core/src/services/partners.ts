@@ -111,6 +111,8 @@ export type UpdatePartnerInput = {
   agreementStartDate?: string | null; // ISO date
   agreementEndDate?: string | null;   // ISO date
   agreementStatus?: string | null;
+  visionLatamCommissionPct?: number | null;
+  visionLatamCommissionFixedUsd?: number | null;
 };
 
 export async function updatePartner(
@@ -155,6 +157,8 @@ export async function updatePartner(
   if (data.agreementEndDate !== undefined) {
     profileUpdate.agreementEndDate = data.agreementEndDate ? new Date(data.agreementEndDate) : null;
   }
+  if (data.visionLatamCommissionPct !== undefined) profileUpdate.visionLatamCommissionPct = data.visionLatamCommissionPct;
+  if (data.visionLatamCommissionFixedUsd !== undefined) profileUpdate.visionLatamCommissionFixedUsd = data.visionLatamCommissionFixedUsd;
 
   const updated = await prisma.organization.update({
     where: { id: partnerId },

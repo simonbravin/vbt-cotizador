@@ -70,10 +70,8 @@ export async function GET(
     let factoryCostUsdPdf = factoryTotal;
     let basePriceForPartner: number | undefined;
     if (!isPlatformSuperadmin) {
-      const platformRow = await prisma.platformConfig.findFirst({ select: { configJson: true } });
-      const raw = (platformRow?.configJson as { pricing?: { visionLatamCommissionPct?: number } })?.pricing;
-      const commissionPct = raw?.visionLatamCommissionPct ?? 20;
-      basePriceForPartner = factoryTotal * (1 + commissionPct / 100);
+      const pct = Number(quote.visionLatamMarkupPct ?? 0);
+      basePriceForPartner = factoryTotal * (1 + pct / 100);
       factoryCostUsdPdf = 0;
     }
     const pdfData: QuotePdfData = {

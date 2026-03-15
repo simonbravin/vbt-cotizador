@@ -25,6 +25,8 @@ type Initial = {
   partnerType: "commercial_partner" | "master_partner";
   engineeringFeeMode: string;
   status: string;
+  visionLatamCommissionPct: string;
+  visionLatamCommissionFixedUsd: string;
 };
 
 export function EditPartnerForm({
@@ -54,6 +56,8 @@ export function EditPartnerForm({
         partnerType: form.partnerType,
         engineeringFeeMode: form.engineeringFeeMode || null,
         status: form.status,
+        visionLatamCommissionPct: form.visionLatamCommissionPct.trim() ? parseFloat(form.visionLatamCommissionPct) : null,
+        visionLatamCommissionFixedUsd: form.visionLatamCommissionFixedUsd.trim() ? parseFloat(form.visionLatamCommissionFixedUsd) : null,
       };
       const res = await fetch(`/api/saas/partners/${partnerId}`, {
         method: "PATCH",
@@ -199,6 +203,38 @@ export function EditPartnerForm({
             <option value="suspended">Suspended</option>
             <option value="pending">Pending</option>
           </select>
+        </div>
+        <div>
+          <label htmlFor="visionLatamCommissionPct" className="block text-sm font-medium text-gray-700">
+            Vision Latam commission %
+          </label>
+          <input
+            id="visionLatamCommissionPct"
+            type="number"
+            min={0}
+            max={100}
+            step={0.5}
+            placeholder="Leave empty for global default"
+            value={form.visionLatamCommissionPct}
+            onChange={(e) => setForm((f) => ({ ...f, visionLatamCommissionPct: e.target.value }))}
+            className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-vbt-blue focus:ring-1 focus:ring-vbt-blue"
+          />
+          <p className="mt-0.5 text-xs text-gray-500">Used as base price for new quotes. Empty = use global setting.</p>
+        </div>
+        <div>
+          <label htmlFor="visionLatamCommissionFixedUsd" className="block text-sm font-medium text-gray-700">
+            Vision Latam commission fixed (USD)
+          </label>
+          <input
+            id="visionLatamCommissionFixedUsd"
+            type="number"
+            min={0}
+            step={0.01}
+            placeholder="Optional"
+            value={form.visionLatamCommissionFixedUsd}
+            onChange={(e) => setForm((f) => ({ ...f, visionLatamCommissionFixedUsd: e.target.value }))}
+            className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-vbt-blue focus:ring-1 focus:ring-vbt-blue"
+          />
         </div>
       </div>
       <div className="flex gap-3">
