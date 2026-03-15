@@ -88,11 +88,13 @@ export async function PATCH(
       isPlatformSuperadmin: user.isPlatformSuperadmin,
     };
     const data = parsed.data;
+    // Partners cannot change factory cost or Vision Latam commission (superadmin-only)
+    const isSuperadmin = !!user.isPlatformSuperadmin;
     const updateData: Parameters<typeof updateQuote>[3] = {
       status: data.status,
       currency: data.currency,
-      factoryCostTotal: data.factoryCostTotal,
-      visionLatamMarkupPct: data.visionLatamMarkupPct,
+      ...(isSuperadmin && data.factoryCostTotal != null && { factoryCostTotal: data.factoryCostTotal }),
+      ...(isSuperadmin && data.visionLatamMarkupPct != null && { visionLatamMarkupPct: data.visionLatamMarkupPct }),
       partnerMarkupPct: data.partnerMarkupPct,
       logisticsCost: data.logisticsCost,
       importCost: data.importCost,
@@ -128,6 +130,18 @@ export async function PATCH(
         entityId: params.id,
         metadata: { quoteNumber: (quote as { quoteNumber?: string }).quoteNumber },
       });
+    }
+    // Partners must not see factory cost in PATCH response
+    if (!isSuperadmin) {
+      const platformRow = await prisma.platformConfig.findFirst({ select: { configJson: true } });
+      const raw = (platformRow?.configJson as { pricing?: { visionLatamCommissionPct?: number } })?.pricing;
+      const commissionPct = raw?.visionLatamCommissionPct ?? 20;
+      const factory = Number((quote as { factoryCostTotal?: number }).factoryCostTotal ?? 0);
+      const payload = JSON.parse(JSON.stringify(quote)) as Record<string, unknown>;
+      payload.factoryCostTotal = null;
+      payload.factoryCostUsd = null;
+      payload.basePriceForPartner = factory * (1 + commissionPct / 100);
+      return NextResponse.json(payload);
     }
     return NextResponse.json(quote);
   } catch (e) {

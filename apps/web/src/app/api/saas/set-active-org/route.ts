@@ -9,6 +9,7 @@ const bodySchema = z.object({
 
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
 
+/** Only platform superadmin can set "view as" org. Returns 403 for non-superadmin, 400 for invalid body (organizationId must be UUID or null). */
 export async function POST(req: Request) {
   try {
     await requirePlatformSuperadmin();

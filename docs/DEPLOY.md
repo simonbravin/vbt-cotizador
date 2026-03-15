@@ -5,7 +5,7 @@ Use this checklist when deploying the VBT Cotizador (dual portal: Superadmin + P
 ## Portals overview (one app, two entry points)
 
 - **Superadmin portal**  
-  - Entry: after login, superadmins with no active org are redirected to `/superadmin/dashboard`.  
+  - Entry: after login, the platform superadmin (single user: email in `SUPERADMIN_EMAIL` or `is_platform_superadmin = true` in DB) is always redirected to `/superadmin/dashboard`.  
   - Layout: `(superadmin)` with **superadmin sidebar**: Dashboard, Partners, Reports, Analytics, Activity, Global Settings, **Pending approvals** (→ `/admin/users`), etc.  
   - Use: global config, partner management, platform settings, and approving signups.
 
@@ -31,7 +31,7 @@ Use this checklist when deploying the VBT Cotizador (dual portal: Superadmin + P
 |----------|-------------|----------|
 | `RESEND_API_KEY` | Resend.com API key | Sending emails: invites, report email, quote email, signup notifications, **forgot password** |
 | `RESEND_FROM_EMAIL` | From address for transactional emails | Override default (e.g. `noreply@yourdomain.com`) |
-| `SUPERADMIN_EMAIL` | Email of the platform superadmin user | Seed and signup notification target; user must exist or be created with `isPlatformSuperadmin: true` |
+| `SUPERADMIN_EMAIL` | Email of the **only** platform superadmin user (e.g. `admin@visionbuildingtechs.com`) | Auth fallback and seed; that user must exist and have `is_platform_superadmin = true` in DB (seed sets it). Partners never get superadmin. |
 | `SUPERADMIN_PASSWORD` | Password for seed-created superadmin | Only used when running `prisma db seed`; change after first login |
 
 ## Pre-deploy checklist
@@ -77,7 +77,7 @@ pnpm run check-users
 
 Salida: email, nombre, `isActive`, `isPlatformSuperadmin` de cada usuario.
 
-Si **simon@visionbuildingtechs.com** no existe o no puede entrar (inactivo / no superadmin / contraseña incorrecta):
+Si el usuario superadmin (p. ej. **admin@visionbuildingtechs.com**) no existe o no puede entrar (inactivo / no superadmin / contraseña incorrecta):
 
 1. **Crear o activar superadmin y fijar contraseña:**
    ```bash
@@ -89,10 +89,10 @@ Si **simon@visionbuildingtechs.com** no existe o no puede entrar (inactivo / no 
 2. **O ejecutar el seed** (crea/actualiza solo el usuario con `SUPERADMIN_EMAIL`):
    ```bash
    cd packages/db
-   SUPERADMIN_EMAIL=simon@visionbuildingtechs.com SUPERADMIN_PASSWORD="TuClave" pnpm run seed
+   SUPERADMIN_EMAIL=admin@visionbuildingtechs.com SUPERADMIN_PASSWORD="TuClave" pnpm run seed
    ```
 
-**Registro desde la app:** Quien se registra por el formulario de signup se crea como **usuario pendiente** (`isActive: false`, rol `viewer`, estado `invited` en la org Vision Latam). No se crea como superadmin. Un superadmin debe activar/aprobar al usuario desde Admin o asignar manualmente en la DB. El único superadmin es el que se define por seed o con el script `check-users` (FIX_SUPERADMIN).
+**Registro desde la app:** Quien se registra por el formulario de signup se crea como **usuario pendiente** (`isActive: false`, rol `viewer`, estado `invited` en la org Vision Latam). No se crea como superadmin. Un superadmin debe activar/aprobar al usuario desde Admin o asignar manualmente en la DB. **Solo hay un superadmin:** el usuario cuyo email está en `SUPERADMIN_EMAIL` o que tiene `is_platform_superadmin = true` en la DB (definido por seed o script `check-users` con FIX_SUPERADMIN). Los partners nunca tienen acceso al portal superadmin.
 
 ## Notes
 

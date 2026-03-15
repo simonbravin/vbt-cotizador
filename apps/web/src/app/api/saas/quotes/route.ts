@@ -33,6 +33,21 @@ async function getHandler(req: Request) {
     limit: parsed.data.limit ?? 50,
     offset: parsed.data.offset ?? 0,
   });
+  // Partners must not see factory cost; expose basePriceForPartner only
+  if (!ctx.isPlatformSuperadmin && result.quotes.length > 0) {
+    const platformRow = await prisma.platformConfig.findFirst({ select: { configJson: true } });
+    const raw = (platformRow?.configJson as { pricing?: { visionLatamCommissionPct?: number } })?.pricing;
+    const commissionPct = raw?.visionLatamCommissionPct ?? 20;
+    const quotes = result.quotes.map((q) => {
+      const factory = Number((q as { factoryCostTotal?: number }).factoryCostTotal ?? 0);
+      const payload = JSON.parse(JSON.stringify(q)) as Record<string, unknown>;
+      payload.factoryCostTotal = null;
+      payload.factoryCostUsd = null;
+      payload.basePriceForPartner = factory * (1 + commissionPct / 100);
+      return payload;
+    });
+    return NextResponse.json({ quotes, total: result.total });
+  }
   return NextResponse.json(result);
 }
 

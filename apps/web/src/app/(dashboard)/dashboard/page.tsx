@@ -11,7 +11,11 @@ import type { SessionUser } from "@/lib/auth";
 import { getT, LOCALE_COOKIE_NAME } from "@/lib/i18n/translations";
 import type { Locale } from "@/lib/i18n/translations";
 
-export default async function DashboardPage() {
+type PageProps = { searchParams?: { access_denied?: string } };
+
+export default async function DashboardPage(props: PageProps) {
+  const accessDeniedSuperadmin = props.searchParams?.access_denied === "superadmin";
+
   const cookieStore = await cookies();
   const locale = (cookieStore.get(LOCALE_COOKIE_NAME)?.value === "es" ? "es" : "en") as Locale;
   const t = getT(locale);
@@ -80,6 +84,11 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      {accessDeniedSuperadmin && (
+        <div className="bg-destructive/15 border border-destructive/30 text-destructive rounded-xl px-4 py-3 text-sm">
+          No tenés acceso al portal de administración. Estás en tu panel de partner.
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -106,8 +115,8 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* Pending users alert */}
-      {pendingUsers > 0 && (
+      {/* Pending users alert: only superadmin can see and access admin approval (partners never see this) */}
+      {(user as { isPlatformSuperadmin?: boolean }).isPlatformSuperadmin && pendingUsers > 0 && (
         <div className="bg-alert-warning border border-alert-warningBorder rounded-xl p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">

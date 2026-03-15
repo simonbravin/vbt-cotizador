@@ -80,14 +80,16 @@ export function TopBar({ user, showContextSwitcher, activeOrgName }: TopBarProps
   const setActiveOrg = async (organizationId: string | null) => {
     setSwitching(true);
     try {
+      // API expects { organizationId: string (UUID) | null }; never send undefined or ""
+      const body = { organizationId: organizationId && organizationId.trim() ? organizationId : null };
       const res = await fetch("/api/saas/set-active-org", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ organizationId }),
+        body: JSON.stringify(body),
       });
       if (res.ok) {
         setSwitcherOpen(false);
-        router.push(organizationId ? "/dashboard" : "/superadmin/dashboard");
+        router.push(body.organizationId ? "/dashboard" : "/superadmin/dashboard");
         router.refresh();
       }
     } finally {

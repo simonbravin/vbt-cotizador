@@ -10,8 +10,8 @@ const loginSchema = z.object({
   password: z.string().min(1),
 });
 
-/** Superadmin email – set SUPERADMIN_EMAIL in env to override (e.g. admin@visionbuildingtechs.com) */
-const SUPERADMIN_EMAIL = process.env.SUPERADMIN_EMAIL ?? "simon@visionbuildingtechs.com";
+/** Superadmin email – set SUPERADMIN_EMAIL in env to override. Only this user (or DB is_platform_superadmin) gets superadmin. */
+const SUPERADMIN_EMAIL = process.env.SUPERADMIN_EMAIL ?? "admin@visionbuildingtechs.com";
 
 type RawUserRow = {
   id: string;
@@ -189,10 +189,8 @@ export const authOptions: NextAuthOptions = {
         (session.user as any).activeOrgName = token.activeOrgName ?? null;
         (session.user as any).role = token.role ?? "viewer";
         (session.user as any).roles = token.role ? [token.role] : [];
-        const fromToken = token.isPlatformSuperadmin === true;
-        const fromEmail =
-          session.user.email?.toLowerCase() === SUPERADMIN_EMAIL.toLowerCase();
-        (session.user as any).isPlatformSuperadmin = fromToken || fromEmail;
+        // Single source of truth: isPlatformSuperadmin is set once in authorize and stored in JWT
+        (session.user as any).isPlatformSuperadmin = token.isPlatformSuperadmin === true;
         // Backward compat for existing UI that expects orgId
         (session.user as any).orgId = token.activeOrgId ?? null;
         (session.user as any).orgSlug = token.activeOrgName ?? null;

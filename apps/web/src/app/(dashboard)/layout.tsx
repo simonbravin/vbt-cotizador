@@ -30,15 +30,20 @@ export default async function DashboardLayout({
     activeOrgId?: string | null;
     isPlatformSuperadmin?: boolean;
   };
+  // Partners only: superadmin must use superadmin portal, not partner layout
+  if (user.isPlatformSuperadmin) {
+    redirect("/superadmin/dashboard");
+  }
+
   const effectiveOrgId = await getEffectiveActiveOrgId(user as import("@/lib/auth").SessionUser);
-  // No effective active org and not platform superadmin → pending / onboarding
-  if (!effectiveOrgId && !user.isPlatformSuperadmin) {
+  // No effective active org → pending / onboarding
+  if (!effectiveOrgId) {
     redirect("/pending");
   }
 
-  // Resolve org name: use session name when effective org matches; when superadmin switched context, fetch org name
+  // Resolve org name: only query when we have a valid id (never pass null to findUnique)
   let activeOrgName: string | null = (user as { activeOrgName?: string | null }).activeOrgName ?? null;
-  if (effectiveOrgId && effectiveOrgId !== user.activeOrgId) {
+  if (effectiveOrgId !== user.activeOrgId) {
     const org = await prisma.organization.findUnique({ where: { id: effectiveOrgId }, select: { name: true } });
     activeOrgName = org?.name ?? null;
   }

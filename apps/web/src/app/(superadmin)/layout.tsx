@@ -22,8 +22,9 @@ export default async function SuperadminLayout({
     activeOrgId?: string | null;
     isPlatformSuperadmin?: boolean;
   };
+  // Partners must never access superadmin: redirect and signal access denied
   if (!user.isPlatformSuperadmin) {
-    redirect("/dashboard");
+    redirect("/dashboard?access_denied=superadmin");
   }
 
   const safeUser = {
