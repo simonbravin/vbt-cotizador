@@ -4,6 +4,7 @@ import { getTenantContext, requirePlatformSuperadmin, TenantError, tenantErrorSt
 import { inviteOrgMember, ORG_ROLE_TO_API } from "@vbt/core";
 import { createActivityLog } from "@/lib/audit";
 import { buildPartnerInviteEmailHtml, buildPartnerInviteNewUserEmailHtml } from "@/lib/email-templates";
+import { getResendFrom, EMAIL_SUBJECTS } from "@/lib/email-config";
 import { Resend } from "resend";
 import { z } from "zod";
 import { randomBytes } from "crypto";
@@ -85,9 +86,9 @@ export async function POST(
             appUrl,
           });
           await resend.emails.send({
-            from: process.env.RESEND_FROM_EMAIL ?? "noreply@visionbuildingtechs.com",
+            from: getResendFrom(),
             to: parsed.data.email,
-            subject: `You've been added to ${partner.name} – VBT Cotizador`,
+            subject: EMAIL_SUBJECTS.partnerInviteExisting(partner.name),
             html,
           });
         } catch (emailErr) {
@@ -136,9 +137,9 @@ export async function POST(
           acceptUrl,
         });
         await resend.emails.send({
-          from: process.env.RESEND_FROM_EMAIL ?? "noreply@visionbuildingtechs.com",
+          from: getResendFrom(),
           to: parsed.data.email,
-          subject: `Invitation to join ${partner.name} – VBT Cotizador`,
+          subject: EMAIL_SUBJECTS.partnerInviteNewUser(partner.name),
           html,
         });
       } catch (emailErr) {

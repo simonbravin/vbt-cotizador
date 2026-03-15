@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
 import { createAuditLog } from "@/lib/audit";
+import { getResendFrom, EMAIL_SUBJECTS } from "@/lib/email-config";
 import { Resend } from "resend";
 
 const updateSchema = z.object({
@@ -111,11 +112,9 @@ export async function PATCH(
       const approved = status === "ACTIVE";
 
       await resend.emails.send({
-        from: process.env.RESEND_FROM_EMAIL ?? "noreply@visionlatam.com",
+        from: getResendFrom(),
         to: targetUser.email,
-        subject: approved
-          ? "Your VBT Cotizador account has been approved"
-          : "Your VBT Cotizador account request",
+        subject: approved ? EMAIL_SUBJECTS.accountApproved : EMAIL_SUBJECTS.accountRejected,
         html: approved
           ? `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">

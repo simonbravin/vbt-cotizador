@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { Resend } from "resend";
 import { buildVbtEmailHtml, escapeHtml, VBT_EMAIL } from "@/lib/email-templates";
+import { getResendFrom, EMAIL_SUBJECTS } from "@/lib/email-config";
 import { z } from "zod";
 import crypto from "crypto";
 import { createPasswordResetToken } from "@/lib/password-reset-token";
@@ -81,9 +82,9 @@ export async function POST(req: Request) {
           footerText: "This notification was sent by the VBT Cotizador.",
         });
         await resend.emails.send({
-          from: process.env.RESEND_FROM_EMAIL ?? "noreply@visionlatam.com",
+          from: getResendFrom(),
           to: user.email,
-          subject: "VBT Cotizador – Reset your password",
+          subject: EMAIL_SUBJECTS.passwordReset,
           html,
         });
       } catch (emailErr) {

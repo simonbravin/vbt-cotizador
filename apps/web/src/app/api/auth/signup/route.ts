@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { Resend } from "resend";
 import { buildVbtEmailHtml, escapeHtml, VBT_EMAIL } from "@/lib/email-templates";
+import { getResendFrom, EMAIL_SUBJECTS } from "@/lib/email-config";
 
 const signupSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -82,9 +83,9 @@ export async function POST(req: Request) {
           footerText: "This notification was sent by the VBT Cotizador signup flow.",
         });
         await resend.emails.send({
-          from: process.env.RESEND_FROM_EMAIL ?? "noreply@visionlatam.com",
+          from: getResendFrom(),
           to: process.env.SUPERADMIN_EMAIL ?? "simon@visionbuildingtechs.com",
-          subject: "New VBT Cotizador account request",
+          subject: EMAIL_SUBJECTS.signupRequest,
           html,
         });
       } catch (emailErr) {

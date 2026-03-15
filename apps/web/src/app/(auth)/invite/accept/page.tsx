@@ -83,11 +83,28 @@ function InviteAcceptContent() {
     }
   }
 
+  const authLayout = (
+    <>
+      <div className="absolute inset-0 bg-gradient-to-br from-vbt-blue via-blue-900 to-slate-900" />
+      <div
+        className="absolute inset-0 opacity-[0.06]"
+        style={{
+          backgroundImage: `linear-gradient(hsl(var(--auth-grid-overlay)) 1px, transparent 1px),
+            linear-gradient(90deg, hsl(var(--auth-grid-overlay)) 1px, transparent 1px)`,
+          backgroundSize: "48px 48px",
+        }}
+      />
+      <div className="absolute top-1/4 -left-32 w-64 h-64 bg-vbt-orange/20 rounded-full blur-3xl" />
+      <div className="absolute bottom-1/4 -right-32 w-80 h-80 bg-blue-400/15 rounded-full blur-3xl" />
+    </>
+  );
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-vbt-blue to-slate-800 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
-          <p className="text-gray-600">{t("auth.inviteLoading")}</p>
+      <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+        {authLayout}
+        <div className="relative z-10 bg-slate-800/95 backdrop-blur-sm rounded-2xl shadow-2xl border border-white/20 p-8 max-w-md w-full text-center">
+          <p className="text-white/80">{t("auth.inviteLoading")}</p>
         </div>
       </div>
     );
@@ -95,9 +112,10 @@ function InviteAcceptContent() {
 
   if (error || !invite) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-vbt-blue to-slate-800 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
-          <p className="text-red-600 mb-4">{error ?? t("auth.inviteInvalidShort")}</p>
+      <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+        {authLayout}
+        <div className="relative z-10 bg-slate-800/95 backdrop-blur-sm rounded-2xl shadow-2xl border border-white/20 p-8 max-w-md w-full text-center">
+          <p className="text-red-300 mb-4">{error ?? t("auth.inviteInvalidShort")}</p>
           <Link href="/login" className="text-vbt-orange hover:underline font-medium">
             {t("auth.inviteGoSignIn")}
           </Link>
@@ -108,18 +126,20 @@ function InviteAcceptContent() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-vbt-blue to-slate-800 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
-          <p className="text-green-700 font-medium">{t("auth.inviteAccountCreated")}</p>
-          <p className="text-gray-600 text-sm mt-2">{t("auth.inviteRedirecting")}</p>
+      <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+        {authLayout}
+        <div className="relative z-10 bg-slate-800/95 backdrop-blur-sm rounded-2xl shadow-2xl border border-white/20 p-8 max-w-md w-full text-center">
+          <p className="text-green-300 font-medium">{t("auth.inviteAccountCreated")}</p>
+          <p className="text-white/70 text-sm mt-2">{t("auth.inviteRedirecting")}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-vbt-blue to-slate-800 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+      {authLayout}
+      <div className="relative z-10 w-full max-w-md">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
             <Image
@@ -134,21 +154,21 @@ function InviteAcceptContent() {
           <p className="text-slate-300 mt-1 text-sm">{t("auth.inviteSubtitle")}</p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-2xl p-8">
-          <p className="text-sm text-gray-600 mb-4">
+        <div className="bg-slate-800/95 backdrop-blur-sm rounded-2xl shadow-2xl border border-white/20 p-8 ring-1 ring-white/10">
+          <p className="text-sm text-white/80 mb-4">
             {t("auth.inviteInvitedAs")} <strong>{invite.role}</strong>. {t("auth.inviteCompleteForm")}
           </p>
-          <p className="text-sm text-gray-500 mb-6">{t("auth.inviteEmailLabel")} <strong>{invite.email}</strong></p>
+          <p className="text-sm text-white/70 mb-6">{t("auth.inviteEmailLabel")} <strong className="text-white">{invite.email}</strong></p>
 
           {submitError && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+            <div className="mb-4 p-3 bg-red-900/50 border border-red-400/50 rounded-lg text-red-200 text-sm">
               {submitError}
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t("auth.inviteFullName")}</label>
+              <label className="block text-sm font-medium text-white mb-1">{t("auth.inviteFullName")}</label>
               <input
                 type="text"
                 value={fullName}
@@ -156,11 +176,11 @@ function InviteAcceptContent() {
                 placeholder={t("auth.placeholderName")}
                 required
                 minLength={2}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-vbt-blue focus:border-transparent"
+                className="w-full px-3 py-2 bg-white/10 border border-white/30 rounded-lg text-sm text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-vbt-blue focus:border-transparent"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t("auth.invitePasswordLabel")}</label>
+              <label className="block text-sm font-medium text-white mb-1">{t("auth.invitePasswordLabel")}</label>
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
@@ -169,12 +189,12 @@ function InviteAcceptContent() {
                   placeholder={t("auth.invitePasswordPlaceholder")}
                   required
                   minLength={8}
-                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-vbt-blue focus:border-transparent"
+                  className="w-full px-3 py-2 pr-10 bg-white/10 border border-white/30 rounded-lg text-sm text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-vbt-blue focus:border-transparent"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
-                  className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-gray-600"
+                  className="absolute inset-y-0 right-0 flex items-center px-3 text-white/50 hover:text-white"
                   tabIndex={-1}
                   aria-label={showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
                 >
@@ -201,7 +221,7 @@ function InviteAcceptContent() {
           </form>
 
           <div className="mt-6 text-center">
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-white/70">
               {t("auth.alreadyAccount")}{" "}
               <Link href="/login" className="text-vbt-orange hover:underline font-medium">
                 {t("auth.signInLink")}
@@ -217,9 +237,20 @@ function InviteAcceptContent() {
 function InviteAcceptFallback() {
   const t = useT();
   return (
-    <div className="min-h-screen bg-gradient-to-br from-vbt-blue to-slate-800 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
-        <p className="text-gray-600">{t("common.loading")}</p>
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-br from-vbt-blue via-blue-900 to-slate-900" />
+      <div
+        className="absolute inset-0 opacity-[0.06]"
+        style={{
+          backgroundImage: `linear-gradient(hsl(var(--auth-grid-overlay)) 1px, transparent 1px),
+            linear-gradient(90deg, hsl(var(--auth-grid-overlay)) 1px, transparent 1px)`,
+          backgroundSize: "48px 48px",
+        }}
+      />
+      <div className="absolute top-1/4 -left-32 w-64 h-64 bg-vbt-orange/20 rounded-full blur-3xl" />
+      <div className="absolute bottom-1/4 -right-32 w-80 h-80 bg-blue-400/15 rounded-full blur-3xl" />
+      <div className="relative z-10 bg-slate-800/95 backdrop-blur-sm rounded-2xl shadow-2xl border border-white/20 p-8 max-w-md w-full text-center">
+        <p className="text-white/80">{t("common.loading")}</p>
       </div>
     </div>
   );

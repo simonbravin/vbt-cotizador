@@ -6,6 +6,7 @@ import { z } from "zod";
 import { Resend } from "resend";
 import { createAuditLog } from "@/lib/audit";
 import { buildVbtEmailHtml, escapeHtml, VBT_EMAIL } from "@/lib/email-templates";
+import { getResendFrom, EMAIL_SUBJECTS } from "@/lib/email-config";
 
 const sendSchema = z.object({
   to: z.string().email("Invalid email address"),
@@ -72,7 +73,7 @@ export async function POST(
 
   const subject =
     parsed.data.subject ??
-    `VBT Quote ${quoteNumber} – ${projectName}`;
+    EMAIL_SUBJECTS.quote(quoteNumber, projectName);
 
   const bodyHtml = `
     <h2 style="color: ${VBT_EMAIL.headerBg}; margin: 0 0 16px 0;">Quote ${escapeHtml(quoteNumber)}</h2>
@@ -97,7 +98,7 @@ export async function POST(
 
   try {
     const emailResult = await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL ?? "quotes@visionbuildingtechs.com",
+      from: getResendFrom(),
       to: parsed.data.to,
       subject,
       html: htmlBody,

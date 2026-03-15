@@ -65,6 +65,7 @@ export async function POST(req: Request) {
     // If user already exists (e.g. signed up meanwhile), add them to the org instead of failing
 
     const orgRole = API_ROLE_TO_ORG[invite.role] ?? "viewer";
+    const now = new Date();
     await prisma.orgMember.upsert({
       where: {
         organizationId_userId: { organizationId: invite.organizationId, userId: user.id },
@@ -74,8 +75,10 @@ export async function POST(req: Request) {
         userId: user.id,
         role: orgRole,
         status: "active",
+        createdAt: now,
+        updatedAt: now,
       },
-      update: { role: orgRole, status: "active" },
+      update: { role: orgRole, status: "active", updatedAt: now },
     });
 
     await prisma.partnerInvite.update({
@@ -89,6 +92,10 @@ export async function POST(req: Request) {
     });
   } catch (e) {
     console.error("[accept-invite]", e);
-    return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
+    const message = e instanceof Error ? e.message : "Something went wrong";
+    return NextResponse.json(
+      { error: process.env.NODE_ENV === "development" ? message : "Something went wrong" },
+      { status: 500 }
+    );
   }
 }

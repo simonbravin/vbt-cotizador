@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { getEffectiveActiveOrgId } from "@/lib/tenant";
 import { prisma } from "@/lib/db";
 import { buildVbtEmailHtml } from "@/lib/email-templates";
+import { getResendFrom, EMAIL_SUBJECTS } from "@/lib/email-config";
 import { Resend } from "resend";
 import type { SessionUser } from "@/lib/auth";
 import { z } from "zod";
@@ -163,7 +164,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Email not configured (RESEND_API_KEY)" }, { status: 503 });
   }
 
-  const subject = body.subject?.trim() || "VBT Projects Report";
+  const subject = body.subject?.trim() || EMAIL_SUBJECTS.report;
   const bodyHtml = `
     <p style="margin: 0 0 16px 0;">Please find the projects report attached (${rows.length} row(s)).</p>
     <p style="margin: 0; color: #555;">Filters applied: ${body.status ? `Status ${body.status}` : "All statuses"}${countryCode ? `, Country ${countryCode}` : ""}${body.clientId ? ", Client filter" : ""}${body.search?.trim() ? ", Search" : ""}${body.soldFrom || body.soldTo ? ", Sold date range" : ""}.</p>
@@ -179,7 +180,7 @@ export async function POST(req: Request) {
   try {
     const resend = new Resend(process.env.RESEND_API_KEY);
     await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL ?? "reports@visionbuildingtechs.com",
+      from: getResendFrom(),
       to: body.to,
       subject,
       html: htmlBody,
