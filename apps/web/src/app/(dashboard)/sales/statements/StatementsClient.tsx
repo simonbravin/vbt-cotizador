@@ -40,8 +40,17 @@ export function StatementsClient() {
     if (from) params.set("from", from);
     if (to) params.set("to", to);
     fetch(`/api/sales/statements?${params}`)
-      .then((r) => r.json())
-      .then((d) => { setData(d); setLoading(false); })
+      .then(async (r) => {
+        try {
+          const text = await r.text();
+          const d = text ? JSON.parse(text) : null;
+          setData(d);
+        } catch {
+          setData(null);
+        } finally {
+          setLoading(false);
+        }
+      })
       .catch(() => setLoading(false));
   }, [clientId, entityId, from, to]);
 
@@ -50,7 +59,17 @@ export function StatementsClient() {
   }, [fetchData]);
 
   useEffect(() => {
-    fetch("/api/clients?limit=500").then((r) => r.json()).then((d) => setClients(d.clients ?? []));
+    fetch("/api/clients?limit=500")
+      .then(async (r) => {
+        try {
+          const text = await r.text();
+          const d = text ? JSON.parse(text) : {};
+          if (Array.isArray(d.clients)) setClients(d.clients);
+        } catch {
+          // ignore
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const exportParams = () => {

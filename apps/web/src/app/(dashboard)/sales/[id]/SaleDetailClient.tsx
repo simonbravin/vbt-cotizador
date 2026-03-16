@@ -94,16 +94,44 @@ export function SaleDetailClient({ saleId }: { saleId: string }) {
 
   const router = useRouter();
 
-  const refetchSale = () => fetch(`/api/sales/${saleId}`).then((r) => r.json()).then(setSale);
+  const refetchSale = () =>
+    fetch(`/api/sales/${saleId}`)
+      .then(async (r) => {
+        try {
+          const text = await r.text();
+          const d = text ? JSON.parse(text) : null;
+          if (d) setSale(d);
+        } catch {
+          // ignore
+        }
+      })
+      .catch(() => {});
 
   useEffect(() => {
     fetch(`/api/sales/${saleId}`)
-      .then((r) => r.json())
-      .then((d) => { setSale(d); setLoading(false); })
+      .then(async (r) => {
+        try {
+          const text = await r.text();
+          const d = text ? JSON.parse(text) : null;
+          if (d) setSale(d);
+        } catch {
+          // ignore
+        } finally {
+          setLoading(false);
+        }
+      })
       .catch(() => setLoading(false));
     fetch("/api/sales/entities")
-      .then((r) => r.json())
-      .then((d) => setEntities(Array.isArray(d) ? d : (d?.entities && Array.isArray(d.entities) ? d.entities : [])))
+      .then(async (r) => {
+        try {
+          const text = await r.text();
+          const d = text ? JSON.parse(text) : null;
+          const list = Array.isArray(d) ? d : (d?.entities && Array.isArray(d.entities) ? d.entities : []);
+          setEntities(list);
+        } catch {
+          setEntities([]);
+        }
+      })
       .catch(() => setEntities([]));
   }, [saleId]);
 

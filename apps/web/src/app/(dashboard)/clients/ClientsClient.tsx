@@ -73,8 +73,16 @@ export function ClientsClient({
 
   const fetchStats = useCallback(() => {
     fetch("/api/clients/stats?limit=5")
-      .then((r) => r.json())
-      .then((data) => setStats(data))
+      .then(async (r) => {
+        if (!r.ok) return;
+        try {
+          const text = await r.text();
+          const data = text ? JSON.parse(text) : null;
+          if (data && (data.topByProjects != null || data.topBySold != null)) setStats(data);
+        } catch {
+          // ignore
+        }
+      })
       .catch(() => {});
   }, []);
 
@@ -91,10 +99,17 @@ export function ClientsClient({
     }
     setSearching(true);
     fetch(`/api/clients?search=${encodeURIComponent(q)}&limit=50`)
-      .then((r) => r.json())
-      .then((data) => {
-        setClients(data.clients ?? []);
-        setTotal(data.total ?? 0);
+      .then(async (r) => {
+        try {
+          const text = await r.text();
+          const data = text ? JSON.parse(text) : {};
+          if (r.ok && Array.isArray(data.clients)) {
+            setClients(data.clients);
+            setTotal(typeof data.total === "number" ? data.total : 0);
+          }
+        } catch {
+          // ignore
+        }
       })
       .finally(() => setSearching(false));
   }, [search.trim(), initialClients, initialTotal]);
@@ -108,10 +123,17 @@ export function ClientsClient({
       }
       setSearching(true);
       fetch(`/api/clients?search=${encodeURIComponent(search.trim())}&limit=50`)
-        .then((r) => r.json())
-        .then((data) => {
-          setClients(data.clients ?? []);
-          setTotal(data.total ?? 0);
+        .then(async (r) => {
+          try {
+            const text = await r.text();
+            const data = text ? JSON.parse(text) : {};
+            if (r.ok && Array.isArray(data.clients)) {
+              setClients(data.clients);
+              setTotal(typeof data.total === "number" ? data.total : 0);
+            }
+          } catch {
+            // ignore
+          }
         })
         .finally(() => setSearching(false));
     }, SEARCH_DEBOUNCE_MS);
@@ -120,10 +142,17 @@ export function ClientsClient({
 
   const refreshList = useCallback(() => {
     fetch(`/api/clients?limit=50`)
-      .then((r) => r.json())
-      .then((data) => {
-        setClients(data.clients ?? []);
-        setTotal(data.total ?? 0);
+      .then(async (r) => {
+        try {
+          const text = await r.text();
+          const data = text ? JSON.parse(text) : {};
+          if (r.ok && Array.isArray(data.clients)) {
+            setClients(data.clients);
+            setTotal(typeof data.total === "number" ? data.total : 0);
+          }
+        } catch {
+          // ignore
+        }
       });
     fetchStats();
   }, [fetchStats]);

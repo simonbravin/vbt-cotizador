@@ -46,6 +46,24 @@ export async function GET(req: Request) {
   const soldTo = url.searchParams.get("soldTo") ?? "";
   const format = (url.searchParams.get("format") ?? "").toLowerCase();
 
+  const emptyJson = () =>
+    NextResponse.json({
+      projects: [],
+      total: 0,
+      page,
+      limit,
+      summary: {
+        totalQuoted: 0,
+        inProgress: 0,
+        sold: 0,
+        archived: 0,
+        conversionRate: 0,
+        totalValueQuoted: 0,
+        totalValueSold: 0,
+      },
+    });
+
+  try {
   const where: Record<string, unknown> = { organizationId };
   if (status) {
     const statusMap: Record<string, string> = {
@@ -256,4 +274,7 @@ export async function GET(req: Request) {
     limit,
     summary,
   });
+  } catch {
+    return emptyJson();
+  }
 }

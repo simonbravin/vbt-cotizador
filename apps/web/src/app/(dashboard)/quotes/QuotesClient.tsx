@@ -59,8 +59,14 @@ export function QuotesClient({ quotes: initialQuotes, initialStatus }: { quotes:
       const params = new URLSearchParams({ search: search.trim() });
       if (initialStatus) params.set("status", initialStatus);
       const res = await fetch(`/api/saas/quotes?${params}`);
-      const data = await res.json();
-      setQuotes(data?.quotes ?? []);
+      let data: { quotes?: Quote[] } = {};
+      try {
+        const text = await res.text();
+        if (text) data = JSON.parse(text);
+      } catch {
+        // non-JSON or empty
+      }
+      if (res.ok && Array.isArray(data.quotes)) setQuotes(data.quotes);
     } finally {
       setSearching(false);
     }

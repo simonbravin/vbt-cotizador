@@ -1,8 +1,14 @@
 import { requireAuth } from "@/lib/utils";
+import { redirect } from "next/navigation";
 import { StatementsClient } from "./StatementsClient";
 
 export default async function StatementsPage() {
-  await requireAuth();
+  try {
+    await requireAuth();
+  } catch (e) {
+    if ((e as Error)?.message === "NEXT_REDIRECT") throw e;
+    redirect("/login");
+  }
   return (
     <div className="space-y-6">
       <div>

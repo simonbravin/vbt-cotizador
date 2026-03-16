@@ -1,4 +1,5 @@
 import { requireAuth } from "@/lib/utils";
+import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { SalesClient } from "./SalesClient";
 import { getT, LOCALE_COOKIE_NAME } from "@/lib/i18n/translations";
@@ -8,7 +9,12 @@ export default async function SalesPage() {
   const cookieStore = await cookies();
   const locale = (cookieStore.get(LOCALE_COOKIE_NAME)?.value === "es" ? "es" : "en") as Locale;
   const t = getT(locale);
-  await requireAuth();
+  try {
+    await requireAuth();
+  } catch (e) {
+    if ((e as Error)?.message === "NEXT_REDIRECT") throw e;
+    redirect("/login");
+  }
   return (
     <div className="space-y-6">
       <div>

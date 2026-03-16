@@ -13,15 +13,20 @@ export default async function ReportsPage() {
   const cookieStore = await cookies();
   const locale = (cookieStore.get(LOCALE_COOKIE_NAME)?.value === "es" ? "es" : "en") as Locale;
   const t = getT(locale);
-  const user = await requireAuth();
-  const effectiveOrgId = await getEffectiveActiveOrgId(user as SessionUser);
-  const organizationId = effectiveOrgId ?? (user as { activeOrgId?: string; orgId?: string }).activeOrgId ?? (user as { orgId?: string }).orgId;
-
   const countries = STATIC_COUNTRIES.map((c) => ({ id: c.code, name: c.name, code: c.code }));
   let clients: { id: string; name: string }[] = [];
   let dataLoadError: string | null = null;
+  let user: SessionUser | null = null;
+  let organizationId: string | undefined;
+  let canSendReport = false;
 
   try {
+    const sessionUser = await requireAuth();
+    user = sessionUser as SessionUser;
+    const effectiveOrgId = await getEffectiveActiveOrgId(sessionUser as SessionUser);
+    organizationId = effectiveOrgId ?? (sessionUser as { activeOrgId?: string; orgId?: string }).activeOrgId ?? (sessionUser as { orgId?: string }).orgId;
+    canSendReport = user.role === "org_admin" || !!(user as SessionUser).isPlatformSuperadmin;
+
     if (organizationId) {
       clients = await prisma.client.findMany({
         where: { organizationId },
@@ -30,11 +35,19 @@ export default async function ReportsPage() {
       });
     }
   } catch (err) {
+    if ((err as Error)?.message === "NEXT_REDIRECT") throw err;
     console.error("Reports page data fetch error:", err);
     dataLoadError = err instanceof Error ? err.message : String(err);
   }
 
-  const canSendReport = (user as SessionUser).role === "org_admin" || !!(user as SessionUser).isPlatformSuperadmin;
+  if (!user) {
+    const { redirect } = await import("next/navigation");
+    redirect("/login");
+  }
+  const sessionUser = user as SessionUser;
+  if (!canSendReport) {
+    canSendReport = sessionUser.role === "org_admin" || !!sessionUser.isPlatformSuperadmin;
+  }
 
   return (
     <div className="space-y-6">

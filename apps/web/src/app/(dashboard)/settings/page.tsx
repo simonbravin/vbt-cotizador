@@ -12,7 +12,8 @@ export default async function SettingsHubPage() {
   const t = getT(locale);
   try {
     await requireAuth();
-  } catch {
+  } catch (e) {
+    if ((e as Error)?.message === "NEXT_REDIRECT") throw e;
     redirect("/login");
   }
   return (

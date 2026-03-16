@@ -68,10 +68,16 @@ export function SalesClient() {
     if (to) params.set("to", to);
     if (search.trim()) params.set("search", search.trim());
     const res = await fetch(`/api/sales?${params}`);
-    const data = await res.json();
-    if (res.ok) {
-      setSales(data.sales ?? []);
-      setTotal(data.total ?? 0);
+    let data: { sales?: Sale[]; total?: number } = {};
+    try {
+      const text = await res.text();
+      if (text) data = JSON.parse(text);
+    } catch {
+      // ignore
+    }
+    if (res.ok && Array.isArray(data.sales)) {
+      setSales(data.sales);
+      setTotal(typeof data.total === "number" ? data.total : 0);
     }
     setLoading(false);
   }, [page, limit, status, clientId, projectId, from, to, search]);
@@ -82,19 +88,40 @@ export function SalesClient() {
 
   useEffect(() => {
     fetch("/api/clients?limit=500")
-      .then((r) => r.json())
-      .then((d) => setClients(d.clients ?? []))
+      .then(async (r) => {
+        try {
+          const text = await r.text();
+          const d = text ? JSON.parse(text) : {};
+          if (Array.isArray(d.clients)) setClients(d.clients);
+        } catch {
+          // ignore
+        }
+      })
       .catch(() => {});
     fetch("/api/projects?limit=500")
-      .then((r) => r.json())
-      .then((d) => setProjects(d.projects ?? []))
+      .then(async (r) => {
+        try {
+          const text = await r.text();
+          const d = text ? JSON.parse(text) : {};
+          if (Array.isArray(d.projects)) setProjects(d.projects);
+        } catch {
+          // ignore
+        }
+      })
       .catch(() => {});
   }, []);
 
   useEffect(() => {
     fetch("/api/sales/notifications/due?days=7")
-      .then((r) => r.json())
-      .then((d) => setDueCount(d.count ?? 0))
+      .then(async (r) => {
+        try {
+          const text = await r.text();
+          const d = text ? JSON.parse(text) : {};
+          if (typeof d.count === "number") setDueCount(d.count);
+        } catch {
+          // ignore
+        }
+      })
       .catch(() => {});
   }, []);
 

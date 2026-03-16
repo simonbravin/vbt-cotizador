@@ -44,19 +44,34 @@ export default function QuoteDetailPage() {
 
   const fetchAudit = () => {
     fetch(`/api/quotes/${params.id}/audit`)
-      .then((r) => r.json())
-      .then((data) => { setAuditLog(Array.isArray(data) ? data : []); setLoadingAudit(false); })
+      .then(async (r) => {
+        try {
+          const text = await r.text();
+          const data = text ? JSON.parse(text) : null;
+          setAuditLog(Array.isArray(data) ? data : []);
+        } catch {
+          setAuditLog([]);
+        } finally {
+          setLoadingAudit(false);
+        }
+      })
       .catch(() => setLoadingAudit(false));
   };
 
   useEffect(() => {
     fetch(`/api/quotes/${params.id}`)
-      .then((r) => r.json())
-      .then((d) => {
-        setQuote(d);
-        setEditNotes(d?.notes ?? "");
-        setEditStatus(d?.status ?? "DRAFT");
-        setLoading(false);
+      .then(async (r) => {
+        try {
+          const text = await r.text();
+          const d = text ? JSON.parse(text) : null;
+          setQuote(d);
+          setEditNotes(d?.notes ?? "");
+          setEditStatus(d?.status ?? "DRAFT");
+        } catch {
+          setQuote(null);
+        } finally {
+          setLoading(false);
+        }
       })
       .catch(() => setLoading(false));
   }, [params.id]);
@@ -65,8 +80,17 @@ export default function QuoteDetailPage() {
     if (!quote?.id) return;
     setLoadingAudit(true);
     fetch(`/api/quotes/${quote.id}/audit`)
-      .then((r) => r.json())
-      .then((data) => { setAuditLog(Array.isArray(data) ? data : []); setLoadingAudit(false); })
+      .then(async (r) => {
+        try {
+          const text = await r.text();
+          const data = text ? JSON.parse(text) : null;
+          setAuditLog(Array.isArray(data) ? data : []);
+        } catch {
+          setAuditLog([]);
+        } finally {
+          setLoadingAudit(false);
+        }
+      })
       .catch(() => setLoadingAudit(false));
   }, [quote?.id]);
 
@@ -79,7 +103,13 @@ export default function QuoteDetailPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ to: emailTo, message: emailMsg }),
     });
-    const data = await res.json();
+    let data: { error?: string } = {};
+    try {
+      const text = await res.text();
+      if (text) data = JSON.parse(text);
+    } catch {
+      // ignore
+    }
     setSending(false);
     if (res.ok) {
       setSendResult("__success__");
@@ -129,8 +159,13 @@ export default function QuoteDetailPage() {
     });
     setSaving(false);
     if (res.ok) {
-      const updated = await res.json();
-      setQuote(updated);
+      try {
+        const text = await res.text();
+        const updated = text ? JSON.parse(text) : null;
+        if (updated) setQuote(updated);
+      } catch {
+        // ignore
+      }
       setEditOpen(false);
       fetchAudit();
     }

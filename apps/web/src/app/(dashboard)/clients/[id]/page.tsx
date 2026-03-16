@@ -12,27 +12,28 @@ export default async function ClientDetailPage({
 }: {
   params: { id: string };
 }) {
-  const user = await requireAuth();
-  const effectiveOrgId = await getEffectiveActiveOrgId(user as SessionUser);
-  const orgId = effectiveOrgId ?? user.activeOrgId ?? user.orgId ?? "";
-  if (!orgId) notFound();
+  try {
+    const user = await requireAuth();
+    const effectiveOrgId = await getEffectiveActiveOrgId(user as SessionUser);
+    const orgId = effectiveOrgId ?? user.activeOrgId ?? user.orgId ?? "";
+    if (!orgId) notFound();
 
-  const [client] = await Promise.all([
-    prisma.client.findFirst({
-      where: { id: params.id, organizationId: orgId },
-      include: {
-        projects: {
-          select: { id: true, projectName: true, status: true },
-          orderBy: { updatedAt: "desc" },
+    const [client] = await Promise.all([
+      prisma.client.findFirst({
+        where: { id: params.id, organizationId: orgId },
+        include: {
+          projects: {
+            select: { id: true, projectName: true, status: true },
+            orderBy: { updatedAt: "desc" },
+          },
         },
-      },
-    }),
-  ]);
-  const countries: { id: string; name: string; code: string }[] = [];
+      }),
+    ]);
+    const countries: { id: string; name: string; code: string }[] = [];
 
-  if (!client) notFound();
+    if (!client) notFound();
 
-  return (
+    return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
@@ -135,4 +136,8 @@ export default async function ClientDetailPage({
       </div>
     </div>
   );
+  } catch (e) {
+    if ((e as Error)?.message === "NEXT_REDIRECT") throw e;
+    notFound();
+  }
 }

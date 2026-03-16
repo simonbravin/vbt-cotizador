@@ -51,10 +51,17 @@ export function ProjectsClient({ projects: initialProjects, total: initialTotal 
     }
     setSearching(true);
     fetch(`/api/projects?search=${encodeURIComponent(q)}`)
-      .then((r) => r.json())
-      .then((data) => {
-        setProjects(data.projects ?? []);
-        setTotal(data.total ?? 0);
+      .then(async (r) => {
+        try {
+          const text = await r.text();
+          const data = text ? JSON.parse(text) : {};
+          if (r.ok && Array.isArray(data.projects)) {
+            setProjects(data.projects);
+            setTotal(typeof data.total === "number" ? data.total : 0);
+          }
+        } catch {
+          // ignore
+        }
       })
       .finally(() => setSearching(false));
   }, [search.trim(), initialProjects, initialTotal]);
@@ -68,10 +75,17 @@ export function ProjectsClient({ projects: initialProjects, total: initialTotal 
       }
       setSearching(true);
       fetch(`/api/projects?search=${encodeURIComponent(search.trim())}`)
-        .then((r) => r.json())
-        .then((data) => {
-          setProjects(data.projects ?? []);
-          setTotal(data.total ?? 0);
+        .then(async (r) => {
+          try {
+            const text = await r.text();
+            const data = text ? JSON.parse(text) : {};
+            if (r.ok && Array.isArray(data.projects)) {
+              setProjects(data.projects);
+              setTotal(typeof data.total === "number" ? data.total : 0);
+            }
+          } catch {
+            // ignore
+          }
         })
         .finally(() => setSearching(false));
     }, SEARCH_DEBOUNCE_MS);

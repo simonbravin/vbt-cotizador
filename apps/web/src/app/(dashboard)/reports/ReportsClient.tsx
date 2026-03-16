@@ -97,14 +97,31 @@ export function ReportsClient({ countries, clients, canSendReport = true }: { co
   const fetchReport = useCallback(async () => {
     setLoading(true);
     const params = buildReportParams();
-    const res = await fetch(`/api/reports/projects?${params}`);
-    const data = await res.json();
-    if (res.ok) {
-      setProjects(data.projects ?? []);
-      setTotal(data.total ?? 0);
-      setSummary(data.summary ?? null);
+    try {
+      const res = await fetch(`/api/reports/projects?${params}`);
+      let data: { projects?: Project[]; total?: number; summary?: Summary | null } = {};
+      try {
+        const text = await res.text();
+        if (text) data = JSON.parse(text) as typeof data;
+      } catch {
+        // non-JSON or empty response
+      }
+      if (res.ok && Array.isArray(data.projects)) {
+        setProjects(data.projects);
+        setTotal(typeof data.total === "number" ? data.total : 0);
+        setSummary(data.summary ?? null);
+      } else {
+        setProjects([]);
+        setTotal(0);
+        setSummary(null);
+      }
+    } catch {
+      setProjects([]);
+      setTotal(0);
+      setSummary(null);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [buildReportParams]);
 
   useEffect(() => {
@@ -113,15 +130,30 @@ export function ReportsClient({ countries, clients, canSendReport = true }: { co
 
   useEffect(() => {
     fetch("/api/reports/pieces?limit=15")
-      .then((r) => r.json())
-      .then((data) => setPieces(data))
+      .then(async (r) => {
+        if (!r.ok) return;
+        try {
+          const text = await r.text();
+          if (text) setPieces(JSON.parse(text));
+        } catch {
+          // ignore
+        }
+      })
       .catch(() => {});
   }, []);
 
   useEffect(() => {
     fetch("/api/sales/reports/summary")
-      .then((r) => r.json())
-      .then((data) => setSalesSummary(data))
+      .then(async (r) => {
+        if (!r.ok) return;
+        try {
+          const text = await r.text();
+          const data = text ? JSON.parse(text) : null;
+          if (data && typeof data.totalSales === "number") setSalesSummary(data);
+        } catch {
+          // ignore parse error or non-JSON
+        }
+      })
       .catch(() => {});
   }, []);
 
