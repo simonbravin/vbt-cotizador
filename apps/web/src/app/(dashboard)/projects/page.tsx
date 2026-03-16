@@ -44,7 +44,7 @@ export default async function ProjectsPage() {
 
   return (
     <div className="space-y-6">
-      {dataLoadError && (
+      {dataLoadError && (projects.length > 0 || total > 0) && (
         <div className="bg-amber-500/15 border border-amber-500/40 rounded-xl px-4 py-3 text-sm flex items-center justify-between gap-4 flex-wrap">
           <p className="text-foreground">
             <span className="font-medium">{t("dashboard.errorLoad")}</span>

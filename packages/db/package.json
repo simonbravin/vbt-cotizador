@@ -16,7 +16,8 @@
     "seed": "tsx --env-file=.env prisma/seed.ts",
     "studio": "prisma studio",
     "check-users": "tsx scripts/check-users.ts",
-    "verify-users-schema": "tsx scripts/verify-users-schema.ts"
+    "verify-users-schema": "tsx scripts/verify-users-schema.ts",
+    "clean-neon": "tsx --env-file=.env prisma/scripts/clean-neon-keep-superadmin-and-partner.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.10.2",
