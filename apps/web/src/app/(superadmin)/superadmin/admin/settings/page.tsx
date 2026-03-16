@@ -1,5 +1,5 @@
-import AdminSettingsPage from "@/app/(dashboard)/admin/settings/page";
+import { redirect } from "next/navigation";
 
 export default function SuperadminAdminSettingsPage() {
-  return <AdminSettingsPage />;
+  redirect("/superadmin/settings");
 }

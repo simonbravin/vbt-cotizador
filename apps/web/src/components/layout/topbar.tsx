@@ -37,6 +37,23 @@ const ROLE_COLORS: Record<string, string> = {
   VIEWER: "bg-muted text-muted-foreground",
 };
 
+const NOTIFICATIONS_LAST_READ_KEY = "vbt_notifications_last_read_at";
+const NOTIFICATIONS_BADGE_LIMIT = 10;
+const NOTIFICATIONS_DROPDOWN_LIMIT = 10;
+
+function getLastReadAt(): number | null {
+  if (typeof window === "undefined") return null;
+  const raw = localStorage.getItem(NOTIFICATIONS_LAST_READ_KEY);
+  if (!raw) return null;
+  const t = parseInt(raw, 10);
+  return Number.isFinite(t) ? t : null;
+}
+
+function setLastReadAt() {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(NOTIFICATIONS_LAST_READ_KEY, String(Date.now()));
+}
+
 type PartnerOption = { id: string; name: string };
 
 export function TopBar({ user, showContextSwitcher, activeOrgName }: TopBarProps) {
@@ -49,19 +66,51 @@ export function TopBar({ user, showContextSwitcher, activeOrgName }: TopBarProps
   const [bellOpen, setBellOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [badgeNotifications, setBadgeNotifications] = useState<NotificationItem[]>([]);
+  const [lastReadAt, setLastReadAtState] = useState<number | null>(null);
 
-  const loadNotifications = useCallback(() => {
-    setNotificationsLoading(true);
-    fetch("/api/saas/notifications?limit=20")
+  useEffect(() => {
+    setLastReadAtState(getLastReadAt());
+  }, []);
+
+  const loadNotifications = useCallback((limit: number, forDropdown: boolean) => {
+    if (forDropdown) setNotificationsLoading(true);
+    fetch(`/api/saas/notifications?limit=${limit}`)
       .then((r) => (r.ok ? r.json() : []))
-      .then((data) => setNotifications(Array.isArray(data) ? data : []))
-      .catch(() => setNotifications([]))
-      .finally(() => setNotificationsLoading(false));
+      .then((data) => {
+        const list = Array.isArray(data) ? data : [];
+        if (forDropdown) {
+          setNotifications(list);
+          setLastReadAt();
+          setLastReadAtState(Date.now());
+        } else {
+          setBadgeNotifications(list);
+        }
+      })
+      .catch(() => {
+        if (forDropdown) setNotifications([]);
+        else setBadgeNotifications([]);
+      })
+      .finally(() => {
+        if (forDropdown) setNotificationsLoading(false);
+      });
   }, []);
 
   useEffect(() => {
-    if (bellOpen) loadNotifications();
+    loadNotifications(NOTIFICATIONS_BADGE_LIMIT, false);
+  }, [loadNotifications]);
+
+  useEffect(() => {
+    if (bellOpen) {
+      loadNotifications(NOTIFICATIONS_DROPDOWN_LIMIT, true);
+    }
   }, [bellOpen, loadNotifications]);
+
+  const unreadCount =
+    lastReadAt == null
+      ? badgeNotifications.length
+      : badgeNotifications.filter((n) => new Date(n.createdAt).getTime() > lastReadAt).length;
+  const badgeCount = bellOpen ? 0 : unreadCount;
 
   useEffect(() => {
     if (!showContextSwitcher) return;
@@ -189,9 +238,9 @@ export function TopBar({ user, showContextSwitcher, activeOrgName }: TopBarProps
             aria-haspopup="true"
           >
             <Bell className="w-5 h-5" />
-            {notifications.length > 0 && (
+            {badgeCount > 0 && (
               <span className="absolute top-1 right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-amber-500 text-white text-xs font-medium flex items-center justify-center">
-                {notifications.length > 99 ? "99+" : notifications.length}
+                {badgeCount > 99 ? "99+" : badgeCount}
               </span>
             )}
           </button>

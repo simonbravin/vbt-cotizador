@@ -4,13 +4,16 @@ import { prisma } from "@/lib/db";
 
 const SYSTEM_CODES = ["S80", "S150", "S200"] as const;
 
+const LBS_TO_KG = 0.453592;
+
 type Row = {
   dieNumber?: string | null;
   canonicalName: string;
   systemCode: string;
   usefulWidthMm?: number | null;
   lbsPerMCored?: number | null;
-  pricePerMCored?: number | null;
+  kgPerMCored?: number | null;
+  pricePerM2Cored?: number | null; // USD/m² cored (wall area)
 };
 
 /** Normalize header for column matching */
@@ -54,8 +57,11 @@ function parseRow(
   const dieNumber = get(["die #", "die number", "dienumber", "die", "molde", "molde #"]) ?? null;
   const usefulWidthMm = getNum(["useful width (mm)", "useful width", "usefulwidthmm", "width mm", "ancho útil"]) ?? null;
   const lbsPerMCored = getNum(["lbs/m cored", "lbs per m cored", "lbspermcored", "lbs"]) ?? null;
-  const pricePerMCored =
-    getNum(["price per m cored", "pricepermcored", "$/m cored", "price", "precio", "precio por m cored"]) ?? null;
+  const kgPerMCoredRaw = getNum(["kg/m cored", "kg per m cored", "kgpermcored", "kg"]) ?? null;
+  const pricePerM2Cored =
+    getNum(["price per m2 cored", "price per m² cored", "priceperm2cored", "$/m2 cored", "price", "precio", "precio por m2 cored", "price per m cored", "pricepermcored"]) ?? null;
+
+  const kgPerMCored = kgPerMCoredRaw ?? (lbsPerMCored != null ? lbsPerMCored * LBS_TO_KG : null);
 
   return {
     dieNumber: dieNumber || null,
@@ -63,7 +69,8 @@ function parseRow(
     systemCode,
     usefulWidthMm: usefulWidthMm ?? null,
     lbsPerMCored: lbsPerMCored ?? null,
-    pricePerMCored: pricePerMCored ?? null,
+    kgPerMCored: kgPerMCored ?? null,
+    pricePerM2Cored: pricePerM2Cored ?? null,
   };
 }
 
@@ -175,7 +182,8 @@ export async function POST(req: Request) {
         systemCode: row.systemCode,
         usefulWidthMm: row.usefulWidthMm ?? null,
         lbsPerMCored: row.lbsPerMCored ?? null,
-        pricePerMCored: row.pricePerMCored ?? null,
+        kgPerMCored: row.kgPerMCored ?? null,
+        pricePerM2Cored: row.pricePerM2Cored ?? null,
         isActive: true,
       };
       if (dryRun) {
@@ -187,7 +195,8 @@ export async function POST(req: Request) {
           (existing.dieNumber ?? "") === (row.dieNumber ?? "") &&
           (existing.usefulWidthMm ?? 0) === (row.usefulWidthMm ?? 0) &&
           (existing.lbsPerMCored ?? 0) === (row.lbsPerMCored ?? 0) &&
-          (existing.pricePerMCored ?? 0) === (row.pricePerMCored ?? 0);
+          (existing.kgPerMCored ?? 0) === (row.kgPerMCored ?? 0) &&
+          (existing.pricePerM2Cored ?? 0) === (row.pricePerM2Cored ?? 0);
         if (same) {
           unchanged++;
           continue;

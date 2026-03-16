@@ -44,7 +44,9 @@ export function getNotificationTitleKeyAndLink(input: NotificationMappingInput):
             ? "notifications.quote_archived"
             : normAction === "quote_deleted"
               ? "notifications.quote_deleted"
-              : "notifications.quote_updated";
+              : normAction === "quote_modified_by_superadmin"
+                ? "notifications.quote_modified_by_superadmin"
+                : "notifications.quote_updated";
     return { titleKey: key, link };
   }
 

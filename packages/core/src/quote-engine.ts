@@ -24,8 +24,10 @@ export interface PieceMeta {
   systemCode?: "S80" | "S150" | "S200" | null;
   usefulWidthM?: number;
   lbsPerMCored?: number;
+  kgPerMCored?: number;
   lbsPerMUncored?: number;
   volumePerM?: number;
+  /** Price per linear m (USD/m). When building from catalog use: pricePerM2Cored * usefulWidthM (catalog stores USD/m² only). */
   cost?: {
     pricePer5000ftCored?: number;
     pricePerFtCored?: number;

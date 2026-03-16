@@ -4,10 +4,10 @@ import { authOptions } from "@/lib/auth";
 import { requirePlatformSuperadmin } from "@/lib/tenant";
 import { prisma } from "@/lib/db";
 
-function pieceToResponse(p: { id: string; dieNumber: string | null; canonicalName: string; systemCode: string; usefulWidthMm: number | null; lbsPerMCored: number | null; pricePerMCored: number | null; isActive: boolean }) {
+function pieceToResponse(p: { id: string; dieNumber: string | null; canonicalName: string; systemCode: string; usefulWidthMm: number | null; lbsPerMCored: number | null; kgPerMCored: number | null; pricePerM2Cored: number | null; isActive: boolean }) {
   return {
     ...p,
-    costs: p.pricePerMCored != null ? [{ pricePerMCored: p.pricePerMCored }] : [],
+    costs: p.pricePerM2Cored != null ? [{ pricePerM2Cored: p.pricePerM2Cored }] : [],
   };
 }
 
@@ -39,8 +39,9 @@ export async function PATCH(
   if (!piece) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const body = await req.json().catch(() => ({}));
-  const data: { pricePerMCored?: number; usefulWidthMm?: number; isActive?: boolean } = {};
-  if (typeof body.pricePerMCored === "number") data.pricePerMCored = body.pricePerMCored;
+  const data: { pricePerM2Cored?: number; usefulWidthMm?: number; isActive?: boolean } = {};
+  if (typeof body.pricePerM2Cored === "number") data.pricePerM2Cored = body.pricePerM2Cored;
+  if (typeof body.pricePerMCored === "number") data.pricePerM2Cored = body.pricePerMCored; // backward compat
   if (typeof body.usefulWidthMm === "number") data.usefulWidthMm = body.usefulWidthMm;
   if (typeof body.isActive === "boolean") data.isActive = body.isActive;
 

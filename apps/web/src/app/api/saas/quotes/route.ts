@@ -9,54 +9,53 @@ import { createActivityLog } from "@/lib/audit";
 import { withSaaSHandler } from "@/lib/saas-handler";
 
 async function getHandler(req: Request) {
-  const ctx = await getTenantContext();
-  if (!ctx?.activeOrgId && !ctx?.isPlatformSuperadmin) {
-    throw new TenantError("No active organization", "NO_ACTIVE_ORG");
-  }
-  const url = new URL(req.url);
-  const limitRaw = url.searchParams.get("limit");
-  const offsetRaw = url.searchParams.get("offset");
-  const limit = limitRaw != null && limitRaw !== "" ? Math.min(100, Math.max(1, parseInt(limitRaw, 10) || 50)) : 50;
-  const offset = offsetRaw != null && offsetRaw !== "" ? Math.max(0, parseInt(offsetRaw, 10) || 0) : 0;
-  const status = url.searchParams.get("status") || undefined;
-  const search = url.searchParams.get("search") || undefined;
-  const projectId = url.searchParams.get("projectId") ?? undefined;
-
-  const tenantCtx = {
-    userId: ctx.userId,
-    organizationId: ctx.activeOrgId ?? null,
-    isPlatformSuperadmin: ctx.isPlatformSuperadmin,
-  };
-  let result: Awaited<ReturnType<typeof listQuotes>>;
   try {
-    result = await listQuotes(prisma, tenantCtx, {
+    const ctx = await getTenantContext();
+    if (!ctx?.activeOrgId && !ctx?.isPlatformSuperadmin) {
+      throw new TenantError("No active organization", "NO_ACTIVE_ORG");
+    }
+    const url = new URL(req.url);
+    const limitRaw = url.searchParams.get("limit");
+    const offsetRaw = url.searchParams.get("offset");
+    const limit = limitRaw != null && limitRaw !== "" ? Math.min(100, Math.max(1, parseInt(limitRaw, 10) || 50)) : 50;
+    const offset = offsetRaw != null && offsetRaw !== "" ? Math.max(0, parseInt(offsetRaw, 10) || 0) : 0;
+    const status = url.searchParams.get("status") || undefined;
+    const search = url.searchParams.get("search") || undefined;
+    const projectId = url.searchParams.get("projectId") ?? undefined;
+
+    const tenantCtx = {
+      userId: ctx.userId,
+      organizationId: ctx.activeOrgId ?? null,
+      isPlatformSuperadmin: ctx.isPlatformSuperadmin,
+    };
+    const result = await listQuotes(prisma, tenantCtx, {
       projectId,
       status: status as "draft" | "sent" | "accepted" | "rejected" | "expired" | undefined,
       search: search || undefined,
       limit,
       offset,
     });
+    // Partners must not see factory cost; expose basePriceForPartner using quote's stored VL %
+    if (!ctx.isPlatformSuperadmin && result.quotes.length > 0) {
+      const quotes = result.quotes.map((q) => {
+        const factory = Number((q as { factoryCostTotal?: number }).factoryCostTotal ?? 0);
+        const pct = Number((q as { visionLatamMarkupPct?: number }).visionLatamMarkupPct ?? 0);
+        const payload = JSON.parse(JSON.stringify(q)) as Record<string, unknown>;
+        payload.factoryCostTotal = null;
+        payload.factoryCostUsd = null;
+        payload.basePriceForPartner = factory * (1 + pct / 100);
+        return payload;
+      });
+      return NextResponse.json({ quotes, total: result.total });
+    }
+    return NextResponse.json(result);
   } catch (e) {
-    console.error("[api/saas/quotes GET] listQuotes error:", e);
+    console.error("[api/saas/quotes GET]", e);
     return NextResponse.json(
-      { error: "Failed to load quotes" },
-      { status: 500 }
+      { quotes: [], total: 0, error: true, message: "Failed to load quotes. Please try again." },
+      { status: 200 }
     );
   }
-  // Partners must not see factory cost; expose basePriceForPartner using quote's stored VL %
-  if (!ctx.isPlatformSuperadmin && result.quotes.length > 0) {
-    const quotes = result.quotes.map((q) => {
-      const factory = Number((q as { factoryCostTotal?: number }).factoryCostTotal ?? 0);
-      const pct = Number((q as { visionLatamMarkupPct?: number }).visionLatamMarkupPct ?? 0);
-      const payload = JSON.parse(JSON.stringify(q)) as Record<string, unknown>;
-      payload.factoryCostTotal = null;
-      payload.factoryCostUsd = null;
-      payload.basePriceForPartner = factory * (1 + pct / 100);
-      return payload;
-    });
-    return NextResponse.json({ quotes, total: result.total });
-  }
-  return NextResponse.json(result);
 }
 
 async function postHandler(req: Request) {

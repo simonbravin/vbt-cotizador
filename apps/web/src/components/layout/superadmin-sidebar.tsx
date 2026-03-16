@@ -49,11 +49,11 @@ const superadminNavigation: NavItem[] = [
       { labelKey: "nav.superadmin.training", href: "/superadmin/training", icon: BookOpen },
     ],
   },
-  { labelKey: "nav.superadmin.settings", href: "/superadmin/settings", icon: Settings },
   {
     labelKey: "nav.admin",
     icon: Settings,
     children: [
+      { labelKey: "nav.superadmin.settings", href: "/superadmin/settings", icon: Settings },
       { labelKey: "nav.superadmin.pendingApprovals", href: "/superadmin/admin/users", icon: Users },
       { labelKey: "nav.entities", href: "/superadmin/admin/entities", icon: Building },
       { labelKey: "nav.catalog", href: "/superadmin/admin/catalog", icon: BookOpen },
@@ -61,7 +61,6 @@ const superadminNavigation: NavItem[] = [
       { labelKey: "nav.countries", href: "/superadmin/admin/countries", icon: Globe },
       { labelKey: "nav.freight", href: "/superadmin/admin/freight", icon: Truck },
       { labelKey: "nav.taxes", href: "/superadmin/admin/taxes", icon: TrendingUp },
-      { labelKey: "nav.settings", href: "/superadmin/admin/settings", icon: Settings },
       { labelKey: "nav.inventory", href: "/superadmin/admin/inventory", icon: Package },
     ],
   },

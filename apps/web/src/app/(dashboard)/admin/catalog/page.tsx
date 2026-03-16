@@ -47,7 +47,7 @@ export default function CatalogPage() {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        pricePerMCored: editPiece._costEdit ?? editPiece.costs?.[0]?.pricePerMCored,
+        pricePerM2Cored: editPiece._costEdit ?? editPiece.costs?.[0]?.pricePerM2Cored,
         usefulWidthMm: editPiece.usefulWidthMm,
         isActive: editPiece.isActive,
       }),
@@ -69,7 +69,7 @@ export default function CatalogPage() {
     }),
     [t]
   );
-  const tableHeaders = [t("admin.catalog.dieNumber"), t("admin.catalog.canonicalName"), t("admin.catalog.system"), t("admin.catalog.usefulWidthMm"), t("admin.catalog.lbsPerMCored"), t("admin.catalog.pricePerMCored"), t("admin.catalog.active"), t("admin.catalog.actions")];
+  const tableHeaders = [t("admin.catalog.dieNumber"), t("admin.catalog.canonicalName"), t("admin.catalog.system"), t("admin.catalog.usefulWidthMm"), t("admin.catalog.lbsPerMCored"), t("admin.catalog.kgPerMCored"), t("admin.catalog.pricePerMCored"), t("admin.catalog.active"), t("admin.catalog.actions")];
 
   return (
     <div className="space-y-6">
@@ -123,7 +123,7 @@ export default function CatalogPage() {
             </thead>
             <tbody className="divide-y divide-gray-50">
               {loading ? (
-                <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400">{t("common.loading")}</td></tr>
+                <tr><td colSpan={9} className="px-4 py-8 text-center text-gray-400">{t("common.loading")}</td></tr>
               ) : pieces.map((p) => (
                 <tr key={p.id} className={`hover:bg-gray-50 ${!p.isActive ? "opacity-50" : ""}`}>
                   <td className="px-3 py-2.5 text-gray-400 text-xs">{p.dieNumber ?? "—"}</td>
@@ -137,9 +137,10 @@ export default function CatalogPage() {
                   </td>
                   <td className="px-3 py-2.5 text-right">{p.usefulWidthMm?.toFixed(1) ?? "—"}</td>
                   <td className="px-3 py-2.5 text-right">{p.lbsPerMCored?.toFixed(3) ?? "—"}</td>
+                  <td className="px-3 py-2.5 text-right">{p.kgPerMCored?.toFixed(3) ?? "—"}</td>
                   <td className="px-3 py-2.5 text-right font-medium">
-                    {p.costs?.[0]?.pricePerMCored
-                      ? `$${p.costs[0].pricePerMCored.toFixed(2)}`
+                    {p.costs?.[0]?.pricePerM2Cored
+                      ? `$${p.costs[0].pricePerM2Cored.toFixed(2)}`
                       : <span className="text-gray-300">—</span>}
                   </td>
                   <td className="px-3 py-2.5">
@@ -149,7 +150,7 @@ export default function CatalogPage() {
                   </td>
                   <td className="px-3 py-2.5">
                     <button
-                      onClick={() => setEditPiece({ ...p, _costEdit: p.costs?.[0]?.pricePerMCored ?? 0 })}
+                      onClick={() => setEditPiece({ ...p, _costEdit: p.costs?.[0]?.pricePerM2Cored ?? 0 })}
                       className="p-1.5 text-gray-400 hover:text-gray-600 rounded"
                     >
                       <Edit className="w-3.5 h-3.5" />

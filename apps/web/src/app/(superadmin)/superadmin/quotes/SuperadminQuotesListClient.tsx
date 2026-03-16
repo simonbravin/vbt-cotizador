@@ -47,17 +47,18 @@ export function SuperadminQuotesListClient() {
         const params = new URLSearchParams({ limit: "100" });
         if (statusFilter) params.set("status", statusFilter);
         const res = await fetch(`/api/saas/quotes?${params}`);
-        if (!res.ok) {
-          setError("Failed to load quotes");
-          return;
-        }
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
         if (!cancelled) {
           setQuotes(data.quotes ?? []);
           setTotal(data.total ?? 0);
+          setError(!res.ok || data.error ? (data.message ?? "Failed to load quotes") : null);
         }
       } catch {
-        if (!cancelled) setError("Failed to load quotes");
+        if (!cancelled) {
+          setQuotes([]);
+          setTotal(0);
+          setError("Failed to load quotes");
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -66,16 +67,13 @@ export function SuperadminQuotesListClient() {
     return () => { cancelled = true; };
   }, [statusFilter]);
 
-  if (error) {
-    return (
-      <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-6 text-foreground">
-        <p className="font-medium">{error}</p>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-4">
+      {error && (
+        <div className="rounded-lg border border-amber-500/50 bg-amber-500/10 px-4 py-2 text-sm text-foreground">
+          {error}
+        </div>
+      )}
       <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"

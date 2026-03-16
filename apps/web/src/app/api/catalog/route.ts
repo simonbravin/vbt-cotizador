@@ -29,10 +29,10 @@ async function getCatalogContext(): Promise<{ allowedSystems: string[]; isSupera
   return { allowedSystems: allowed, isSuperadmin: false };
 }
 
-function pieceToResponse(p: { id: string; dieNumber: string | null; canonicalName: string; systemCode: string; usefulWidthMm: number | null; lbsPerMCored: number | null; pricePerMCored: number | null; isActive: boolean }) {
+function pieceToResponse(p: { id: string; dieNumber: string | null; canonicalName: string; systemCode: string; usefulWidthMm: number | null; lbsPerMCored: number | null; kgPerMCored: number | null; pricePerM2Cored: number | null; isActive: boolean }) {
   return {
     ...p,
-    costs: p.pricePerMCored != null ? [{ pricePerMCored: p.pricePerMCored }] : [],
+    costs: p.pricePerM2Cored != null ? [{ pricePerM2Cored: p.pricePerM2Cored }] : [],
   };
 }
 

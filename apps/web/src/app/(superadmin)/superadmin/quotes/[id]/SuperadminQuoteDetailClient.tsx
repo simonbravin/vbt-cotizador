@@ -102,16 +102,20 @@ export function SuperadminQuoteDetailClient({ quoteId }: { quoteId: string }) {
   };
 
   const handleModifySubmit = () => {
+    if (!comment.trim()) {
+      alert("A comment is required when modifying a quote. The partner will need to re-approve after your changes.");
+      return;
+    }
     const total = modifyTotalPrice.trim() ? parseFloat(modifyTotalPrice) : undefined;
     const pct = modifyVisionLatamPct.trim() ? parseFloat(modifyVisionLatamPct) : undefined;
-    if (total === undefined && pct === undefined && !comment.trim()) {
+    if (total === undefined && pct === undefined) {
       setModifyOpen(false);
       return;
     }
     patch({
       ...(total !== undefined && { totalPrice: total }),
       ...(pct !== undefined && { visionLatamMarkupPct: pct }),
-      superadminComment: comment.trim() || undefined,
+      superadminComment: comment.trim(),
     });
   };
 
@@ -181,8 +185,8 @@ export function SuperadminQuoteDetailClient({ quoteId }: { quoteId: string }) {
       </div>
 
       <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-foreground mb-2">Comment (optional)</h2>
-        <p className="text-sm text-muted-foreground mb-2">Add a comment when approving, rejecting or modifying.</p>
+        <h2 className="text-lg font-semibold text-foreground mb-2">Comment</h2>
+        <p className="text-sm text-muted-foreground mb-2">Required when rejecting or modifying. Optional when approving.</p>
         <textarea
           value={comment}
           onChange={(e) => setComment(e.target.value)}
@@ -208,6 +212,7 @@ export function SuperadminQuoteDetailClient({ quoteId }: { quoteId: string }) {
             type="button"
             onClick={handleReject}
             disabled={!!actionLoading}
+            title={!comment.trim() ? "Comment required to reject" : undefined}
             className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
           >
             {actionLoading ? "…" : "Reject"}
@@ -249,7 +254,7 @@ export function SuperadminQuoteDetailClient({ quoteId }: { quoteId: string }) {
               />
             </div>
           </div>
-          <p className="mt-2 text-sm text-muted-foreground">Add a comment above before submitting to record the reason for the change.</p>
+          <p className="mt-2 text-sm text-muted-foreground">Comment above is required. After saving, the quote status will be set to Sent and the partner must re-approve.</p>
           <button
             type="button"
             onClick={handleModifySubmit}

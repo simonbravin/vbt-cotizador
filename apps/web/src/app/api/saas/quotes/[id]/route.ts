@@ -87,8 +87,23 @@ export async function PATCH(
       isPlatformSuperadmin: user.isPlatformSuperadmin,
     };
     const data = parsed.data;
-    // Partners cannot change factory cost or Vision Latam commission (superadmin-only)
     const isSuperadmin = !!user.isPlatformSuperadmin;
+    const commentTrim = (data.superadminComment ?? "").trim();
+    const isReject = data.status === "rejected";
+    const isModify =
+      isSuperadmin &&
+      (data.items !== undefined ||
+        data.totalPrice != null ||
+        data.factoryCostTotal != null ||
+        data.visionLatamMarkupPct != null);
+
+    if (isSuperadmin && (isReject || isModify) && !commentTrim) {
+      return NextResponse.json(
+        { error: "A comment is required when rejecting or modifying a quote." },
+        { status: 400 }
+      );
+    }
+
     const now = new Date();
     const updateData: Parameters<typeof updateQuote>[3] = {
       status: data.status,
@@ -125,6 +140,12 @@ export async function PATCH(
       }),
       ...(isSuperadmin && data.status === "accepted" && { approvedByUserId: user.userId ?? user.id }),
     };
+
+    if (isModify) {
+      updateData.status = "sent";
+      updateData.approvedByUserId = null;
+      updateData.reviewedAt = null;
+    }
     const quote = await updateQuote(prisma, tenantCtx, params.id, updateData);
     const quoteOrgId = (quote as { organizationId?: string }).organizationId;
     const quoteNumber = (quote as { quoteNumber?: string }).quoteNumber;
