@@ -39,6 +39,7 @@ const navigation: NavItem[] = [
   { labelKey: "nav.engineering", href: "/engineering", icon: Wrench },
   { labelKey: "nav.documents", href: "/documents", icon: FileStack },
   { labelKey: "nav.training", href: "/training", icon: GraduationCap },
+  { labelKey: "nav.inventory", href: "/inventory", icon: Package },
   { labelKey: "nav.sales", href: "/sales", icon: ShoppingCart, roles: ["SUPERADMIN"] },
   { labelKey: "nav.reports", href: "/reports", icon: BarChart3, roles: ["SUPERADMIN", "org_admin"] },
   {
@@ -49,12 +50,6 @@ const navigation: NavItem[] = [
       { labelKey: "nav.settings.overview", href: "/settings", icon: Settings },
       { labelKey: "nav.team", href: "/settings/team", icon: Users },
     ],
-  },
-  {
-    labelKey: "nav.inventory",
-    href: "/superadmin/admin/inventory",
-    icon: Package,
-    roles: ["SUPERADMIN"],
   },
 ];
 

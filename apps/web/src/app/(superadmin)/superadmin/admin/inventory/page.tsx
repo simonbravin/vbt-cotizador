@@ -1,5 +1,22 @@
-import InventoryPage from "@/app/(dashboard)/admin/inventory/page";
+import { redirect } from "next/navigation";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { SuperadminInventoryClient } from "./SuperadminInventoryClient";
 
-export default function SuperadminInventoryPage() {
-  return <InventoryPage />;
+export default async function SuperadminInventoryPage() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) redirect("/login");
+  const user = session.user as { isPlatformSuperadmin?: boolean };
+  if (!user.isPlatformSuperadmin) redirect("/dashboard");
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold text-gray-900">Inventario</h1>
+        <p className="mt-1 text-sm text-gray-500">
+          Ver y gestionar inventario por partner. Seleccioná una organización para ver sus bodegas.
+        </p>
+      </div>
+      <SuperadminInventoryClient />
+    </div>
+  );
 }

@@ -82,7 +82,7 @@ export default async function DashboardPage(props: PageProps) {
           No tenés acceso al portal de administración. Estás en tu panel de partner.
         </div>
       )}
-      {dataLoadError && (
+      {dataLoadError && (projectCount > 0 || quoteCount > 0) && (
         <div className="bg-alert-warning border border-alert-warningBorder rounded-xl px-4 py-3 text-sm flex items-center justify-between gap-4 flex-wrap">
           <p className="text-foreground">
             <span className="font-medium">{t("dashboard.errorLoad")}</span>
