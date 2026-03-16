@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Warehouse, Plus, Pencil, Trash2, Package, ArrowRightLeft } from "lucide-react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { Warehouse, Plus, Pencil, Trash2, Package, ArrowRightLeft, Search } from "lucide-react";
 import { useT } from "@/lib/i18n/context";
 
 type WarehouseRow = { id: string; name: string; location: string | null; isActive: boolean };
@@ -46,6 +46,8 @@ export function InventoryClient() {
   const [saving, setSaving] = useState(false);
   const [txSaving, setTxSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [searchFilter, setSearchFilter] = useState("");
+  const [showAddItemForm, setShowAddItemForm] = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -181,6 +183,17 @@ export function InventoryClient() {
     }
   };
 
+  const filteredLevels = useMemo(() => {
+    if (!searchFilter.trim()) return levels;
+    const q = searchFilter.trim().toLowerCase();
+    return levels.filter(
+      (l) =>
+        l.warehouse.name.toLowerCase().includes(q) ||
+        (l.catalogPiece?.canonicalName ?? "").toLowerCase().includes(q) ||
+        (l.catalogPiece?.systemCode ?? "").toLowerCase().includes(q)
+    );
+  }, [levels, searchFilter]);
+
   if (loading) {
     return (
       <div className="rounded-xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-500">
@@ -196,13 +209,13 @@ export function InventoryClient() {
           {error}
         </div>
       )}
-      <div className="flex justify-end">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <button
           type="button"
           onClick={openAdd}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-vbt-blue text-white rounded-lg text-sm font-medium hover:bg-vbt-blue/90"
+          className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
         >
-          <Plus className="w-4 h-4" /> {t("partner.settings.warehouses")}
+          <Warehouse className="w-4 h-4" /> {t("partner.settings.warehouses")}
         </button>
       </div>
       <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
@@ -259,13 +272,30 @@ export function InventoryClient() {
       </div>
 
       <div className="rounded-xl border border-border bg-card overflow-hidden">
-        <h3 className="px-4 py-3 text-sm font-semibold text-foreground border-b border-border flex items-center gap-2">
-          <Package className="h-4 w-4" /> Stock por bodega
-        </h3>
+        <div className="px-4 py-3 border-b border-border flex flex-wrap items-center gap-3">
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <Package className="h-4 w-4" /> Stock por bodega
+          </h3>
+          <div className="relative flex-1 min-w-[180px] max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder={t("admin.inventory.filterPlaceholder")}
+              value={searchFilter}
+              onChange={(e) => setSearchFilter(e.target.value)}
+              className="w-full pl-9 pr-3 py-1.5 rounded-lg border border-input bg-background text-sm"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowAddItemForm((v) => !v)}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90"
+          >
+            <Plus className="h-4 w-4" /> {t("admin.inventory.addItem")}
+          </button>
+        </div>
         {loadingLevels ? (
           <div className="p-6 text-center text-sm text-muted-foreground">{t("common.loading")}</div>
-        ) : levels.length === 0 ? (
-          <div className="p-6 text-center text-sm text-muted-foreground">No hay niveles de inventario. Creá transacciones de entrada para cargar stock.</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-border">
@@ -278,24 +308,47 @@ export function InventoryClient() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border bg-card">
-                {levels.map((l) => (
-                  <tr key={l.id}>
-                    <td className="px-4 py-2 text-sm text-foreground">{l.warehouse.name}</td>
-                    <td className="px-4 py-2 text-sm text-foreground">{l.catalogPiece.canonicalName}</td>
-                    <td className="px-4 py-2 text-sm text-muted-foreground">{l.catalogPiece.systemCode}</td>
-                    <td className="px-4 py-2 text-sm text-right text-foreground">{l.quantity}</td>
+                {filteredLevels.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                      {levels.length === 0
+                        ? t("admin.inventory.noItemsAddOne")
+                        : "Ningún resultado con el filtro."}
+                    </td>
                   </tr>
-                ))}
+                ) : (
+                  filteredLevels.map((l) => (
+                    <tr key={l.id}>
+                      <td className="px-4 py-2 text-sm text-foreground">{l.warehouse.name}</td>
+                      <td className="px-4 py-2 text-sm text-foreground">{l.catalogPiece.canonicalName}</td>
+                      <td className="px-4 py-2 text-sm text-muted-foreground">{l.catalogPiece.systemCode}</td>
+                      <td className="px-4 py-2 text-sm text-right text-foreground">{l.quantity}</td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
         )}
       </div>
 
-      <div className="rounded-xl border border-border bg-card p-4">
-        <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-          <ArrowRightLeft className="h-4 w-4" /> Nueva transacción
-        </h3>
+      {showAddItemForm && (
+        <div className="rounded-xl border border-border bg-card p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <ArrowRightLeft className="h-4 w-4" /> {t("admin.inventory.addItem")} — solo piezas del catálogo
+            </h3>
+            <button
+              type="button"
+              onClick={() => setShowAddItemForm(false)}
+              className="text-xs text-muted-foreground hover:text-foreground"
+            >
+              {t("admin.inventory.close")}
+            </button>
+          </div>
+          <p className="text-xs text-muted-foreground mb-3">
+            Elegí bodega y pieza del catálogo; tipo y cantidad definen entrada o salida.
+          </p>
         <div className="flex flex-wrap gap-3 items-end">
           <div>
             <label className="block text-xs text-muted-foreground mb-1">Bodega</label>

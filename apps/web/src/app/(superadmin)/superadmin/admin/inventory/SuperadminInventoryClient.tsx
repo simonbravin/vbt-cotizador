@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Package, Plus, Calculator, ArrowDownToLine } from "lucide-react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { Package, Plus, Calculator, ArrowDownToLine, Search } from "lucide-react";
 import { useT } from "@/lib/i18n/context";
 
 type Org = { id: string; name: string };
@@ -45,6 +45,8 @@ export function SuperadminInventoryClient() {
   const [affectResult, setAffectResult] = useState<string | null>(null);
   const [txForm, setTxForm] = useState({ warehouseId: "", catalogPieceId: "", quantityDelta: 0, type: "adjustment_in" as string, notes: "" });
   const [txSaving, setTxSaving] = useState(false);
+  const [searchFilter, setSearchFilter] = useState("");
+  const [showAddItemForm, setShowAddItemForm] = useState(false);
 
   const isVisionLatam = selectedOrgId && visionLatamOrg && selectedOrgId === visionLatamOrg.id;
 
@@ -56,9 +58,10 @@ export function SuperadminInventoryClient() {
     ])
       .then(([partnersData, vlData]) => {
         const partners = (partnersData.partners ?? []).map((p: { id: string; name: string }) => ({ id: p.id, name: p.name ?? "—" })).filter((o: Org) => o.id);
-        const vl = vlData.organization ? { id: vlData.organization.id, name: vlData.organization.name + " (Vision Latam)" } : null;
+        const vl = vlData.organization ? { id: vlData.organization.id, name: vlData.organization.name + " — mi inventario" } : null;
         if (vl) setVisionLatamOrg(vl);
         setOrganizations(vl ? [vl, ...partners] : partners);
+        setPartnerOrgs(partners);
         if (!selectedOrgId && vl) setSelectedOrgId(vl.id);
         else if (!selectedOrgId && partners[0]) setSelectedOrgId(partners[0].id);
       })
@@ -188,6 +191,17 @@ export function SuperadminInventoryClient() {
     );
   };
 
+  const filteredLevels = useMemo(() => {
+    if (!searchFilter.trim()) return levels;
+    const q = searchFilter.trim().toLowerCase();
+    return levels.filter(
+      (l) =>
+        l.warehouse.name.toLowerCase().includes(q) ||
+        (l.catalogPiece.canonicalName ?? "").toLowerCase().includes(q) ||
+        (l.catalogPiece.systemCode ?? "").toLowerCase().includes(q)
+    );
+  }, [levels, searchFilter]);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-3">
@@ -224,14 +238,34 @@ export function SuperadminInventoryClient() {
 
       {selectedOrgId && (
         <>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative flex-1 min-w-[200px] max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder={t("admin.inventory.filterPlaceholder")}
+                value={searchFilter}
+                onChange={(e) => setSearchFilter(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 rounded-lg border border-input bg-background text-sm"
+              />
+            </div>
+            {isVisionLatam && (
+              <button
+                type="button"
+                onClick={() => setShowAddItemForm((v) => !v)}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                <Plus className="h-4 w-4" /> {t("admin.inventory.addItem")}
+              </button>
+            )}
+          </div>
+
           <div className="rounded-xl border border-border bg-card overflow-hidden">
+            <h3 className="px-4 py-2 text-sm font-semibold text-foreground border-b border-border bg-muted/30">
+              Stock por bodega {selectedOrgId === visionLatamOrg?.id ? "(Vision Latam)" : ""}
+            </h3>
             {loadingLevels ? (
               <div className="p-8 text-center text-sm text-muted-foreground">{t("common.loading")}</div>
-            ) : levels.length === 0 ? (
-              <div className="p-8 text-center text-muted-foreground">
-                <Package className="w-10 h-10 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">No hay niveles de inventario para esta organización.</p>
-              </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-border">
@@ -245,15 +279,25 @@ export function SuperadminInventoryClient() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border bg-card">
-                    {levels.map((l) => (
-                      <tr key={l.id}>
-                        <td className="px-4 py-2 text-sm text-foreground">{l.warehouse.name}</td>
-                        <td className="px-4 py-2 text-sm text-foreground">{l.catalogPiece.canonicalName}</td>
-                        <td className="px-4 py-2 text-sm text-muted-foreground">{l.catalogPiece.systemCode}</td>
-                        <td className="px-4 py-2 text-sm text-right text-foreground">{l.quantity}</td>
-                        <td className="px-4 py-2 text-sm text-muted-foreground">{l.unit ?? "—"}</td>
+                    {filteredLevels.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                          {levels.length === 0
+                            ? "No hay niveles de inventario. Usá \"Agregar ítem\" para cargar stock (solo piezas del catálogo)."
+                            : "Ningún resultado con el filtro."}
+                        </td>
                       </tr>
-                    ))}
+                    ) : (
+                      filteredLevels.map((l) => (
+                        <tr key={l.id}>
+                          <td className="px-4 py-2 text-sm text-foreground">{l.warehouse.name}</td>
+                          <td className="px-4 py-2 text-sm text-foreground">{l.catalogPiece.canonicalName}</td>
+                          <td className="px-4 py-2 text-sm text-muted-foreground">{l.catalogPiece.systemCode}</td>
+                          <td className="px-4 py-2 text-sm text-right text-foreground">{l.quantity}</td>
+                          <td className="px-4 py-2 text-sm text-muted-foreground">{l.unit ?? "—"}</td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -305,9 +349,23 @@ export function SuperadminInventoryClient() {
             </div>
           )}
 
-          {isVisionLatam && (
+          {isVisionLatam && showAddItemForm && (
             <div className="space-y-4 rounded-xl border border-border bg-card p-4">
-              <h3 className="text-sm font-semibold text-foreground">Transacciones (Vision Latam)</h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-foreground">
+                  {t("admin.inventory.addItem")} — solo piezas del catálogo
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setShowAddItemForm(false)}
+                  className="text-xs text-muted-foreground hover:text-foreground"
+                >
+                  {t("admin.inventory.close")}
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Elegí bodega y pieza del catálogo; el ítem se agrega o ajusta según tipo y cantidad.
+              </p>
               <div className="flex flex-wrap gap-3 items-end">
                 <div>
                   <label className="block text-xs text-muted-foreground mb-1">Bodega</label>
