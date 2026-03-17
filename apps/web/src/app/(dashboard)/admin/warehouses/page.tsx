@@ -12,7 +12,7 @@ export default function WarehousesPage() {
   const [countries, setCountries] = useState<Country[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [editItem, setEditItem] = useState<any>(null);
-  const [form, setForm] = useState({ name: "", location: "", countryCode: "", address: "", managerName: "" });
+  const [form, setForm] = useState({ name: "", location: "", countryCode: "", address: "", managerName: "", contactPhone: "", contactEmail: "" });
   const [saving, setSaving] = useState(false);
 
   const load = () => {
@@ -25,7 +25,7 @@ export default function WarehousesPage() {
   }, []);
 
   const openAdd = () => {
-    setForm({ name: "", location: "", countryCode: "", address: "", managerName: "" });
+    setForm({ name: "", location: "", countryCode: "", address: "", managerName: "", contactPhone: "", contactEmail: "" });
     setEditItem(null);
     setShowAdd(true);
   };
@@ -37,6 +37,8 @@ export default function WarehousesPage() {
       countryCode: w.countryCode ?? "",
       address: w.address ?? "",
       managerName: w.managerName ?? "",
+      contactPhone: w.contactPhone ?? "",
+      contactEmail: w.contactEmail ?? "",
     });
     setEditItem(w);
     setShowAdd(true);
@@ -51,6 +53,8 @@ export default function WarehousesPage() {
       countryCode: form.countryCode || undefined,
       address: form.address || undefined,
       managerName: form.managerName || undefined,
+      contactPhone: form.contactPhone || undefined,
+      contactEmail: form.contactEmail || undefined,
     };
     try {
       if (editItem) {
@@ -102,6 +106,11 @@ export default function WarehousesPage() {
                     <p className="text-gray-400 text-sm">{[w.location, w.address].filter(Boolean).join(" · ")}</p>
                   )}
                   {w.managerName && <p className="text-gray-400 text-xs mt-0.5">{t("admin.warehouses.manager")}: {w.managerName}</p>}
+                  {(w.contactPhone || w.contactEmail) && (
+                    <p className="text-gray-400 text-xs mt-0.5">
+                      {[w.contactPhone, w.contactEmail].filter(Boolean).join(" · ")}
+                    </p>
+                  )}
                 </div>
               </div>
               <button
@@ -170,6 +179,26 @@ export default function WarehousesPage() {
                   value={form.managerName}
                   onChange={(e) => setForm(p => ({ ...p, managerName: e.target.value }))}
                   placeholder={t("admin.warehouses.managerPlaceholder")}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-vbt-blue"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t("admin.warehouses.contactPhone")}</label>
+                <input
+                  type="text"
+                  value={form.contactPhone}
+                  onChange={(e) => setForm(p => ({ ...p, contactPhone: e.target.value }))}
+                  placeholder={t("admin.warehouses.contactPhonePlaceholder")}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-vbt-blue"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t("admin.warehouses.contactEmail")}</label>
+                <input
+                  type="email"
+                  value={form.contactEmail}
+                  onChange={(e) => setForm(p => ({ ...p, contactEmail: e.target.value }))}
+                  placeholder={t("admin.warehouses.contactEmailPlaceholder")}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-vbt-blue"
                 />
               </div>

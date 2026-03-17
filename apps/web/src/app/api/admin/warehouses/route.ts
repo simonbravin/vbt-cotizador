@@ -51,6 +51,8 @@ export async function POST(req: Request) {
     const countryCode = typeof body.countryCode === "string" ? body.countryCode.trim() || null : null;
     const address = typeof body.address === "string" ? body.address.trim() || null : null;
     const managerName = typeof body.managerName === "string" ? body.managerName.trim() || null : null;
+    const contactPhone = typeof body.contactPhone === "string" ? body.contactPhone.trim() || null : null;
+    const contactEmail = typeof body.contactEmail === "string" ? body.contactEmail.trim() || null : null;
     if (!name) return NextResponse.json({ error: "name is required" }, { status: 400 });
 
     let organizationId: string | null = null;
@@ -75,13 +77,17 @@ export async function POST(req: Request) {
     }
 
     const warehouse = await prisma.warehouse.create({
-      data: { organizationId, name, location, countryCode, address, managerName },
+      data: { organizationId, name, location, countryCode, address, managerName, contactPhone, contactEmail },
       include: { organization: { select: { id: true, name: true } } },
     });
     return NextResponse.json(warehouse);
   } catch (e) {
     if (e instanceof TenantError) return NextResponse.json({ error: e.message }, { status: tenantErrorStatus(e) });
-    console.error("[api/admin/warehouses POST]", e);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    const err = e as Error & { code?: string };
+    console.error("[api/admin/warehouses POST]", err);
+    const message = err?.code === "P2011" || err?.message?.includes("column") || err?.message?.includes("Unknown column")
+      ? "Database schema may be outdated. Run migrations (pnpm db:migrate or prisma migrate deploy)."
+      : "Internal server error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

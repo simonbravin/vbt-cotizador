@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { Warehouse, Plus, Pencil, Trash2, Package, ArrowRightLeft, Search } from "lucide-react";
 import { useT } from "@/lib/i18n/context";
 
-type WarehouseRow = { id: string; name: string; location: string | null; isActive: boolean };
+type WarehouseRow = { id: string; name: string; location: string | null; address?: string | null; managerName?: string | null; contactPhone?: string | null; contactEmail?: string | null; isActive: boolean };
 type LevelRow = {
   id: string;
   quantity: number;
@@ -41,7 +41,7 @@ export function InventoryClient() {
   const [loadingLevels, setLoadingLevels] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [editItem, setEditItem] = useState<WarehouseRow | null>(null);
-  const [form, setForm] = useState({ name: "", location: "" });
+  const [form, setForm] = useState({ name: "", location: "", managerName: "", contactPhone: "", contactEmail: "" });
   const [txForm, setTxForm] = useState({ warehouseId: "", catalogPieceId: "", quantityDelta: 0, type: "purchase_in", notes: "", referenceProjectId: "" });
   const [saving, setSaving] = useState(false);
   const [txSaving, setTxSaving] = useState(false);
@@ -126,13 +126,19 @@ export function InventoryClient() {
   };
 
   const openAdd = () => {
-    setForm({ name: "", location: "" });
+    setForm({ name: "", location: "", managerName: "", contactPhone: "", contactEmail: "" });
     setEditItem(null);
     setShowAdd(true);
   };
 
   const openEdit = (w: WarehouseRow) => {
-    setForm({ name: w.name, location: w.location ?? "" });
+    setForm({
+      name: w.name,
+      location: w.location ?? "",
+      managerName: w.managerName ?? "",
+      contactPhone: w.contactPhone ?? "",
+      contactEmail: w.contactEmail ?? "",
+    });
     setEditItem(w);
     setShowAdd(true);
   };
@@ -141,12 +147,19 @@ export function InventoryClient() {
     if (!form.name.trim()) return;
     setSaving(true);
     setError(null);
+    const payload = {
+      name: form.name.trim(),
+      location: form.location.trim() || null,
+      managerName: form.managerName.trim() || null,
+      contactPhone: form.contactPhone.trim() || null,
+      contactEmail: form.contactEmail.trim() || null,
+    };
     try {
       if (editItem) {
         const res = await fetch(`/api/saas/warehouses/${editItem.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: form.name.trim(), location: form.location.trim() || null }),
+          body: JSON.stringify(payload),
         });
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
@@ -157,7 +170,7 @@ export function InventoryClient() {
         const res = await fetch("/api/saas/warehouses", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: form.name.trim(), location: form.location.trim() || null }),
+          body: JSON.stringify(payload),
         });
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
@@ -473,6 +486,36 @@ export function InventoryClient() {
                 onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-vbt-blue focus:border-vbt-blue"
                 placeholder="Location"
+              />
+              <label className="block text-sm font-medium text-gray-700">
+                {t("admin.warehouses.managerName")}
+              </label>
+              <input
+                type="text"
+                value={form.managerName}
+                onChange={(e) => setForm((f) => ({ ...f, managerName: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-vbt-blue focus:border-vbt-blue"
+                placeholder={t("admin.warehouses.managerPlaceholder")}
+              />
+              <label className="block text-sm font-medium text-gray-700">
+                {t("admin.warehouses.contactPhone")}
+              </label>
+              <input
+                type="text"
+                value={form.contactPhone}
+                onChange={(e) => setForm((f) => ({ ...f, contactPhone: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-vbt-blue focus:border-vbt-blue"
+                placeholder={t("admin.warehouses.contactPhonePlaceholder")}
+              />
+              <label className="block text-sm font-medium text-gray-700">
+                {t("admin.warehouses.contactEmail")}
+              </label>
+              <input
+                type="email"
+                value={form.contactEmail}
+                onChange={(e) => setForm((f) => ({ ...f, contactEmail: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-vbt-blue focus:border-vbt-blue"
+                placeholder={t("admin.warehouses.contactEmailPlaceholder")}
               />
             </div>
             <div className="flex justify-end gap-2 mt-6">

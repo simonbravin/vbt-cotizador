@@ -226,7 +226,9 @@ model Warehouse {
   location       String?
   countryCode    String?  @map("country_code")   // ISO 2-letter, for location
   address        String?  // full address
-  managerName    String?  @map("manager_name")  // encargado de la bodega
+  managerName    String?  @map("manager_name")  // encargado / contacto de la bodega
+  contactPhone   String?  @map("contact_phone")
+  contactEmail   String?  @map("contact_email")
   isActive       Boolean  @default(true) @map("is_active")
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")

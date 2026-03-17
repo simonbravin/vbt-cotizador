@@ -24,10 +24,24 @@ export async function PATCH(
     const body = await req.json().catch(() => ({}));
     const name = typeof body.name === "string" ? body.name.trim() : undefined;
     const location = typeof body.location === "string" ? body.location.trim() || null : undefined;
+    const countryCode = typeof body.countryCode === "string" ? body.countryCode.trim() || null : undefined;
+    const address = typeof body.address === "string" ? body.address.trim() || null : undefined;
+    const managerName = typeof body.managerName === "string" ? body.managerName.trim() || null : undefined;
+    const contactPhone = typeof body.contactPhone === "string" ? body.contactPhone.trim() || null : undefined;
+    const contactEmail = typeof body.contactEmail === "string" ? body.contactEmail.trim() || null : undefined;
     const isActive = typeof body.isActive === "boolean" ? body.isActive : undefined;
+    const data: Record<string, unknown> = {};
+    if (name !== undefined) data.name = name;
+    if (location !== undefined) data.location = location;
+    if (countryCode !== undefined) data.countryCode = countryCode;
+    if (address !== undefined) data.address = address;
+    if (managerName !== undefined) data.managerName = managerName;
+    if (contactPhone !== undefined) data.contactPhone = contactPhone;
+    if (contactEmail !== undefined) data.contactEmail = contactEmail;
+    if (isActive !== undefined) data.isActive = isActive;
     const updated = await prisma.warehouse.update({
       where: { id: params.id },
-      data: { ...(name !== undefined && { name }), ...(location !== undefined && { location }), ...(isActive !== undefined && { isActive }) },
+      data,
     });
     return NextResponse.json(updated);
   } catch (e) {

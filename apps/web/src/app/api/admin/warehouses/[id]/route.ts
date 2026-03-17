@@ -24,6 +24,8 @@ export async function PATCH(
     const countryCode = typeof body.countryCode === "string" ? body.countryCode.trim() || null : undefined;
     const address = typeof body.address === "string" ? body.address.trim() || null : undefined;
     const managerName = typeof body.managerName === "string" ? body.managerName.trim() || null : undefined;
+    const contactPhone = typeof body.contactPhone === "string" ? body.contactPhone.trim() || null : undefined;
+    const contactEmail = typeof body.contactEmail === "string" ? body.contactEmail.trim() || null : undefined;
     const isActive = typeof body.isActive === "boolean" ? body.isActive : undefined;
 
     const updated = await prisma.warehouse.update({
@@ -34,6 +36,8 @@ export async function PATCH(
         ...(countryCode !== undefined && { countryCode }),
         ...(address !== undefined && { address }),
         ...(managerName !== undefined && { managerName }),
+        ...(contactPhone !== undefined && { contactPhone }),
+        ...(contactEmail !== undefined && { contactEmail }),
         ...(isActive !== undefined && { isActive }),
       },
       include: { organization: { select: { id: true, name: true } } },
