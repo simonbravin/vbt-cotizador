@@ -62,7 +62,9 @@ export async function POST(req: Request) {
     // This is tenant-safe because we still only use orgs where the logged-in user is an active member.
     if (!organizationId || typeof organizationId !== "string" || !organizationId.trim()) {
       const member = await prisma.orgMember.findFirst({
-        where: { userId: ctx.userId, status: "active" },
+        // In some onboarding flows the member can still be "invited" when first configuring things.
+        // We only ever pick an organization where the user already has an OrgMember record.
+        where: { userId: ctx.userId, status: { in: ["active", "invited"] } },
         select: { organizationId: true },
       });
       organizationId = member?.organizationId ?? null;
