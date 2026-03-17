@@ -1,18 +1,19 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { getTenantContext, TenantError, tenantErrorStatus } from "@/lib/tenant";
+import { getTenantContext, getSessionUser, getEffectiveOrganizationId, TenantError, tenantErrorStatus } from "@/lib/tenant";
 
 export async function GET(req: Request) {
   try {
     const ctx = await getTenantContext();
+    const user = await getSessionUser();
     if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const url = new URL(req.url);
     const organizationIdParam = url.searchParams.get("organizationId");
     let organizationId: string | null = null;
     if (ctx.isPlatformSuperadmin && organizationIdParam) {
       organizationId = organizationIdParam;
-    } else if (ctx.activeOrgId) {
-      organizationId = ctx.activeOrgId;
+    } else {
+      organizationId = ctx.activeOrgId ?? (user ? getEffectiveOrganizationId(user) : null);
     }
     if (!organizationId) {
       return NextResponse.json({ warehouses: [] });
@@ -34,6 +35,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const ctx = await getTenantContext();
+    const user = await getSessionUser();
     if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const body = await req.json().catch(() => ({}));
     const name = typeof body.name === "string" ? body.name.trim() : "";
@@ -47,8 +49,8 @@ export async function POST(req: Request) {
     let organizationId: string | null = null;
     if (ctx.isPlatformSuperadmin && body.organizationId) {
       organizationId = body.organizationId;
-    } else if (ctx.activeOrgId) {
-      organizationId = ctx.activeOrgId;
+    } else {
+      organizationId = ctx.activeOrgId ?? (user ? getEffectiveOrganizationId(user) : null);
     }
     if (!organizationId || typeof organizationId !== "string" || !organizationId.trim()) {
       return NextResponse.json({ error: "No organization context" }, { status: 400 });
@@ -60,11 +62,17 @@ export async function POST(req: Request) {
       warehouse = await prisma.warehouse.create({ data: fullData });
     } catch (createErr) {
       const err = createErr as Error & { code?: string };
+      if (err?.code === "P2011") {
+        return NextResponse.json(
+          { error: "Organization context missing or invalid. Select your organization or contact support." },
+          { status: 400 }
+        );
+      }
       const isMissingColumn = err?.code === "P2022" || /column.*does not exist|Unknown column/i.test(String(err?.message ?? ""));
       if (isMissingColumn) {
         try {
           warehouse = await prisma.warehouse.create({
-            data: { organizationId: orgId, name, location },
+            data: { organizationId: orgId, name, location, isActive: true },
           });
           if (warehouse && (countryCode ?? address ?? managerName ?? contactPhone ?? contactEmail)) {
             await prisma.warehouse.update({
@@ -83,7 +91,14 @@ export async function POST(req: Request) {
             }).catch(() => {});
           }
         } catch (fallbackErr) {
+          const fallbackCode = (fallbackErr as Error & { code?: string })?.code;
           console.error("[api/saas/warehouses POST]", fallbackErr);
+          if (fallbackCode === "P2011") {
+            return NextResponse.json(
+              { error: "Organization context missing or invalid. Select your organization or contact support." },
+              { status: 400 }
+            );
+          }
           return NextResponse.json(
             { error: "Database schema may be outdated. Run migrations (prisma migrate deploy) with the production DATABASE_URL." },
             { status: 500 }

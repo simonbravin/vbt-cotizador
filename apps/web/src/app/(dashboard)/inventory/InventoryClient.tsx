@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Warehouse, Plus, Pencil, Trash2, Package, ArrowRightLeft, Search } from "lucide-react";
+import Link from "next/link";
+import { Warehouse, Plus, Package, ArrowRightLeft, Search, Settings } from "lucide-react";
 import { useT } from "@/lib/i18n/context";
 
-type Country = { id: string; code: string; name: string };
 type WarehouseRow = { id: string; name: string; location: string | null; countryCode?: string | null; address?: string | null; managerName?: string | null; contactPhone?: string | null; contactEmail?: string | null; isActive: boolean };
 type LevelRow = {
   id: string;
@@ -40,12 +40,7 @@ export function InventoryClient() {
   const [catalogPieces, setCatalogPieces] = useState<CatalogPieceRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingLevels, setLoadingLevels] = useState(false);
-  const [showAdd, setShowAdd] = useState(false);
-  const [editItem, setEditItem] = useState<WarehouseRow | null>(null);
-  const [form, setForm] = useState({ name: "", location: "", countryCode: "", address: "", managerName: "", contactPhone: "", contactEmail: "" });
-  const [countries, setCountries] = useState<Country[]>([]);
   const [txForm, setTxForm] = useState({ warehouseId: "", catalogPieceId: "", quantityDelta: 0, type: "purchase_in", notes: "", referenceProjectId: "" });
-  const [saving, setSaving] = useState(false);
   const [txSaving, setTxSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchFilter, setSearchFilter] = useState("");
@@ -82,12 +77,6 @@ export function InventoryClient() {
       .then((r) => r.json())
       .then((data) => setCatalogPieces(Array.isArray(data) ? data : []))
       .catch(() => setCatalogPieces([]));
-  }, []);
-  useEffect(() => {
-    fetch("/api/countries")
-      .then((r) => r.json())
-      .then((data) => setCountries(Array.isArray(data) ? data : []))
-      .catch(() => setCountries([]));
   }, []);
 
   useEffect(() => {
@@ -133,81 +122,6 @@ export function InventoryClient() {
       .finally(() => setTxSaving(false));
   };
 
-  const openAdd = () => {
-    setForm({ name: "", location: "", countryCode: "", address: "", managerName: "", contactPhone: "", contactEmail: "" });
-    setEditItem(null);
-    setShowAdd(true);
-  };
-
-  const openEdit = (w: WarehouseRow) => {
-    setForm({
-      name: w.name,
-      location: w.location ?? "",
-      countryCode: w.countryCode ?? "",
-      address: w.address ?? "",
-      managerName: w.managerName ?? "",
-      contactPhone: w.contactPhone ?? "",
-      contactEmail: w.contactEmail ?? "",
-    });
-    setEditItem(w);
-    setShowAdd(true);
-  };
-
-  const save = async () => {
-    if (!form.name.trim()) return;
-    setSaving(true);
-    setError(null);
-    const payload = {
-      name: form.name.trim(),
-      location: form.location.trim() || null,
-      countryCode: form.countryCode.trim() || null,
-      address: form.address.trim() || null,
-      managerName: form.managerName.trim() || null,
-      contactPhone: form.contactPhone.trim() || null,
-      contactEmail: form.contactEmail.trim() || null,
-    };
-    try {
-      if (editItem) {
-        const res = await fetch(`/api/saas/warehouses/${editItem.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          setError(data.error ?? "Failed to update");
-          return;
-        }
-      } else {
-        const res = await fetch("/api/saas/warehouses", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          setError(data.error ?? "Failed to create");
-          return;
-        }
-      }
-      setShowAdd(false);
-      load();
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const remove = async (id: string) => {
-    if (!confirm(t("common.confirm") || "Confirm?")) return;
-    setSaving(true);
-    try {
-      const res = await fetch(`/api/saas/warehouses/${id}`, { method: "DELETE" });
-      if (res.ok) load();
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const filteredLevels = useMemo(() => {
     if (!searchFilter.trim()) return levels;
     const q = searchFilter.trim().toLowerCase();
@@ -235,60 +149,36 @@ export function InventoryClient() {
         </div>
       )}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={openAdd}
-          className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+        <p className="text-sm text-muted-foreground">
+          {t("partner.settings.warehouses")} — {t("common.readOnly") ?? "Solo lectura"}
+        </p>
+        <Link
+          href="/settings/warehouses"
+          className="inline-flex items-center gap-2 px-4 py-2 border border-input rounded-lg text-sm font-medium text-foreground hover:bg-muted"
         >
-          <Warehouse className="w-4 h-4" /> {t("partner.settings.warehouses")}
-        </button>
+          <Settings className="w-4 h-4" /> {t("partner.settings.configureWarehouses") ?? "Configurar bodegas"}
+        </Link>
       </div>
-      <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+      <div className="rounded-xl border border-border bg-card overflow-hidden">
         {warehouses.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">
-            <Warehouse className="w-10 h-10 mx-auto mb-2 text-gray-300" />
+          <div className="p-8 text-center text-muted-foreground">
+            <Warehouse className="w-10 h-10 mx-auto mb-2 text-muted-foreground/50" />
             <p className="text-sm">
               {t("common.noData")} {t("partner.settings.warehouses").toLowerCase()}.
             </p>
-            <button
-              type="button"
-              onClick={openAdd}
-              className="mt-2 text-sm text-vbt-blue hover:underline"
-            >
-              {t("common.add")}
-            </button>
+            <p className="text-sm mt-1">
+              <Link href="/settings/warehouses" className="text-primary hover:underline">
+                {t("partner.settings.configureWarehouses") ?? "Configurar bodegas en Ajustes"}
+              </Link>
+            </p>
           </div>
         ) : (
-          <ul className="divide-y divide-gray-100">
+          <ul className="divide-y divide-border">
             {warehouses.map((w) => (
-              <li
-                key={w.id}
-                className="flex items-center justify-between px-4 py-3 hover:bg-gray-50"
-              >
+              <li key={w.id} className="flex items-center justify-between px-4 py-3">
                 <div>
-                  <p className="font-medium text-gray-900">{w.name}</p>
-                  {w.location && (
-                    <p className="text-xs text-gray-500">{w.location}</p>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => openEdit(w)}
-                    className="p-2 text-gray-500 hover:text-vbt-blue"
-                    title={t("common.edit")}
-                  >
-                    <Pencil className="w-4 h-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => remove(w.id)}
-                    disabled={saving}
-                    className="p-2 text-gray-500 hover:text-red-600"
-                    title={t("common.delete")}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  <p className="font-medium text-foreground">{w.name}</p>
+                  {w.location && <p className="text-xs text-muted-foreground">{w.location}</p>}
                 </div>
               </li>
             ))}
@@ -469,108 +359,6 @@ export function InventoryClient() {
             </ul>
           </div>
         )}
-        </div>
-      )}
-
-      {showAdd && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
-            <h3 className="font-semibold text-lg mb-4">
-              {editItem ? t("admin.warehouses.editTitle") : t("admin.warehouses.addTitle")}
-            </h3>
-            <div className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t("admin.warehouses.nameLabel")} *</label>
-                <input
-                  type="text"
-                  value={form.name}
-                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-vbt-blue focus:border-vbt-blue"
-                  placeholder={t("admin.warehouses.namePlaceholder")}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t("admin.warehouses.locationLabel")}</label>
-                <input
-                  type="text"
-                  value={form.location}
-                  onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-vbt-blue focus:border-vbt-blue"
-                  placeholder={t("admin.warehouses.locationPlaceholder")}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t("admin.warehouses.country")}</label>
-                <select
-                  value={form.countryCode}
-                  onChange={(e) => setForm((f) => ({ ...f, countryCode: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-vbt-blue focus:border-vbt-blue"
-                >
-                  <option value="">—</option>
-                  {countries.map((c) => (
-                    <option key={c.id} value={c.code}>{c.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t("admin.warehouses.address")}</label>
-                <input
-                  type="text"
-                  value={form.address}
-                  onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-vbt-blue focus:border-vbt-blue"
-                  placeholder={t("admin.warehouses.addressPlaceholder")}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t("admin.warehouses.managerName")}</label>
-                <input
-                  type="text"
-                  value={form.managerName}
-                  onChange={(e) => setForm((f) => ({ ...f, managerName: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-vbt-blue focus:border-vbt-blue"
-                  placeholder={t("admin.warehouses.managerPlaceholder")}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t("admin.warehouses.contactPhone")}</label>
-                <input
-                  type="text"
-                  value={form.contactPhone}
-                  onChange={(e) => setForm((f) => ({ ...f, contactPhone: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-vbt-blue focus:border-vbt-blue"
-                  placeholder={t("admin.warehouses.contactPhonePlaceholder")}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t("admin.warehouses.contactEmail")}</label>
-                <input
-                  type="email"
-                  value={form.contactEmail}
-                  onChange={(e) => setForm((f) => ({ ...f, contactEmail: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-vbt-blue focus:border-vbt-blue"
-                  placeholder={t("admin.warehouses.contactEmailPlaceholder")}
-                />
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 mt-6">
-              <button
-                type="button"
-                onClick={() => setShowAdd(false)}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                {t("common.cancel")}
-              </button>
-              <button
-                type="button"
-                onClick={save}
-                disabled={saving || !form.name.trim()}
-                className="px-4 py-2 bg-vbt-blue text-white rounded-lg text-sm font-medium hover:bg-vbt-blue/90 disabled:opacity-50"
-              >
-                {saving ? t("common.saving") : t("common.save")}
-              </button>
-            </div>
-          </div>
         </div>
       )}
     </div>

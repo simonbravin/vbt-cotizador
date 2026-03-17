@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { getTenantContext, TenantError, tenantErrorStatus } from "@/lib/tenant";
+import { getTenantContext, getSessionUser, getEffectiveOrganizationId, TenantError, tenantErrorStatus } from "@/lib/tenant";
 
 async function getOrgId(ctx: Awaited<ReturnType<typeof getTenantContext>>, bodyOrganizationId?: string): Promise<string | null> {
   if (!ctx) return null;
   if (ctx.isPlatformSuperadmin && bodyOrganizationId) return bodyOrganizationId;
-  return ctx.activeOrgId;
+  const user = await getSessionUser();
+  return ctx.activeOrgId ?? (user ? getEffectiveOrganizationId(user) : null);
 }
 
 export async function PATCH(
