@@ -69,14 +69,15 @@ export async function POST(req: Request) {
     } else if (ctx.activeOrgId) {
       organizationId = ctx.activeOrgId;
     }
-    if (!organizationId) {
+    if (!organizationId || typeof organizationId !== "string" || !organizationId.trim()) {
       return NextResponse.json(
         { error: "Organization required. As superadmin, Vision Latam org is used by default." },
         { status: 400 }
       );
     }
+    const orgId = organizationId.trim();
 
-    const fullData = { organizationId, name, location, countryCode, address, managerName, contactPhone, contactEmail };
+    const fullData = { organizationId: orgId, name, location, countryCode, address, managerName, contactPhone, contactEmail };
     const includeOrg = { organization: { select: { id: true, name: true } } } as const;
     let warehouse: Awaited<ReturnType<typeof prisma.warehouse.create>> & { organization?: { id: string; name: string } };
     try {
@@ -86,11 +87,11 @@ export async function POST(req: Request) {
       });
     } catch (createErr) {
       const err = createErr as Error & { code?: string };
-      const isSchemaError = err?.code === "P2011" || /column|Unknown column/i.test(String(err?.message ?? ""));
-      if (isSchemaError) {
+      const isMissingColumn = err?.code === "P2022" || /column.*does not exist|Unknown column/i.test(String(err?.message ?? ""));
+      if (isMissingColumn) {
         try {
           warehouse = await prisma.warehouse.create({
-            data: { organizationId, name, location },
+            data: { organizationId: orgId, name, location },
             include: includeOrg,
           });
           if (warehouse && (countryCode ?? address ?? managerName ?? contactPhone ?? contactEmail)) {
@@ -127,9 +128,11 @@ export async function POST(req: Request) {
     if (e instanceof TenantError) return NextResponse.json({ error: e.message }, { status: tenantErrorStatus(e) });
     const err = e as Error & { code?: string };
     console.error("[api/admin/warehouses POST]", err);
-    const message = err?.code === "P2011" || err?.message?.includes("column") || err?.message?.includes("Unknown column")
-      ? "Database schema may be outdated. Run migrations (prisma migrate deploy) with the production DATABASE_URL."
-      : "Internal server error";
+    const message = err?.code === "P2011"
+      ? "Organization is required. Ensure Vision Latam org exists (superadmin)."
+      : err?.code === "P2022" || err?.message?.includes("column")
+        ? "Database schema may be outdated. Run migrations (prisma migrate deploy) with the production DATABASE_URL."
+        : "Internal server error";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

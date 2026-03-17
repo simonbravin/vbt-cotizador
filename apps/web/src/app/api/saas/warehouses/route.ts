@@ -50,20 +50,21 @@ export async function POST(req: Request) {
     } else if (ctx.activeOrgId) {
       organizationId = ctx.activeOrgId;
     }
-    if (!organizationId) {
+    if (!organizationId || typeof organizationId !== "string" || !organizationId.trim()) {
       return NextResponse.json({ error: "No organization context" }, { status: 400 });
     }
-    const fullData = { organizationId, name, location, countryCode, address, managerName, contactPhone, contactEmail };
+    const orgId = organizationId.trim();
+    const fullData = { organizationId: orgId, name, location, countryCode, address, managerName, contactPhone, contactEmail };
     let warehouse: Awaited<ReturnType<typeof prisma.warehouse.create>>;
     try {
       warehouse = await prisma.warehouse.create({ data: fullData });
     } catch (createErr) {
       const err = createErr as Error & { code?: string };
-      const isSchemaError = err?.code === "P2011" || /column|Unknown column/i.test(String(err?.message ?? ""));
-      if (isSchemaError) {
+      const isMissingColumn = err?.code === "P2022" || /column.*does not exist|Unknown column/i.test(String(err?.message ?? ""));
+      if (isMissingColumn) {
         try {
           warehouse = await prisma.warehouse.create({
-            data: { organizationId, name, location },
+            data: { organizationId: orgId, name, location },
           });
           if (warehouse && (countryCode ?? address ?? managerName ?? contactPhone ?? contactEmail)) {
             await prisma.warehouse.update({
