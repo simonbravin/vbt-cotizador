@@ -72,7 +72,20 @@ export async function POST(req: Request) {
     }
     const orgId = organizationId.trim();
 
-    const fullData = { organizationId: orgId, name, location, countryCode, address, managerName, contactPhone, contactEmail };
+    // Explicit timestamps to avoid NOT NULL constraint failures in some Neon states.
+    const fullData = {
+      organizationId: orgId,
+      name,
+      location,
+      countryCode,
+      address,
+      managerName,
+      contactPhone,
+      contactEmail,
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
     const includeOrg = { organization: { select: { id: true, name: true } } } as const;
     let warehouse: Awaited<ReturnType<typeof prisma.warehouse.create>> & { organization?: { id: string; name: string } };
     const vlMissingMsg =
@@ -91,7 +104,14 @@ export async function POST(req: Request) {
       if (isMissingColumn) {
         try {
           warehouse = await prisma.warehouse.create({
-            data: { organizationId: orgId, name, location },
+            data: {
+              organizationId: orgId,
+              name,
+              location,
+              isActive: true,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
             include: includeOrg,
           });
           if (warehouse && (countryCode ?? address ?? managerName ?? contactPhone ?? contactEmail)) {
