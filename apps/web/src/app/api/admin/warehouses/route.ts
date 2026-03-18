@@ -97,11 +97,9 @@ export async function POST(req: Request) {
       });
     } catch (createErr) {
       const err = createErr as Error & { code?: string };
-      if (err?.code === "P2011") {
-        return NextResponse.json({ error: vlMissingMsg }, { status: 503 });
-      }
       const isMissingColumn = err?.code === "P2022" || /column.*does not exist|Unknown column/i.test(String(err?.message ?? ""));
-      if (isMissingColumn) {
+      const tryFallback = err?.code === "P2011" || isMissingColumn;
+      if (tryFallback) {
         try {
           warehouse = await prisma.warehouse.create({
             data: {
@@ -136,7 +134,10 @@ export async function POST(req: Request) {
           const fallbackErrCode = (fallbackErr as Error & { code?: string })?.code;
           console.error("[api/admin/warehouses POST fallback]", fallbackErr);
           if (fallbackErrCode === "P2011") {
-            return NextResponse.json({ error: vlMissingMsg }, { status: 503 });
+            return NextResponse.json(
+              { error: "Database constraint error. Run migrations (prisma migrate deploy)." },
+              { status: 500 }
+            );
           }
           return NextResponse.json(
             { error: "Database schema may be outdated. Run migrations (prisma migrate deploy) with the production DATABASE_URL." },
@@ -153,7 +154,7 @@ export async function POST(req: Request) {
     const err = e as Error & { code?: string };
     console.error("[api/admin/warehouses POST]", err);
     const message = err?.code === "P2011"
-      ? "Organization is required. Ensure Vision Latam org exists (superadmin)."
+      ? "Database constraint error. Run migrations (prisma migrate deploy)."
       : err?.code === "P2022" || err?.message?.includes("column")
         ? "Database schema may be outdated. Run migrations (prisma migrate deploy) with the production DATABASE_URL."
         : "Internal server error";

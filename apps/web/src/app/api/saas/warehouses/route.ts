@@ -96,14 +96,9 @@ export async function POST(req: Request) {
       warehouse = await prisma.warehouse.create({ data: fullData });
     } catch (createErr) {
       const err = createErr as Error & { code?: string };
-      if (err?.code === "P2011") {
-        return NextResponse.json(
-          { error: "Organization context missing or invalid. Select your organization or contact support." },
-          { status: 400 }
-        );
-      }
       const isMissingColumn = err?.code === "P2022" || /column.*does not exist|Unknown column/i.test(String(err?.message ?? ""));
-      if (isMissingColumn) {
+      const tryFallback = err?.code === "P2011" || isMissingColumn;
+      if (tryFallback) {
         try {
           warehouse = await prisma.warehouse.create({
             data: {
@@ -136,8 +131,8 @@ export async function POST(req: Request) {
           console.error("[api/saas/warehouses POST]", fallbackErr);
           if (fallbackCode === "P2011") {
             return NextResponse.json(
-              { error: "Organization context missing or invalid. Select your organization or contact support." },
-              { status: 400 }
+              { error: "Database constraint error. Run migrations (prisma migrate deploy)." },
+              { status: 500 }
             );
           }
           return NextResponse.json(
@@ -156,9 +151,11 @@ export async function POST(req: Request) {
     }
     const err = e as Error & { code?: string };
     console.error("[api/saas/warehouses POST]", err);
-    const message = err?.code === "P2011" || err?.message?.includes("column") || err?.message?.includes("Unknown column")
-      ? "Database schema may be outdated. Run migrations (prisma migrate deploy) with the production DATABASE_URL."
-      : "Internal server error";
+    const message = err?.code === "P2011"
+      ? "Database constraint error. Run migrations (prisma migrate deploy)."
+      : err?.message?.includes("column") || err?.message?.includes("Unknown column")
+        ? "Database schema may be outdated. Run migrations (prisma migrate deploy) with the production DATABASE_URL."
+        : "Internal server error";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
