@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { requireSession, getEffectiveActiveOrgId, TenantError, tenantErrorStatus } from "@/lib/tenant";
+import { requireSession, getEffectiveActiveOrgId, requirePlatformSuperadmin, TenantError, tenantErrorStatus } from "@/lib/tenant";
 import { getAllowedCountryCodes } from "@/lib/allowed-countries";
 
 /** GET: list countries — superadmin sees all; partners see only countries assigned to their org. */
