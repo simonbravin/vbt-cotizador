@@ -62,7 +62,7 @@ interface SidebarProps {
 export function Sidebar({ role, userDisplayName }: SidebarProps) {
   const pathname = usePathname();
   const t = useT();
-  const [expanded, setExpanded] = useState<string[]>(["nav.settings"]);
+  const [expanded, setExpanded] = useState<string[]>([]);
 
   const toggle = (key: string) => {
     setExpanded((prev) =>

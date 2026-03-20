@@ -75,7 +75,7 @@ interface SuperadminSidebarProps {
 export function SuperadminSidebar({ userDisplayName }: SuperadminSidebarProps) {
   const pathname = usePathname();
   const t = useT();
-  const [expanded, setExpanded] = useState<string[]>(["nav.superadmin.content", "nav.admin"]);
+  const [expanded, setExpanded] = useState<string[]>([]);
 
   const toggle = (key: string) => {
     setExpanded((prev) =>
