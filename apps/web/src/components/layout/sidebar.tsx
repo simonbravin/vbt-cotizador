@@ -79,11 +79,11 @@ export function Sidebar({ role, userDisplayName }: SidebarProps) {
 
   return (
     <div className="w-64 bg-header flex flex-col h-full shadow-xl flex-shrink-0">
-      {/* Logo row: same height as TopBar (h-14) so border-b lines align */}
-      <div className="h-14 flex-shrink-0 border-b border-header-foreground/10 px-3 flex items-center justify-center">
+      {/* Logo row: h-14 matches TopBar; py-0.5 = minimal vertical margin; image fills remaining height */}
+      <div className="box-border h-14 flex-shrink-0 border-b border-header-foreground/10 px-3 py-0.5 flex items-center justify-center">
         <Link
           href="/dashboard"
-          className="flex h-full w-full items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-header-foreground/40 focus-visible:ring-offset-2 focus-visible:ring-offset-header rounded-md"
+          className="flex max-h-full w-full items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-header-foreground/40 focus-visible:ring-offset-2 focus-visible:ring-offset-header rounded-md"
           aria-label={t("nav.dashboard")}
         >
           <Image
@@ -92,7 +92,7 @@ export function Sidebar({ role, userDisplayName }: SidebarProps) {
             width={240}
             height={56}
             draggable={false}
-            className="h-8 w-auto max-w-full object-contain object-center select-none [-webkit-user-drag:none]"
+            className="max-h-[calc(3.5rem-0.25rem)] h-auto w-auto max-w-full object-contain object-center select-none [-webkit-user-drag:none]"
             priority
           />
         </Link>
