@@ -79,15 +79,23 @@ export function Sidebar({ role, userDisplayName }: SidebarProps) {
 
   return (
     <div className="w-64 bg-header flex flex-col h-full shadow-xl flex-shrink-0">
-      {/* Logo (horizontal) */}
-      <div className="px-3 py-4 border-b border-header-foreground/10 flex items-center">
-        <Image
-          src="/logo-vbt-white-horizontal.png"
-          alt="Vision Building Technologies"
-          width={240}
-          height={56}
-          className="w-full h-11 object-contain object-left"
-        />
+      {/* Logo row: same height as TopBar (h-14) so border-b lines align */}
+      <div className="h-14 flex-shrink-0 border-b border-header-foreground/10 px-3 flex items-center justify-center">
+        <Link
+          href="/dashboard"
+          className="flex h-full w-full items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-header-foreground/40 focus-visible:ring-offset-2 focus-visible:ring-offset-header rounded-md"
+          aria-label={t("nav.dashboard")}
+        >
+          <Image
+            src="/logo-vbt-white-horizontal.png"
+            alt=""
+            width={240}
+            height={56}
+            draggable={false}
+            className="h-8 w-auto max-w-full object-contain object-center select-none [-webkit-user-drag:none]"
+            priority
+          />
+        </Link>
       </div>
 
       {/* Nav */}

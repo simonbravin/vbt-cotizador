@@ -87,14 +87,22 @@ export function SuperadminSidebar({ userDisplayName }: SuperadminSidebarProps) {
 
   return (
     <div className="w-64 bg-header flex flex-col h-full shadow-xl flex-shrink-0">
-      <div className="px-3 py-4 border-b border-header-foreground/10 flex items-center">
-        <Image
-          src="/logo-vbt-white-horizontal.png"
-          alt="Vision Latam"
-          width={240}
-          height={56}
-          className="w-full h-11 object-contain object-left"
-        />
+      <div className="h-14 flex-shrink-0 border-b border-header-foreground/10 px-3 flex items-center justify-center">
+        <Link
+          href="/superadmin/dashboard"
+          className="flex h-full w-full items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-header-foreground/40 focus-visible:ring-offset-2 focus-visible:ring-offset-header rounded-md"
+          aria-label={t("nav.superadmin.dashboard")}
+        >
+          <Image
+            src="/logo-vbt-white-horizontal.png"
+            alt=""
+            width={240}
+            height={56}
+            draggable={false}
+            className="h-8 w-auto max-w-full object-contain object-center select-none [-webkit-user-drag:none]"
+            priority
+          />
+        </Link>
       </div>
       <nav className="flex-1 px-3 py-4 overflow-y-auto space-y-0.5">
         <p className="px-3 py-1.5 text-xs font-medium text-header-foreground/50 uppercase tracking-wider">
