@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { translations, Locale, LOCALE_COOKIE_NAME } from "./translations";
 
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 365; // 1 year
@@ -20,6 +21,8 @@ export function LanguageProvider({
   children: React.ReactNode;
   initialLocale?: Locale | null;
 }) {
+  const router = useRouter();
+
   const [locale, setLocaleState] = useState<Locale>(() => {
     if (initialLocale === "es" || initialLocale === "en") return initialLocale;
     if (typeof document !== "undefined") {
@@ -30,20 +33,25 @@ export function LanguageProvider({
     return "en";
   });
 
-  const setLocale = useCallback((next: Locale) => {
-    setLocaleState(next);
-    if (typeof document !== "undefined") {
-      document.cookie = `${LOCALE_COOKIE_NAME}=${next}; path=/; max-age=${COOKIE_MAX_AGE}; SameSite=Lax`;
-      // Keep email subject language in sync for authenticated users.
-      fetch("/api/saas/user/email-locale", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ locale: next }),
-      }).catch(() => {
-        // Ignore network/auth errors here; locale cookie already updated.
-      });
-    }
-  }, []);
+  const setLocale = useCallback(
+    (next: Locale) => {
+      setLocaleState(next);
+      if (typeof document !== "undefined") {
+        document.cookie = `${LOCALE_COOKIE_NAME}=${next}; path=/; max-age=${COOKIE_MAX_AGE}; SameSite=Lax`;
+        // Re-fetch server components (RSC) so pages that use cookies() + getT() match the new locale.
+        router.refresh();
+        // Keep email subject language in sync for authenticated users.
+        fetch("/api/saas/user/email-locale", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ locale: next }),
+        }).catch(() => {
+          // Ignore network/auth errors here; locale cookie already updated.
+        });
+      }
+    },
+    [router]
+  );
 
   const t = useCallback(
     (key: string, vars?: Record<string, string | number>): string => {
