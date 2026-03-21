@@ -31,21 +31,22 @@ interface NavItem {
   children?: NavItem[];
 }
 
+/** Partner sidebar order: Inicio → Clientes → Ingeniería → Proyectos → Cotizaciones → Ventas → Inventario → Documentos → Capacitación → Reportes → Configuración */
 const navigation: NavItem[] = [
   { labelKey: "nav.dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { labelKey: "nav.projects", href: "/projects", icon: FolderOpen },
   { labelKey: "nav.clients", href: "/clients", icon: Building2 },
-  { labelKey: "nav.quotes", href: "/quotes", icon: FileText },
   { labelKey: "nav.engineering", href: "/engineering", icon: Wrench },
-  { labelKey: "nav.documents", href: "/documents", icon: FileStack },
-  { labelKey: "nav.training", href: "/training", icon: GraduationCap },
-  { labelKey: "nav.inventory", href: "/inventory", icon: Package },
+  { labelKey: "nav.projects", href: "/projects", icon: FolderOpen },
+  { labelKey: "nav.quotes", href: "/quotes", icon: FileText },
   {
     labelKey: "nav.sales",
     href: "/sales",
     icon: ShoppingCart,
     roles: ["org_admin", "sales_user", "technical_user", "viewer"],
   },
+  { labelKey: "nav.inventory", href: "/inventory", icon: Package },
+  { labelKey: "nav.documents", href: "/documents", icon: FileStack },
+  { labelKey: "nav.training", href: "/training", icon: GraduationCap },
   { labelKey: "nav.reports", href: "/reports", icon: BarChart3, roles: ["SUPERADMIN", "org_admin", "sales_user"] },
   {
     labelKey: "nav.settings",
