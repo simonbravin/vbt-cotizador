@@ -79,7 +79,7 @@ export async function getEngineeringRequestById(
       requestedByUser: { select: { id: true, fullName: true, email: true } },
       assignedToUser: { select: { id: true, fullName: true, email: true } },
       files: true,
-      deliverables: true,
+      deliverables: { orderBy: [{ version: "asc" }, { createdAt: "asc" }] },
       reviewEvents: {
         where: includeInternal ? {} : { visibility: "partner" },
         orderBy: { createdAt: "asc" },
@@ -205,6 +205,8 @@ export type AddDeliverableInput = {
   title?: string | null;
   description?: string | null;
   fileUrl: string;
+  /** Original display name; falls back to last segment of fileUrl. */
+  fileName?: string | null;
 };
 
 export async function addDeliverable(
@@ -217,7 +219,16 @@ export async function addDeliverable(
   await prisma.engineeringRequest.findFirstOrThrow({
     where: { id: requestId, ...orgWhere },
   });
-  const fileName = input.fileUrl.split("/").pop() ?? "deliverable";
+  const trimmedName = input.fileName?.trim();
+  const fileName =
+    trimmedName && trimmedName.length > 0
+      ? trimmedName
+      : (input.fileUrl.split("/").pop() ?? "deliverable");
+  const { _max } = await prisma.engineeringDeliverable.aggregate({
+    where: { engineeringRequestId: requestId },
+    _max: { version: true },
+  });
+  const version = (_max.version ?? 0) + 1;
   return prisma.engineeringDeliverable.create({
     data: {
       engineeringRequestId: requestId,
@@ -226,6 +237,7 @@ export async function addDeliverable(
       description: input.description ?? null,
       fileName,
       fileUrl: input.fileUrl,
+      version,
       uploadedByUserId: ctx.userId,
     },
   });
@@ -339,4 +351,47 @@ export async function addEngineeringReviewEvent(
     }
     return event;
   });
+}
+
+/** Machine-readable timeline entries (prefix + JSON). Not user-editable text. */
+export const ENGINEERING_TIMELINE_EVENT_PREFIX = "[[eng:evt]]";
+
+export type EngineeringTimelineEventPayload =
+  | { k: "partner_file"; fileName: string }
+  | { k: "platform_revision"; label: string; version: number };
+
+/** Partner may attach files only in these statuses (API + UI). */
+export const ENGINEERING_PARTNER_FILE_UPLOAD_STATUSES = [
+  "draft",
+  "submitted",
+  "needs_info",
+  "pending_info",
+] as const;
+
+export type EngineeringPartnerFileUploadStatus = (typeof ENGINEERING_PARTNER_FILE_UPLOAD_STATUSES)[number];
+
+export function isEngineeringStatusAllowingPartnerUpload(status: string): boolean {
+  return (ENGINEERING_PARTNER_FILE_UPLOAD_STATUSES as readonly string[]).includes(status);
+}
+
+export function serializeEngineeringTimelineEvent(payload: EngineeringTimelineEventPayload): string {
+  return ENGINEERING_TIMELINE_EVENT_PREFIX + JSON.stringify(payload);
+}
+
+export function parseEngineeringTimelineEvent(body: string): EngineeringTimelineEventPayload | null {
+  if (!body.startsWith(ENGINEERING_TIMELINE_EVENT_PREFIX)) return null;
+  try {
+    const raw = JSON.parse(body.slice(ENGINEERING_TIMELINE_EVENT_PREFIX.length)) as unknown;
+    if (!raw || typeof raw !== "object" || !("k" in raw)) return null;
+    const o = raw as { k: string; fileName?: string; label?: string; version?: number };
+    if (o.k === "partner_file" && typeof o.fileName === "string") {
+      return { k: "partner_file", fileName: o.fileName };
+    }
+    if (o.k === "platform_revision" && typeof o.label === "string" && typeof o.version === "number") {
+      return { k: "platform_revision", label: o.label, version: o.version };
+    }
+  } catch {
+    /* ignore */
+  }
+  return null;
 }

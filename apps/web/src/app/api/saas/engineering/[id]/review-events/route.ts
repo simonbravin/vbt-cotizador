@@ -4,6 +4,7 @@ import { requireActiveOrg, TenantError, tenantErrorStatus } from "@/lib/tenant";
 import { addEngineeringReviewEvent, getEngineeringRequestById } from "@vbt/core";
 import { createEngineeringReviewEventSchema } from "@vbt/core/validation";
 import { createActivityLog } from "@/lib/audit";
+import { sendPartnerEngineeringEventEmail } from "@/lib/engineering-email";
 
 export async function POST(
   req: Request,
@@ -39,13 +40,21 @@ export async function POST(
       includeInternalReviews: !!user.isPlatformSuperadmin,
     });
     await createActivityLog({
-      organizationId: user.activeOrgId ?? refreshed?.organizationId ?? null,
+      organizationId: refreshed?.organizationId ?? user.activeOrgId ?? null,
       userId: user.userId ?? user.id,
-      action: "engineering_review_event_created",
+      action: "engineering_review_note",
       entityType: "engineering_request",
       entityId: params.id,
       metadata: { visibility: parsed.data.visibility },
     });
+    const partnerOrgId = refreshed?.organizationId ?? user.activeOrgId;
+    if (parsed.data.visibility === "partner" && partnerOrgId) {
+      void sendPartnerEngineeringEventEmail({
+        organizationId: partnerOrgId,
+        event: "partner_note",
+        requestId: params.id,
+      }).catch((err) => console.warn("[engineering email] partner_note", err));
+    }
     return NextResponse.json(refreshed, { status: 201 });
   } catch (e) {
     if (e instanceof TenantError) {

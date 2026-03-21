@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Download, Mail, Archive, Trash2, ChevronDown, ChevronRight, Pencil, Activity, ShoppingCart } from "lucide-react";
+import { ArrowLeft, Download, Mail, Archive, Trash2, ChevronDown, ChevronRight, Pencil, Activity, ShoppingCart, Copy } from "lucide-react";
 import { useLanguage, useT } from "@/lib/i18n/context";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { normalizeQuoteStatus } from "@vbt/core";
@@ -26,10 +26,18 @@ function statusTranslationKey(status: string | undefined): string {
   return map[n] ?? "quotes.draft";
 }
 
+function paramId(params: { id?: string | string[] }): string | undefined {
+  const raw = params.id;
+  if (typeof raw === "string" && raw.length > 0) return raw;
+  if (Array.isArray(raw) && typeof raw[0] === "string" && raw[0].length > 0) return raw[0];
+  return undefined;
+}
+
 export default function QuoteDetailPage() {
   const t = useT();
   const { locale } = useLanguage();
   const params = useParams();
+  const quoteId = paramId(params as { id?: string | string[] });
   const router = useRouter();
   const [quote, setQuote] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -51,10 +59,12 @@ export default function QuoteDetailPage() {
   const [saving, setSaving] = useState(false);
   const [editNotes, setEditNotes] = useState("");
   const [editStatus, setEditStatus] = useState("draft");
+  const [duplicating, setDuplicating] = useState(false);
+  const [duplicateError, setDuplicateError] = useState<string | null>(null);
 
   // Auditoría, email y PDF: aún no hay `/api/saas/quotes/:id/audit|email|pdf`.
   const fetchAudit = () => {
-    fetch(`/api/quotes/${params.id}/audit`)
+    fetch(`/api/quotes/${quoteId}/audit`)
       .then(async (r) => {
         try {
           const text = await r.text();
@@ -70,7 +80,12 @@ export default function QuoteDetailPage() {
   };
 
   useEffect(() => {
-    fetch(`/api/saas/quotes/${params.id}`)
+    if (!quoteId) {
+      setLoading(false);
+      setQuote(null);
+      return;
+    }
+    fetch(`/api/saas/quotes/${quoteId}`)
       .then(async (r) => {
         try {
           const text = await r.text();
@@ -85,7 +100,7 @@ export default function QuoteDetailPage() {
         }
       })
       .catch(() => setLoading(false));
-  }, [params.id]);
+  }, [quoteId]);
 
   useEffect(() => {
     if (!quote?.id) return;
@@ -107,10 +122,10 @@ export default function QuoteDetailPage() {
 
   // Email: legacy `/api/quotes/:id/email` hasta que exista SaaS.
   const sendEmail = async () => {
-    if (!emailTo) return;
+    if (!quoteId || !emailTo) return;
     setSending(true);
     setSendResult(null);
-    const res = await fetch(`/api/quotes/${params.id}/email`, {
+    const res = await fetch(`/api/quotes/${quoteId}/email`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ to: emailTo, message: emailMsg, locale }),
@@ -135,7 +150,7 @@ export default function QuoteDetailPage() {
 
   const archive = async () => {
     setArchiving(true);
-    const res = await fetch(`/api/saas/quotes/${params.id}`, {
+    const res = await fetch(`/api/saas/quotes/${quoteId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: "ARCHIVED" }),
@@ -157,7 +172,7 @@ export default function QuoteDetailPage() {
 
   const deletePermanently = async () => {
     setDeleting(true);
-    const res = await fetch(`/api/saas/quotes/${params.id}`, { method: "DELETE" });
+    const res = await fetch(`/api/saas/quotes/${quoteId}`, { method: "DELETE" });
     setDeleting(false);
     setDeleteDialog(false);
     if (res.ok) router.push("/quotes");
@@ -169,9 +184,34 @@ export default function QuoteDetailPage() {
     setEditOpen(true);
   };
 
+  const duplicateQuote = async () => {
+    if (!quoteId || duplicating) return;
+    setDuplicateError(null);
+    setDuplicating(true);
+    try {
+      const res = await fetch(`/api/saas/quotes/${quoteId}/duplicate`, { method: "POST" });
+      const text = await res.text();
+      let data: { id?: string; error?: string } = {};
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch {
+        /* ignore */
+      }
+      if (!res.ok || !data.id) {
+        setDuplicateError(data.error ?? t("quotes.duplicateFailed"));
+        return;
+      }
+      router.push(`/quotes/${data.id}`);
+    } catch {
+      setDuplicateError(t("quotes.duplicateFailed"));
+    } finally {
+      setDuplicating(false);
+    }
+  };
+
   const saveEdit = async () => {
     setSaving(true);
-    const res = await fetch(`/api/saas/quotes/${params.id}`, {
+    const res = await fetch(`/api/saas/quotes/${quoteId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ notes: editNotes || undefined, status: editStatus }),
@@ -253,6 +293,14 @@ export default function QuoteDetailPage() {
         </div>
 
         <div className="flex gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={() => void duplicateQuote()}
+            disabled={duplicating}
+            className="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+          >
+            <Copy className="w-4 h-4" /> {duplicating ? t("quotes.duplicating") : t("quotes.duplicate")}
+          </button>
           {quote.projectId && (
             <Link
               href={`/sales/new?quoteId=${quote.id}&projectId=${quote.projectId}&clientId=${(quote.project as any)?.clientId ?? ""}`}
@@ -295,6 +343,10 @@ export default function QuoteDetailPage() {
           </button>
         </div>
       </div>
+
+      {duplicateError && (
+        <div className="p-3 rounded-lg text-sm bg-red-50 text-red-700 border border-red-200">{duplicateError}</div>
+      )}
 
       {sendResult && (
         <div className={`p-3 rounded-lg text-sm ${sendResult === "__success__" ? "bg-green-50 text-green-700 border border-green-200" : "bg-red-50 text-red-700 border border-red-200"}`}>

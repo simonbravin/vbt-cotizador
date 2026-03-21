@@ -255,6 +255,9 @@ export type DashboardOverviewResult = {
   quotes_total: number;
   quotes_pipeline_value: number;
   quotes_won_value: number;
+  /** Populated for platform superadmin only; counts all engineering requests. */
+  engineering_requests_total: number;
+  engineering_by_status: Record<string, number>;
 };
 
 export async function getDashboardOverview(
@@ -262,11 +265,25 @@ export async function getDashboardOverview(
   ctx: TenantContext
 ): Promise<DashboardOverviewResult> {
   const pipeline = await getPipelineAnalytics(prisma, ctx);
+  let engineering_requests_total = 0;
+  const engineering_by_status: Record<string, number> = {};
+  if (ctx.isPlatformSuperadmin) {
+    const rows = await prisma.engineeringRequest.groupBy({
+      by: ["status"],
+      _count: { id: true },
+    });
+    for (const row of rows) {
+      engineering_by_status[row.status] = row._count.id;
+      engineering_requests_total += row._count.id;
+    }
+  }
   return {
     projects_total: pipeline.projects_total,
     quotes_total: pipeline.quotes_total,
     quotes_pipeline_value: pipeline.quotes_value_pipeline,
     quotes_won_value: pipeline.quotes_value_won,
+    engineering_requests_total,
+    engineering_by_status,
   };
 }
 

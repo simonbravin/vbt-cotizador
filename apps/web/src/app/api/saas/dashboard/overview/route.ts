@@ -11,6 +11,8 @@ const EMPTY_OVERVIEW = {
   quotes_total: 0,
   quotes_pipeline_value: 0,
   quotes_won_value: 0,
+  engineering_requests_total: 0,
+  engineering_by_status: {} as Record<string, number>,
 };
 
 async function getHandler() {

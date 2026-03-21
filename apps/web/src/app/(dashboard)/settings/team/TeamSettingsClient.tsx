@@ -112,7 +112,8 @@ export function TeamSettingsClient() {
             {inviting ? t("partner.team.inviting") : t("partner.team.invite")}
           </button>
         </form>
-        <p className="px-5 pb-4 text-xs text-gray-500">{t("partner.team.inviteHint")}</p>
+        <p className="px-5 pb-3 text-xs text-gray-500">{t("partner.team.inviteHint")}</p>
+        <p className="px-5 pb-4 text-xs text-gray-600 border-t border-gray-100 pt-3">{t("partner.team.rolesMatrix")}</p>
       </div>
 
       <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">

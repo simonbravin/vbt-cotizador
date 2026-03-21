@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { FolderOpen, FileText, ExternalLink, Upload } from "lucide-react";
+import { isEngineeringStatusAllowingPartnerUpload, parseEngineeringTimelineEvent } from "@vbt/core";
 import { useLanguage } from "@/lib/i18n/context";
+import { renderEngineeringTimelineBody } from "@/lib/engineering-timeline-ui";
 
 type ReviewEvent = {
   id: string;
@@ -30,9 +32,10 @@ type Request = {
   requestedByUser?: { id: string; fullName: string | null };
   assignedToUser?: { id: string; fullName: string | null };
   files?: { id: string; fileName: string; fileUrl?: string | null }[];
-  deliverables?: { id: string; title?: string | null; fileUrl?: string | null }[];
+  deliverables?: { id: string; title?: string | null; fileName?: string | null; fileUrl?: string | null; version?: number }[];
   reviewEvents?: ReviewEvent[];
   createdAt: string;
+  updatedAt?: string;
 };
 
 interface Props {
@@ -53,6 +56,7 @@ export function EngineeringDetailClient({ requestId, initialRequest }: Props) {
   const [resubmit, setResubmit] = useState(false);
   const [postingNote, setPostingNote] = useState(false);
   const [noteError, setNoteError] = useState<string | null>(null);
+  const [attachBanner, setAttachBanner] = useState(false);
 
   const fetchRequest = useCallback(() => {
     fetch(`/api/saas/engineering/${requestId}`)
@@ -60,6 +64,18 @@ export function EngineeringDetailClient({ requestId, initialRequest }: Props) {
       .then((data) => setRequest(data))
       .catch(() => setError(t("partner.engineering.failedToLoad")));
   }, [requestId, t]);
+
+  useEffect(() => {
+    try {
+      const k = `eng-attach-warn-${requestId}`;
+      if (sessionStorage.getItem(k)) {
+        setAttachBanner(true);
+        sessionStorage.removeItem(k);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [requestId]);
 
   useEffect(() => {
     if (initialRequest) return;
@@ -104,7 +120,17 @@ export function EngineeringDetailClient({ requestId, initialRequest }: Props) {
       });
       if (!filesRes.ok) {
         const errData = await filesRes.json().catch(() => ({}));
-        setUploadError(errData?.error ?? t("partner.engineering.uploadFailed"));
+        if (errData?.error === "partner_upload_forbidden_status") {
+          setUploadError(t("partner.engineering.uploadLockedHint"));
+        } else {
+          const msg =
+            typeof errData?.message === "string"
+              ? errData.message
+              : typeof errData?.error === "string"
+                ? errData.error
+                : null;
+          setUploadError(msg && msg.length > 0 ? msg : t("partner.engineering.uploadFailed"));
+        }
         return;
       }
       fetchRequest();
@@ -117,6 +143,9 @@ export function EngineeringDetailClient({ requestId, initialRequest }: Props) {
 
   const canResubmit =
     request?.status === "draft" || request?.status === "needs_info" || request?.status === "pending_info";
+
+  const canUploadFiles =
+    !!request && isEngineeringStatusAllowingPartnerUpload(request.status);
 
   const postPartnerNote = async () => {
     if (!noteBody.trim() || !request) return;
@@ -168,10 +197,36 @@ export function EngineeringDetailClient({ requestId, initialRequest }: Props) {
 
   return (
     <div className="space-y-6">
+      {attachBanner && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 flex flex-wrap items-center justify-between gap-2">
+          <span>{t("partner.engineering.attachmentsUploadFailed")}</span>
+          <button
+            type="button"
+            onClick={() => setAttachBanner(false)}
+            className="text-amber-800 underline font-medium"
+          >
+            {t("common.dismiss")}
+          </button>
+        </div>
+      )}
       <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">{request.requestNumber}</h2>
-          <span className="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium bg-gray-100 text-gray-800">
+        <div className="px-5 py-4 border-b border-gray-100 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <h2 className="text-lg font-semibold text-gray-900">{request.requestNumber}</h2>
+            {request.updatedAt && (
+              <p className="mt-1 text-xs text-gray-500">
+                {t("partner.engineering.lastUpdated")}:{" "}
+                {new Date(request.updatedAt).toLocaleString(dateLocale, {
+                  dateStyle: "medium",
+                  timeStyle: "short",
+                })}
+              </p>
+            )}
+            <p className="mt-2 text-sm text-gray-600">
+              {t(`partner.engineering.statusHint.${request.status}`)}
+            </p>
+          </div>
+          <span className="inline-flex shrink-0 self-start rounded-full px-2.5 py-0.5 text-xs font-medium bg-gray-100 text-gray-800">
             {t(`partner.engineering.status.${request.status}`)}
           </span>
         </div>
@@ -237,14 +292,14 @@ export function EngineeringDetailClient({ requestId, initialRequest }: Props) {
               ref={fileInputRef}
               type="file"
               className="hidden"
-              accept=".pdf,.doc,.docx,.xls,.xlsx,.dwg,.rvt,.ifc,image/*"
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.dwg,.dxf,.rvt,.rfa,.ifc,.zip,image/*"
               onChange={onFileChange}
-              disabled={uploading}
+              disabled={uploading || !canUploadFiles}
             />
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
+              disabled={uploading || !canUploadFiles}
               className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
             >
               <Upload className="h-4 w-4" />
@@ -252,6 +307,9 @@ export function EngineeringDetailClient({ requestId, initialRequest }: Props) {
             </button>
           </div>
         </div>
+        {!canUploadFiles && (
+          <p className="border-b border-gray-100 px-5 py-2 text-xs text-gray-500">{t("partner.engineering.uploadLockedHint")}</p>
+        )}
         {uploadError && <p className="px-5 py-2 text-sm text-red-600">{uploadError}</p>}
         {request.files && request.files.length > 0 ? (
           <ul className="p-5 space-y-2">
@@ -282,14 +340,21 @@ export function EngineeringDetailClient({ requestId, initialRequest }: Props) {
           <ul className="p-5 space-y-2">
             {request.deliverables.map((d) => (
               <li key={d.id}>
-                {d.fileUrl ? (
-                  <a href={d.fileUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-vbt-blue hover:underline flex items-center gap-1">
-                    {d.title ?? t("partner.engineering.deliverableFallback")}
-                    <ExternalLink className="h-3 w-3" />
-                  </a>
-                ) : (
-                  <span className="text-sm text-gray-600">{d.title ?? t("partner.engineering.deliverableFallback")}</span>
-                )}
+                <a
+                  href={`/api/saas/engineering/${requestId}/deliverables/${d.id}/file`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-vbt-blue hover:underline flex flex-wrap items-center gap-x-1 gap-y-0.5"
+                >
+                  <FileText className="h-4 w-4 shrink-0" />
+                  <span>{d.title?.trim() || d.fileName || t("partner.engineering.deliverableFallback")}</span>
+                  {d.version != null && (
+                    <span className="text-xs text-gray-500">
+                      ({t("partner.engineering.deliverableVersion", { version: d.version })})
+                    </span>
+                  )}
+                  <ExternalLink className="h-3 w-3 shrink-0" />
+                </a>
               </li>
             ))}
           </ul>
@@ -304,24 +369,34 @@ export function EngineeringDetailClient({ requestId, initialRequest }: Props) {
           {(request.reviewEvents ?? []).length === 0 ? (
             <li className="px-5 py-8 text-center text-sm text-gray-500">{t("superadmin.engineeringDetail.noEvents")}</li>
           ) : (
-            (request.reviewEvents ?? []).map((ev) => (
-              <li key={ev.id} className="px-5 py-4">
-                <p className="text-xs text-gray-500">{new Date(ev.createdAt).toLocaleString(dateLocale)}</p>
-                <p className="mt-2 whitespace-pre-wrap text-sm text-gray-800">{ev.body}</p>
-                {(ev.fromStatus || ev.toStatus) && (
-                  <p className="mt-1 text-xs text-gray-500">
-                    {ev.fromStatus && `${t("superadmin.engineeringDetail.from")}: ${t(`partner.engineering.status.${ev.fromStatus}`)}`}
-                    {ev.fromStatus && ev.toStatus ? " → " : ""}
-                    {ev.toStatus && `${t("superadmin.engineeringDetail.to")}: ${t(`partner.engineering.status.${ev.toStatus}`)}`}
-                  </p>
-                )}
-                {ev.authorUser?.fullName && (
-                  <p className="mt-1 text-xs text-gray-500">
-                    {t("superadmin.engineeringDetail.by")} {ev.authorUser.fullName}
-                  </p>
-                )}
-              </li>
-            ))
+            (request.reviewEvents ?? []).map((ev) => {
+              const systemEntry = parseEngineeringTimelineEvent(ev.body);
+              return (
+                <li key={ev.id} className="px-5 py-4">
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                    <span>{new Date(ev.createdAt).toLocaleString(dateLocale)}</span>
+                    {systemEntry && (
+                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
+                        {t("partner.engineering.timeline.systemBadge")}
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-2">{renderEngineeringTimelineBody(ev.body, t, "partner")}</div>
+                  {!systemEntry && (ev.fromStatus || ev.toStatus) && (
+                    <p className="mt-1 text-xs text-gray-500">
+                      {ev.fromStatus && `${t("superadmin.engineeringDetail.from")}: ${t(`partner.engineering.status.${ev.fromStatus}`)}`}
+                      {ev.fromStatus && ev.toStatus ? " → " : ""}
+                      {ev.toStatus && `${t("superadmin.engineeringDetail.to")}: ${t(`partner.engineering.status.${ev.toStatus}`)}`}
+                    </p>
+                  )}
+                  {ev.authorUser?.fullName && (
+                    <p className="mt-1 text-xs text-gray-500">
+                      {t("superadmin.engineeringDetail.by")} {ev.authorUser.fullName}
+                    </p>
+                  )}
+                </li>
+              );
+            })
           )}
         </ul>
       </div>

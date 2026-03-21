@@ -39,7 +39,11 @@ New requests can be created with `status: "draft"` (default) or `"submitted"`.
 | GET    | `/api/saas/engineering/[id]` | Get one request with project, files, deliverables. |
 | PATCH  | `/api/saas/engineering/[id]` | Update request (status, assignedToUserId, requestType, wallAreaM2, systemType, targetDeliveryDate, engineeringFeeValue, notes). |
 | POST   | `/api/saas/engineering/[id]/files` | Add file (body: fileName, fileType, fileSize, fileUrl as storageUrl). |
-| POST   | `/api/saas/engineering/[id]/deliverables` | Add deliverable (body: title, description, fileUrl). |
+| POST   | `/api/saas/engineering/[id]/upload` | Multipart `file` — upload to R2 under the request’s partner org (partner or superadmin). |
+| POST   | `/api/saas/engineering/[id]/deliverables` | **Superadmin only.** Register a revision (body: `fileUrl`, optional `fileName`, `title`, `description`). Returns `{ deliverable, request }`. |
+| GET    | `/api/saas/engineering/[id]/deliverables/[deliverableId]/file` | Signed download for a deliverable. |
+
+Partner `POST .../files` is **rejected for superadmins** (they use revisions). It is only allowed when the request status is **draft**, **submitted**, **needs_info**, or **pending_info**. Each successful partner file registration appends a **partner-visible timeline** entry. Each superadmin deliverable appends a **partner-visible** revision entry (same timeline).
 
 ---
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Building2, FileText, FolderOpen, TrendingUp, ArrowRight } from "lucide-react";
+import { Building2, FileText, FolderOpen, TrendingUp, ArrowRight, Wrench } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { useT } from "@/lib/i18n/context";
 
@@ -11,6 +11,8 @@ type Overview = {
   quotes_total: number;
   quotes_pipeline_value: number;
   quotes_won_value: number;
+  engineering_requests_total: number;
+  engineering_by_status: Record<string, number>;
 };
 
 type LeaderboardEntry = {
@@ -134,6 +136,42 @@ export function SuperadminDashboardClient() {
               </p>
             </div>
           </div>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="rounded-lg bg-muted p-2">
+              <Wrench className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">{t("superadmin.dashboard.engineeringRequests")}</p>
+              <p className="text-2xl font-semibold text-foreground">{overview?.engineering_requests_total ?? 0}</p>
+              <p className="mt-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                {t("superadmin.dashboard.engineeringByStatus")}
+              </p>
+              <ul className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-foreground">
+                {Object.keys(overview?.engineering_by_status ?? {}).length === 0 ? (
+                  <li className="text-muted-foreground">—</li>
+                ) : (
+                  Object.entries(overview!.engineering_by_status)
+                    .sort((a, b) => b[1] - a[1])
+                    .map(([st, n]) => (
+                      <li key={st}>
+                        <span className="text-muted-foreground">{t(`partner.engineering.status.${st}`)}:</span> {n}
+                      </li>
+                    ))
+                )}
+              </ul>
+            </div>
+          </div>
+          <Link
+            href="/superadmin/engineering"
+            className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline shrink-0"
+          >
+            {t("superadmin.dashboard.viewEngineering")} <ArrowRight className="h-4 w-4" />
+          </Link>
         </div>
       </div>
 

@@ -2,8 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Plus, Building2, MapPin, Mail } from "lucide-react";
+import { Plus, Building2, MapPin, Mail, LayoutGrid, List, ChevronRight } from "lucide-react";
 import { useT } from "@/lib/i18n/context";
+
+const SEARCH_DEBOUNCE_MS = 350;
+const VIEW_STORAGE_KEY = "vbt-superadmin-partners-view";
+const FETCH_LIMIT = 500;
 
 function partnerTypeListLabel(t: (key: string) => string, partnerType: string | null | undefined): string {
   if (!partnerType) return "—";
@@ -41,25 +45,64 @@ type Partner = {
   } | null;
 };
 
+function partnerSearchHaystack(
+  p: Partner,
+  t: (key: string) => string
+): string {
+  return [
+    p.name,
+    p.countryCode ?? "",
+    p.website ?? "",
+    p.partnerProfile?.partnerType ?? "",
+    p.partnerProfile?.contactName ?? "",
+    p.partnerProfile?.contactEmail ?? "",
+    p.partnerProfile?.onboardingState ?? "",
+    p.status ?? "",
+    partnerTypeListLabel(t, p.partnerProfile?.partnerType),
+    onboardingListLabel(t, p.partnerProfile?.onboardingState),
+    organizationStatusListLabel(t, p.status),
+  ]
+    .join(" ")
+    .toLowerCase();
+}
+
 export function PartnersListClient() {
   const t = useT();
-  const [partners, setPartners] = useState<Partner[]>([]);
+  const [allPartners, setAllPartners] = useState<Partner[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [view, setView] = useState<"table" | "cards">(() => {
+    if (typeof window === "undefined") return "table";
+    return localStorage.getItem(VIEW_STORAGE_KEY) === "cards" ? "cards" : "table";
+  });
+
+  useEffect(() => {
+    localStorage.setItem(VIEW_STORAGE_KEY, view);
+  }, [view]);
+
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedSearch(searchInput.trim()), SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(id);
+  }, [searchInput]);
 
   useEffect(() => {
     let cancelled = false;
     async function fetchPartners() {
+      setLoading(true);
       try {
-        const res = await fetch("/api/saas/partners?limit=100");
+        const params = new URLSearchParams({ limit: String(FETCH_LIMIT) });
+        if (debouncedSearch) params.set("search", debouncedSearch);
+        const res = await fetch(`/api/saas/partners?${params}`);
         if (!res.ok) {
           setError(t("superadmin.partners.failedToLoad"));
           return;
         }
         const data = await res.json();
         if (!cancelled) {
-          setPartners(data.partners ?? []);
+          setAllPartners(data.partners ?? []);
           setTotal(data.total ?? 0);
         }
       } catch {
@@ -69,8 +112,10 @@ export function PartnersListClient() {
       }
     }
     fetchPartners();
-    return () => { cancelled = true; };
-  }, [t]);
+    return () => {
+      cancelled = true;
+    };
+  }, [t, debouncedSearch]);
 
   if (error) {
     return (
@@ -82,23 +127,63 @@ export function PartnersListClient() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground">
           {total} {total !== 1 ? t("superadmin.partners.countPlural") : t("superadmin.partners.count")}
         </p>
-        <Link
-          href="/superadmin/partners/new"
-          className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90"
-        >
-          <Plus className="h-4 w-4" />
-          {t("superadmin.partners.newPartner")}
-        </Link>
+        <div className="flex flex-wrap items-center gap-3">
+          <input
+            type="search"
+            placeholder={t("superadmin.partners.searchPlaceholder")}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && setDebouncedSearch(searchInput.trim())}
+            className="rounded-lg border border-input bg-background px-3 py-1.5 text-sm min-w-[200px]"
+          />
+          <button
+            type="button"
+            onClick={() => setDebouncedSearch(searchInput.trim())}
+            className="rounded-lg px-3 py-1.5 text-sm font-medium bg-muted text-muted-foreground hover:bg-muted/80"
+          >
+            {t("superadmin.partners.search")}
+          </button>
+          <div className="flex overflow-hidden rounded-lg border border-border">
+            <button
+              type="button"
+              onClick={() => setView("table")}
+              title={t("projects.tableView")}
+              className={`p-2 transition-colors ${view === "table" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground hover:bg-muted"}`}
+            >
+              <List className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setView("cards")}
+              title={t("projects.cardView")}
+              className={`p-2 transition-colors ${view === "cards" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground hover:bg-muted"}`}
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </button>
+          </div>
+          <Link
+            href="/superadmin/partners/new"
+            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90"
+          >
+            <Plus className="h-4 w-4" />
+            {t("superadmin.partners.newPartner")}
+          </Link>
+        </div>
       </div>
 
       <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
         {loading ? (
           <div className="p-12 text-center text-sm text-muted-foreground">{t("superadmin.partners.loading")}</div>
-        ) : partners.length === 0 ? (
+        ) : allPartners.length === 0 && debouncedSearch ? (
+          <div className="p-12 text-center">
+            <Building2 className="mx-auto h-12 w-12 text-muted-foreground" />
+            <p className="mt-2 text-sm font-medium text-foreground">{t("superadmin.partners.noMatchSearch")}</p>
+          </div>
+        ) : allPartners.length === 0 ? (
           <div className="p-12 text-center">
             <Building2 className="mx-auto h-12 w-12 text-muted-foreground" />
             <p className="mt-2 text-sm font-medium text-foreground">{t("superadmin.partners.noPartnersYet")}</p>
@@ -111,7 +196,7 @@ export function PartnersListClient() {
               {t("superadmin.partners.newPartner")}
             </Link>
           </div>
-        ) : (
+        ) : view === "table" ? (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-border">
               <thead className="bg-muted">
@@ -137,7 +222,7 @@ export function PartnersListClient() {
                 </tr>
               </thead>
               <tbody className="bg-card divide-y divide-border">
-                {partners.map((p) => (
+                {allPartners.map((p) => (
                   <tr key={p.id} className="hover:bg-muted/50">
                     <td className="px-5 py-3">
                       <Link
@@ -195,8 +280,76 @@ export function PartnersListClient() {
               </tbody>
             </table>
           </div>
+        ) : (
+          <div className="grid gap-4 p-4 sm:p-5 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+            {allPartners.map((p) => (
+              <div
+                key={p.id}
+                className="rounded-xl border border-border bg-card p-5 shadow-sm transition-shadow hover:shadow-md"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
+                    <Building2 className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <span
+                    className={`inline-flex shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
+                      p.status === "active" ? "bg-muted text-foreground" : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    {organizationStatusListLabel(t, p.status)}
+                  </span>
+                </div>
+                <Link
+                  href={`/superadmin/partners/${p.id}`}
+                  className="mt-2 block font-semibold text-foreground hover:text-primary"
+                >
+                  {p.name}
+                </Link>
+                {p.countryCode && (
+                  <p className="mt-1 text-xs text-muted-foreground flex items-center gap-1">
+                    <MapPin className="h-3 w-3" />
+                    {p.countryCode}
+                  </p>
+                )}
+                <p className="mt-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  {t("superadmin.partners.listColType")}
+                </p>
+                <p className="mt-0.5 text-sm text-foreground">{partnerTypeListLabel(t, p.partnerProfile?.partnerType)}</p>
+                <p className="mt-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  {t("superadmin.partners.listColContact")}
+                </p>
+                <p className="mt-0.5 text-sm text-foreground">
+                  {p.partnerProfile?.contactName ?? p.partnerProfile?.contactEmail ?? "—"}
+                </p>
+                {p.partnerProfile?.contactEmail && (
+                  <p className="mt-0.5 text-xs text-muted-foreground flex items-center gap-1">
+                    <Mail className="h-3 w-3" />
+                    {p.partnerProfile.contactEmail}
+                  </p>
+                )}
+                <p className="mt-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  {t("superadmin.partners.listColOnboarding")}
+                </p>
+                <span className="mt-0.5 inline-flex rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-foreground">
+                  {onboardingListLabel(t, p.partnerProfile?.onboardingState)}
+                </span>
+                <Link
+                  href={`/superadmin/partners/${p.id}`}
+                  className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+                >
+                  {t("superadmin.partners.manage")} <ChevronRight className="h-4 w-4" />
+                </Link>
+              </div>
+            ))}
+          </div>
         )}
       </div>
+
+      {!loading && allPartners.length > 0 && debouncedSearch && (
+        <p className="text-sm text-muted-foreground">
+          {t("superadmin.partners.showingCount", { shown: allPartners.length, total })}
+        </p>
+      )}
     </div>
   );
 }

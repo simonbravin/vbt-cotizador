@@ -66,9 +66,28 @@ export function getNotificationTitleKeyAndLink(input: NotificationMappingInput):
     return { titleKey: `notifications.${normAction}`, link };
   }
 
-  // Engineering
-  if (normEntity === "engineering_request" || normAction === "engineering_request_created") {
-    return { titleKey: "notifications.engineering_request_created", link: "/engineering" };
+  // Engineering — deep links; partner vs superadmin
+  if (normEntity === "engineering_request") {
+    const link = isSuperadmin ? `/superadmin/engineering/${entityId}` : `/engineering/${entityId}`;
+    if (normAction === "engineering_request_created") {
+      return { titleKey: "notifications.engineering_request_created", link };
+    }
+    if (normAction === "engineering_status_changed") {
+      return { titleKey: "notifications.engineering_status_changed", link };
+    }
+    if (normAction === "engineering_assignment_changed") {
+      return { titleKey: "notifications.engineering_assignment_changed", link };
+    }
+    if (normAction === "engineering_review_note" || normAction === "engineering_review_event_created") {
+      return { titleKey: "notifications.engineering_review_note", link };
+    }
+    if (normAction === "engineering_partner_file_uploaded") {
+      return { titleKey: "notifications.engineering_partner_file_uploaded", link };
+    }
+    if (normAction === "engineering_revision_uploaded") {
+      return { titleKey: "notifications.engineering_revision_uploaded", link };
+    }
+    return { titleKey: "notifications.engineering_request_created", link };
   }
 
   // Document

@@ -43,6 +43,7 @@ async function getHandler(req: Request) {
         entityType: true,
         entityId: true,
         organizationId: true,
+        metadataJson: true,
         createdAt: true,
         organization: { select: { name: true } },
       },
@@ -51,7 +52,18 @@ async function getHandler(req: Request) {
     });
 
     if (!ctx.isPlatformSuperadmin) {
-      rows = rows.filter((r) => !superadminOnlyActions.has(r.action.toLowerCase()));
+      rows = rows.filter((r) => {
+        if (superadminOnlyActions.has(r.action.toLowerCase())) return false;
+        if (
+          r.entityType.toLowerCase() === "engineering_request" &&
+          (r.action.toLowerCase() === "engineering_review_note" ||
+            r.action.toLowerCase() === "engineering_review_event_created")
+        ) {
+          const meta = r.metadataJson as { visibility?: string } | null | undefined;
+          if (meta?.visibility === "internal") return false;
+        }
+        return true;
+      });
     }
     rows = rows.slice(0, limit);
 

@@ -29,6 +29,8 @@ type Overview = {
   quotes_total: number;
   quotes_pipeline_value: number;
   quotes_won_value: number;
+  engineering_requests_total?: number;
+  engineering_by_status?: Record<string, number>;
 };
 
 type LeaderboardEntry = {

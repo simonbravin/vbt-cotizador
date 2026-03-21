@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { requirePlatformSuperadmin } from "@/lib/tenant";
 import { prisma } from "@/lib/db";
 import { getEffectiveActiveOrgId } from "@/lib/tenant";
+import type { Prisma } from "@vbt/db";
 
 const SYSTEM_CODES = ["S80", "S150", "S200"] as const;
 
@@ -49,17 +50,44 @@ export async function GET(req: Request) {
     const url = new URL(req.url);
     const search = url.searchParams.get("search")?.trim() ?? url.searchParams.get("q")?.trim();
     const system = url.searchParams.get("system")?.trim();
+    const hasSystemsParam = url.searchParams.has("systems");
 
-    const where: {
-      isActive?: boolean;
-      systemCode?: string | { in: string[] };
-      canonicalName?: { contains: string; mode: "insensitive" };
-    } = {};
+    const incompleteOnly = url.searchParams.get("incomplete") === "1" || url.searchParams.get("incomplete") === "true";
+    if (incompleteOnly && !ctx.isSuperadmin) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    let where: Prisma.CatalogPieceWhereInput = {};
     if (!ctx.isSuperadmin) where.isActive = true;
-    where.systemCode =
-      system && ctx.allowedSystems.includes(system) ? system : { in: ctx.allowedSystems };
+
+    if (hasSystemsParam) {
+      const raw = url.searchParams.get("systems")?.trim() ?? "";
+      if (raw === "") {
+        where.systemCode = { in: [] };
+      } else {
+        const requested = raw
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean)
+          .filter((s): s is (typeof SYSTEM_CODES)[number] =>
+            (SYSTEM_CODES as readonly string[]).includes(s)
+          );
+        const codes = requested.filter((s) => ctx.allowedSystems.includes(s));
+        where.systemCode = codes.length > 0 ? { in: codes } : { in: [] };
+      }
+    } else if (system && ctx.allowedSystems.includes(system)) {
+      where.systemCode = system;
+    } else {
+      where.systemCode = { in: ctx.allowedSystems };
+    }
     if (search && search.length >= 1) {
       where.canonicalName = { contains: search, mode: "insensitive" };
+    }
+
+    if (incompleteOnly) {
+      where = {
+        AND: [where, { OR: [{ pricePerM2Cored: null }, { usefulWidthMm: null }] }],
+      };
     }
 
     const list = await prisma.catalogPiece.findMany({

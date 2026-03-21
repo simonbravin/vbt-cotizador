@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Wrench, ChevronRight, Search, LayoutGrid, List } from "lucide-react";
+import { Wrench, ChevronRight, Search, LayoutGrid, List, Download } from "lucide-react";
 import { useT } from "@/lib/i18n/context";
 
 const ENGINEERING_STATUSES = [
@@ -26,8 +26,11 @@ type Row = {
   status: string;
   organization?: { id: string; name: string } | null;
   project?: { id: string; projectName: string; countryCode?: string | null } | null;
+  assignedToUser?: { id: string; fullName: string | null } | null;
   createdAt: string;
 };
+
+type PlatformUser = { id: string; fullName: string; email: string };
 
 export function SuperadminEngineeringListClient() {
   const t = useT();
@@ -39,7 +42,10 @@ export function SuperadminEngineeringListClient() {
   const [searchInput, setSearchInput] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [organizationId, setOrganizationId] = useState<string | "">("");
+  const [assigneeFilter, setAssigneeFilter] = useState<string | "">("");
   const [partners, setPartners] = useState<{ id: string; name: string }[]>([]);
+  const [platformUsers, setPlatformUsers] = useState<PlatformUser[]>([]);
+  const [sessionUserId, setSessionUserId] = useState<string | null>(null);
   const [view, setView] = useState<"table" | "cards">(() => {
     if (typeof window === "undefined") return "table";
     return localStorage.getItem(VIEW_STORAGE_KEY) === "cards" ? "cards" : "table";
@@ -61,6 +67,23 @@ export function SuperadminEngineeringListClient() {
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    fetch("/api/auth/session")
+      .then((r) => r.json())
+      .then((d) => {
+        const uid = d?.user?.id ?? d?.user?.userId;
+        if (typeof uid === "string") setSessionUserId(uid);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/saas/platform-users")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => Array.isArray(d?.users) && setPlatformUsers(d.users))
+      .catch(() => {});
+  }, []);
+
   const fetchList = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -69,6 +92,7 @@ export function SuperadminEngineeringListClient() {
       if (statusFilter) params.set("status", statusFilter);
       if (debouncedSearch) params.set("search", debouncedSearch);
       if (organizationId) params.set("organizationId", organizationId);
+      if (assigneeFilter) params.set("assignedToUserId", assigneeFilter);
       const res = await fetch(`/api/saas/engineering?${params}`);
       const data = await res.json().catch(() => ({}));
       setRows(data.requests ?? []);
@@ -81,11 +105,21 @@ export function SuperadminEngineeringListClient() {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, debouncedSearch, organizationId, t]);
+  }, [statusFilter, debouncedSearch, organizationId, assigneeFilter, t]);
 
   useEffect(() => {
     fetchList();
   }, [fetchList]);
+
+  const exportCsvHref = (() => {
+    const params = new URLSearchParams();
+    if (statusFilter) params.set("status", statusFilter);
+    if (debouncedSearch) params.set("search", debouncedSearch);
+    if (organizationId) params.set("organizationId", organizationId);
+    if (assigneeFilter) params.set("assignedToUserId", assigneeFilter);
+    const q = params.toString();
+    return q ? `/api/saas/engineering/export?${q}` : "/api/saas/engineering/export";
+  })();
 
   return (
     <div className="space-y-4">
@@ -114,6 +148,24 @@ export function SuperadminEngineeringListClient() {
             </option>
           ))}
         </select>
+        <select
+          value={assigneeFilter}
+          onChange={(e) => setAssigneeFilter(e.target.value)}
+          className="min-w-[200px] rounded-lg border border-input bg-background px-3 py-1.5 text-sm"
+          aria-label={t("superadmin.engineeringList.filterAssignee")}
+        >
+          <option value="">{t("superadmin.engineeringList.assigneeAll")}</option>
+          {sessionUserId && (
+            <option value={sessionUserId}>{t("superadmin.engineeringList.myQueue")}</option>
+          )}
+          {platformUsers
+            .filter((u) => u.id !== sessionUserId)
+            .map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.fullName || u.email}
+              </option>
+            ))}
+        </select>
         <input
           type="search"
           placeholder={t("superadmin.engineeringList.searchPlaceholder")}
@@ -130,6 +182,13 @@ export function SuperadminEngineeringListClient() {
           <Search className="h-4 w-4" />
           {t("superadmin.engineeringList.search")}
         </button>
+        <a
+          href={exportCsvHref}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted/80"
+        >
+          <Download className="h-4 w-4" />
+          {t("superadmin.engineeringList.exportCsv")}
+        </a>
         <div className="flex overflow-hidden rounded-lg border border-border">
           <button
             type="button"
@@ -194,6 +253,9 @@ export function SuperadminEngineeringListClient() {
                     {t("superadmin.engineeringList.colCountry")}
                   </th>
                   <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    {t("superadmin.engineeringList.colAssigned")}
+                  </th>
+                  <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
                     {t("superadmin.engineeringList.colStatus")}
                   </th>
                   <th className="px-5 py-3 text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">
@@ -208,6 +270,7 @@ export function SuperadminEngineeringListClient() {
                     <td className="px-5 py-3 text-sm font-medium text-foreground">{r.requestNumber}</td>
                     <td className="px-5 py-3 text-sm text-foreground">{r.project?.projectName ?? "—"}</td>
                     <td className="px-5 py-3 text-sm text-foreground">{r.project?.countryCode ?? "—"}</td>
+                    <td className="px-5 py-3 text-sm text-muted-foreground">{r.assignedToUser?.fullName ?? "—"}</td>
                     <td className="px-5 py-3">
                       <span className="inline-flex rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
                         {t(`partner.engineering.status.${r.status}`)}
@@ -242,6 +305,9 @@ export function SuperadminEngineeringListClient() {
                 <p className="mt-1 font-semibold text-foreground">{r.requestNumber}</p>
                 <p className="mt-1 text-sm text-muted-foreground">{r.project?.projectName ?? "—"}</p>
                 <p className="mt-2 text-xs text-muted-foreground">{r.project?.countryCode ?? "—"}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {t("superadmin.engineeringList.colAssigned")}: {r.assignedToUser?.fullName ?? "—"}
+                </p>
                 <Link
                   href={`/superadmin/engineering/${r.id}`}
                   className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"

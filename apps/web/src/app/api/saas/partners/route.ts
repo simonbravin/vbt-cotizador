@@ -18,9 +18,11 @@ async function getHandler(req: Request) {
     isPlatformSuperadmin: true,
   };
   try {
+    const searchRaw = url.searchParams.get("search")?.trim();
     const result = await listPartners(prisma, tenantCtx, {
       status: url.searchParams.get("status") ?? undefined,
       partnerType: url.searchParams.get("partnerType") as "commercial_partner" | "master_partner" | undefined,
+      search: searchRaw && searchRaw.length > 0 ? searchRaw : undefined,
       limit: Number(url.searchParams.get("limit")) || 50,
       offset: Number(url.searchParams.get("offset")) || 0,
     });

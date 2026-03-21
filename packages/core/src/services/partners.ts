@@ -1,4 +1,4 @@
-import type { PrismaClient } from "@vbt/db";
+import type { Prisma, PrismaClient } from "@vbt/db";
 import type { PartnerQuoteDefaultsJson } from "../pricing/partner-pricing-resolution";
 import { parsePartnerQuoteDefaultsJson } from "../pricing/partner-pricing-resolution";
 import { type TenantContext, orgScopeWhere } from "./tenant-context";
@@ -12,6 +12,8 @@ function requirePlatformAdmin(ctx: TenantContext) {
 export type ListPartnersOptions = {
   status?: string;
   partnerType?: "commercial_partner" | "master_partner";
+  /** Case-insensitive match on company name, country code, or partner contact fields */
+  search?: string;
   limit?: number;
   offset?: number;
 };
@@ -22,11 +24,31 @@ export async function listPartners(
   options: ListPartnersOptions = {}
 ) {
   requirePlatformAdmin(ctx);
-  const where: Record<string, unknown> = {
-    organizationType: { in: [...PARTNER_ORG_TYPES] },
-  };
-  if (options.status) where.status = options.status;
-  if (options.partnerType) where.partnerProfile = { partnerType: options.partnerType };
+  const searchTerm = options.search?.trim();
+  const andParts: Prisma.OrganizationWhereInput[] = [
+    { organizationType: { in: [...PARTNER_ORG_TYPES] } },
+  ];
+  if (options.status) andParts.push({ status: options.status });
+  if (options.partnerType) {
+    andParts.push({ partnerProfile: { partnerType: options.partnerType } });
+  }
+  if (searchTerm && searchTerm.length > 0) {
+    andParts.push({
+      OR: [
+        { name: { contains: searchTerm, mode: "insensitive" } },
+        { countryCode: { contains: searchTerm, mode: "insensitive" } },
+        {
+          partnerProfile: {
+            OR: [
+              { contactName: { contains: searchTerm, mode: "insensitive" } },
+              { contactEmail: { contains: searchTerm, mode: "insensitive" } },
+            ],
+          },
+        },
+      ],
+    });
+  }
+  const where: Prisma.OrganizationWhereInput = { AND: andParts };
 
   const [organizations, total] = await Promise.all([
     prisma.organization.findMany({

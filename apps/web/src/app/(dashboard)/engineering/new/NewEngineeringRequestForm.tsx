@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/lib/i18n/context";
 
@@ -33,6 +33,8 @@ export function NewEngineeringRequestForm() {
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetch("/api/saas/projects?limit=100")
@@ -45,7 +47,7 @@ export function NewEngineeringRequestForm() {
     e.preventDefault();
     setError(null);
     if (!form.projectId || !form.requestNumber.trim()) {
-      setError("Project and request number are required.");
+      setError(t("partner.engineering.validationProjectAndNumber"));
       return;
     }
     setSaving(true);
@@ -66,14 +68,47 @@ export function NewEngineeringRequestForm() {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        setError(err?.error ?? "Failed to create request");
+        setError(typeof err?.error === "string" ? err.error : t("partner.engineering.createFailed"));
         return;
       }
       const created = await res.json();
-      router.push(`/engineering/${created.id}`);
+      const newId = created.id as string;
+      let uploadFailed = false;
+      for (const file of pendingFiles) {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("engineeringRequestId", newId);
+        const uploadRes = await fetch("/api/upload", { method: "POST", body: formData });
+        const uploadData = await uploadRes.json().catch(() => ({}));
+        const fileUrl = uploadData.url ?? uploadData.fileUrl;
+        const fileName = uploadData.fileName ?? file.name;
+        if (!uploadRes.ok || !fileUrl) {
+          uploadFailed = true;
+          continue;
+        }
+        const filesRes = await fetch(`/api/saas/engineering/${newId}/files`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fileName,
+            fileUrl,
+            fileType: file.type || null,
+            fileSize: file.size,
+          }),
+        });
+        if (!filesRes.ok) uploadFailed = true;
+      }
+      if (uploadFailed) {
+        try {
+          sessionStorage.setItem(`eng-attach-warn-${newId}`, "1");
+        } catch {
+          /* ignore */
+        }
+      }
+      router.push(`/engineering/${newId}`);
       router.refresh();
     } catch {
-      setError("Request failed");
+      setError(t("partner.engineering.createFailed"));
     } finally {
       setSaving(false);
     }
@@ -88,7 +123,7 @@ export function NewEngineeringRequestForm() {
   };
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm max-w-xl">
+    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm max-w-2xl">
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
         <div>
@@ -167,6 +202,36 @@ export function NewEngineeringRequestForm() {
             rows={3}
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
           />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{t("partner.engineering.attachmentsOnCreate")}</label>
+          <p className="text-xs text-gray-500 mb-2">{t("partner.engineering.attachmentsHint")}</p>
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            className="hidden"
+            accept=".pdf,.doc,.docx,.xls,.xlsx,.dwg,.dxf,.rvt,.rfa,.ifc,.zip,image/*"
+            onChange={(e) => {
+              const list = e.target.files;
+              setPendingFiles(list ? Array.from(list) : []);
+              e.target.value = "";
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            {t("partner.engineering.uploadFile")}
+          </button>
+          {pendingFiles.length > 0 && (
+            <ul className="mt-2 text-sm text-gray-600 list-disc list-inside space-y-0.5">
+              {pendingFiles.map((f, i) => (
+                <li key={`${i}-${f.name}-${f.size}-${f.lastModified}`}>{f.name}</li>
+              ))}
+            </ul>
+          )}
         </div>
         <div className="flex gap-2">
           <button

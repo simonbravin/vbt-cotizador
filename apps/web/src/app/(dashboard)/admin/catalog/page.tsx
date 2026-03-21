@@ -1,32 +1,66 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { Search, Upload, Edit } from "lucide-react";
 import { useT } from "@/lib/i18n/context";
+
+const CATALOG_SYSTEMS = ["S80", "S150", "S200"] as const;
+type CatalogSystemCode = (typeof CATALOG_SYSTEMS)[number];
+
+const defaultSystemFilters = (): Record<CatalogSystemCode, boolean> => ({
+  S80: true,
+  S150: true,
+  S200: true,
+});
 
 export default function CatalogPage() {
   const t = useT();
   const [pieces, setPieces] = useState<any[]>([]);
   const [search, setSearch] = useState("");
-  const [system, setSystem] = useState("");
+  const [systemOn, setSystemOn] = useState<Record<CatalogSystemCode, boolean>>(defaultSystemFilters);
   const [loading, setLoading] = useState(true);
   const [importDialog, setImportDialog] = useState(false);
   const [importResult, setImportResult] = useState<any>(null);
   const [importing, setImporting] = useState(false);
   const [editPiece, setEditPiece] = useState<any>(null);
+  const [incompleteOnly, setIncompleteOnly] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const load = (q = search, sys = system) => {
+  const load = useCallback(() => {
+    const enabled = CATALOG_SYSTEMS.filter((c) => systemOn[c]);
+    if (enabled.length === 0) {
+      setPieces([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     const params = new URLSearchParams();
-    if (q) params.set("search", q);
-    if (sys) params.set("system", sys);
+    if (search.trim()) params.set("search", search.trim());
+    if (enabled.length < CATALOG_SYSTEMS.length) {
+      params.set("systems", enabled.join(","));
+    }
+    if (incompleteOnly) params.set("incomplete", "1");
     fetch(`/api/catalog?${params}`)
-      .then((r) => r.json())
-      .then((d) => { setPieces(Array.isArray(d) ? d : []); setLoading(false); });
-  };
+      .then(async (r) => {
+        let list: unknown[] = [];
+        try {
+          const d = await r.json();
+          if (Array.isArray(d)) list = d;
+        } catch {
+          /* invalid JSON */
+        }
+        setPieces(list);
+        setLoading(false);
+      })
+      .catch(() => {
+        setPieces([]);
+        setLoading(false);
+      });
+  }, [search, systemOn, incompleteOnly]);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const handleImport = async (dryRun: boolean) => {
     const file = fileRef.current?.files?.[0];
@@ -69,7 +103,21 @@ export default function CatalogPage() {
     }),
     [t]
   );
-  const tableHeaders = [t("admin.catalog.dieNumber"), t("admin.catalog.canonicalName"), t("admin.catalog.system"), t("admin.catalog.usefulWidthMm"), t("admin.catalog.lbsPerMCored"), t("admin.catalog.kgPerMCored"), t("admin.catalog.pricePerMCored"), t("admin.catalog.active"), t("admin.catalog.actions")];
+  const tableColumns = useMemo(
+    () =>
+      [
+        { key: "die", label: t("admin.catalog.dieNumber"), align: "left" as const },
+        { key: "name", label: t("admin.catalog.canonicalName"), align: "left" as const },
+        { key: "system", label: t("admin.catalog.system"), align: "center" as const },
+        { key: "width", label: t("admin.catalog.usefulWidthMm"), align: "center" as const },
+        { key: "lbs", label: t("admin.catalog.lbsPerMCored"), align: "center" as const },
+        { key: "kg", label: t("admin.catalog.kgPerMCored"), align: "center" as const },
+        { key: "price", label: t("admin.catalog.pricePerMCored"), align: "center" as const },
+        { key: "active", label: t("admin.catalog.active"), align: "center" as const },
+        { key: "actions", label: t("admin.catalog.actions"), align: "center" as const },
+      ],
+    [t]
+  );
 
   return (
     <div className="space-y-6">
@@ -87,27 +135,54 @@ export default function CatalogPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex gap-3">
-        <div className="relative flex-1 max-w-xs">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+        <div className="relative flex-1 max-w-xs min-w-[200px]">
           <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
           <input
             type="text"
             placeholder={t("admin.catalog.searchPlaceholder")}
             value={search}
-            onChange={(e) => { setSearch(e.target.value); load(e.target.value, system); }}
+            onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-vbt-blue"
           />
         </div>
-        <select
-          value={system}
-          onChange={(e) => { setSystem(e.target.value); load(search, e.target.value); }}
-          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-vbt-blue"
+        <label className="inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={incompleteOnly}
+            onChange={(e) => setIncompleteOnly(e.target.checked)}
+            className="h-4 w-4 rounded border-gray-300"
+          />
+          <span>{t("admin.catalog.incompleteOnly")}</span>
+        </label>
+        <p className="text-xs text-gray-500 w-full sm:w-auto">{t("admin.catalog.incompleteOnlyHint")}</p>
+        <div
+          className="flex flex-wrap items-center gap-2"
+          role="group"
+          aria-label={t("admin.catalog.system")}
         >
-          <option value="">{t("admin.catalog.allSystems")}</option>
-          {[["S80", "admin.catalog.s80"], ["S150", "admin.catalog.s150"], ["S200", "admin.catalog.s200"]].map(([val, key]) => (
-            <option key={val} value={val}>{t(key)}</option>
-          ))}
-        </select>
+          {CATALOG_SYSTEMS.map((code) => {
+            const on = systemOn[code];
+            const onClass =
+              code === "S80"
+                ? "bg-blue-100 text-blue-800 border-blue-300"
+                : code === "S150"
+                  ? "bg-green-100 text-green-800 border-green-300"
+                  : "bg-purple-100 text-purple-800 border-purple-300";
+            const offClass = "bg-white text-gray-500 border-gray-200 hover:bg-gray-50";
+            return (
+              <button
+                key={code}
+                type="button"
+                aria-pressed={on}
+                onClick={() => setSystemOn((prev) => ({ ...prev, [code]: !prev[code] }))}
+                className={`rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${on ? onClass : offClass}`}
+              >
+                {SYS_LABELS[code] ?? code}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Table */}
@@ -116,42 +191,56 @@ export default function CatalogPage() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr>
-                {tableHeaders.map((h) => (
-                  <th key={h} className="text-left px-3 py-3 text-xs font-semibold text-gray-500 uppercase whitespace-nowrap">{h}</th>
+                {tableColumns.map((col) => (
+                  <th
+                    key={col.key}
+                    className={`px-3 py-3 text-xs font-semibold text-gray-500 uppercase whitespace-nowrap ${col.align === "center" ? "text-center" : "text-left"}`}
+                  >
+                    {col.label}
+                  </th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {loading ? (
                 <tr><td colSpan={9} className="px-4 py-8 text-center text-gray-400">{t("common.loading")}</td></tr>
+              ) : CATALOG_SYSTEMS.every((c) => !systemOn[c]) ? (
+                <tr>
+                  <td colSpan={9} className="px-4 py-8 text-center text-gray-500 text-sm">
+                    {t("admin.catalog.enableOneSystem")}
+                  </td>
+                </tr>
               ) : pieces.map((p) => (
                 <tr key={p.id} className={`hover:bg-gray-50 ${!p.isActive ? "opacity-50" : ""}`}>
-                  <td className="px-3 py-2.5 text-gray-400 text-xs">{p.dieNumber ?? "—"}</td>
-                  <td className="px-3 py-2.5 font-medium text-gray-800 max-w-xs truncate">{p.canonicalName}</td>
-                  <td className="px-3 py-2.5">
+                  <td className="px-3 py-2.5 text-left text-gray-400 text-xs">{p.dieNumber ?? "—"}</td>
+                  <td className="px-3 py-2.5 text-left font-medium text-gray-800 max-w-xs truncate">{p.canonicalName}</td>
+                  <td className="px-3 py-2.5 text-center">
                     {p.systemCode ? (
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${SYS_COLORS[p.systemCode] ?? "bg-gray-100"}`}>
+                      <span className={`inline-block text-xs px-2 py-0.5 rounded-full font-medium ${SYS_COLORS[p.systemCode] ?? "bg-gray-100"}`}>
                         {SYS_LABELS[p.systemCode] ?? p.systemCode}
                       </span>
-                    ) : "—"}
+                    ) : (
+                      "—"
+                    )}
                   </td>
-                  <td className="px-3 py-2.5 text-right">{p.usefulWidthMm?.toFixed(1) ?? "—"}</td>
-                  <td className="px-3 py-2.5 text-right">{p.lbsPerMCored?.toFixed(3) ?? "—"}</td>
-                  <td className="px-3 py-2.5 text-right">{p.kgPerMCored?.toFixed(3) ?? "—"}</td>
-                  <td className="px-3 py-2.5 text-right font-medium">
+                  <td className="px-3 py-2.5 text-center tabular-nums">{p.usefulWidthMm?.toFixed(1) ?? "—"}</td>
+                  <td className="px-3 py-2.5 text-center tabular-nums">{p.lbsPerMCored?.toFixed(3) ?? "—"}</td>
+                  <td className="px-3 py-2.5 text-center tabular-nums">{p.kgPerMCored?.toFixed(3) ?? "—"}</td>
+                  <td className="px-3 py-2.5 text-center font-medium tabular-nums">
                     {p.costs?.[0]?.pricePerM2Cored
                       ? `$${p.costs[0].pricePerM2Cored.toFixed(2)}`
                       : <span className="text-gray-300">—</span>}
                   </td>
-                  <td className="px-3 py-2.5">
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${p.isActive ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+                  <td className="px-3 py-2.5 text-center">
+                    <span className={`inline-block text-xs px-2 py-0.5 rounded-full ${p.isActive ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
                       {p.isActive ? t("admin.catalog.active") : t("admin.catalog.inactive")}
                     </span>
                   </td>
-                  <td className="px-3 py-2.5">
+                  <td className="px-3 py-2.5 text-center">
                     <button
+                      type="button"
                       onClick={() => setEditPiece({ ...p, _costEdit: p.costs?.[0]?.pricePerM2Cored ?? 0 })}
-                      className="p-1.5 text-gray-400 hover:text-gray-600 rounded"
+                      className="inline-flex p-1.5 text-gray-400 hover:text-gray-600 rounded"
                     >
                       <Edit className="w-3.5 h-3.5" />
                     </button>

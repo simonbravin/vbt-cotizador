@@ -141,6 +141,16 @@ export function InventoryClient() {
     );
   }, [levels, searchFilter]);
 
+  const lowStockThresholdRaw = process.env.NEXT_PUBLIC_INVENTORY_LOW_STOCK_THRESHOLD;
+  const lowStockThreshold =
+    lowStockThresholdRaw != null && String(lowStockThresholdRaw).trim() !== ""
+      ? Number(lowStockThresholdRaw)
+      : NaN;
+  const lowStockLevels = useMemo(() => {
+    if (!Number.isFinite(lowStockThreshold) || lowStockThreshold <= 0) return [];
+    return levels.filter((l) => l.quantity < lowStockThreshold);
+  }, [levels, lowStockThreshold]);
+
   if (loading) {
     return (
       <div className="rounded-xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-500">
@@ -154,6 +164,14 @@ export function InventoryClient() {
       {error && (
         <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-2 text-sm text-amber-800">
           {error}
+        </div>
+      )}
+      {lowStockLevels.length > 0 && (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+          {t("partner.inventory.lowStockBanner", {
+            count: lowStockLevels.length,
+            threshold: lowStockThreshold,
+          })}
         </div>
       )}
       <div className="flex flex-wrap items-center justify-between gap-3">
