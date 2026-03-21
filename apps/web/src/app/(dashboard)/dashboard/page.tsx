@@ -1,12 +1,12 @@
-import { requireAuth } from "@/lib/utils";
+import { requireAuth, formatCurrency } from "@/lib/utils";
 import { getEffectiveActiveOrgId, getEffectiveOrganizationId } from "@/lib/tenant";
 import { prisma } from "@/lib/db";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { FileText, FolderOpen, Package, TrendingUp, Plus, DollarSign, Send } from "lucide-react";
+import { SaleOrderStatus } from "@vbt/db";
 import { GoalKpiCard } from "@/components/dashboard/GoalKpiCard";
-import { formatCurrency } from "@/lib/utils";
 import type { SessionUser } from "@/lib/auth";
 import { getT, LOCALE_COOKIE_NAME } from "@/lib/i18n/translations";
 import type { Locale } from "@/lib/i18n/translations";
@@ -48,12 +48,22 @@ export default async function DashboardPage(props: PageProps) {
   let dataLoadError: string | null = null;
 
   try {
-    [projectCount, quoteCount, draftCount, sentCount, quotesSentYtd] = await Promise.all([
+    [projectCount, quoteCount, draftCount, sentCount, quotesSentYtd, salesYtd] = await Promise.all([
       prisma.project.count({ where: { organizationId, status: { not: "lost" } } }),
       prisma.quote.count({ where: { organizationId } }),
       prisma.quote.count({ where: { organizationId, status: "draft" } }),
       prisma.quote.count({ where: { organizationId, status: "sent" } }),
       prisma.quote.count({ where: { organizationId, status: "sent", createdAt: { gte: startOfYear } } }),
+      prisma.sale
+        .aggregate({
+          where: {
+            organizationId,
+            status: { not: SaleOrderStatus.CANCELLED },
+            createdAt: { gte: startOfYear },
+          },
+          _sum: { landedDdpUsd: true },
+        })
+        .then((a) => Number(a._sum.landedDdpUsd ?? 0)),
     ]);
 
     recentQuotes = await prisma.quote.findMany({
@@ -110,7 +120,7 @@ export default async function DashboardPage(props: PageProps) {
             {t("dashboard.newProject")}
           </Link>
           <Link
-            href="/quotes/new"
+            href="/quotes/create"
             className="inline-flex items-center gap-2 px-4 py-2 bg-vbt-orange text-white rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors"
           >
             <Plus className="w-4 h-4" />
@@ -215,7 +225,7 @@ export default async function DashboardPage(props: PageProps) {
               <div className="p-8 text-center">
                 <FileText className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
                 <p className="text-muted-foreground text-sm">{t("dashboard.noQuotes")}</p>
-                <Link href="/quotes/new" className="text-primary text-sm hover:underline mt-1 block">
+                <Link href="/quotes/create" className="text-primary text-sm hover:underline mt-1 block">
                   {t("dashboard.createFirstQuote")}
                 </Link>
               </div>
@@ -239,7 +249,7 @@ export default async function DashboardPage(props: PageProps) {
                       {formatCurrency((quote as { totalPrice?: number }).totalPrice ?? 0)}
                     </p>
                     <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-muted text-muted-foreground">
-                      {quote.status}
+                      {t(`quotes.${quote.status}` as "quotes.draft")}
                     </span>
                   </div>
                 </Link>

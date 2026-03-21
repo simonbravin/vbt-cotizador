@@ -6,8 +6,8 @@ import Link from "next/link";
 import { useT } from "@/lib/i18n/context";
 
 /**
- * Legacy step-by-step quote wizard. Deprecated: it posted to /api/quotes (501).
- * Redirect to /quotes/create to create a draft via /api/saas/quotes, then add items from the quote detail.
+ * Ruta histórica `/quotes/new`. Redirige a `/quotes/create` (borrador vía `/api/saas/quotes`).
+ * El wizard por pasos fue retirado del código; enlaces del dashboard apuntan a `/quotes/create`.
  */
 export default function NewQuotePage() {
   const t = useT();
