@@ -44,6 +44,8 @@ export function DocumentsAdminClient() {
   });
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const fetchCategories = useCallback(async () => {
     const res = await fetch("/api/saas/documents/categories");
@@ -114,11 +116,41 @@ export function DocumentsAdminClient() {
   const closeForm = () => {
     setFormOpen(null);
     setEditingId(null);
+    setUploadError(null);
+  };
+
+  const onPickFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploadError(null);
+    setUploadingFile(true);
+    try {
+      const fd = new FormData();
+      fd.set("file", file);
+      const res = await fetch("/api/saas/documents/upload", { method: "POST", body: fd });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setUploadError((data?.error as string) ?? t("superadmin.documents.uploadFailed"));
+        return;
+      }
+      if (typeof data?.url === "string" && data.url) {
+        setForm((f) => ({ ...f, fileUrl: data.url }));
+      }
+    } catch {
+      setUploadError(t("superadmin.documents.uploadFailed"));
+    } finally {
+      setUploadingFile(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
+    if (!form.fileUrl.trim()) {
+      setFormError(t("superadmin.documents.fileOrKeyRequired"));
+      return;
+    }
     setSaving(true);
     try {
       const payload = {
@@ -244,18 +276,26 @@ export function DocumentsAdminClient() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t("superadmin.documents.fieldFileUrl")}</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t("superadmin.documents.fieldFileOrUrl")}</label>
+              <p className="text-xs text-gray-500 mb-2">{t("superadmin.documents.fileOrUrlHint")}</p>
+              <div className="flex flex-wrap items-center gap-2 mb-2">
+                <label className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm cursor-pointer hover:bg-gray-100">
+                  <input type="file" className="sr-only" onChange={onPickFile} disabled={uploadingFile || saving} />
+                  {uploadingFile ? t("superadmin.documents.uploading") : t("superadmin.documents.uploadFileButton")}
+                </label>
+              </div>
+              {uploadError && <p className="text-sm text-red-600 mb-2">{uploadError}</p>}
               <input
-                type="url"
+                type="text"
                 value={form.fileUrl}
                 onChange={(e) => setForm((f) => ({ ...f, fileUrl: e.target.value }))}
-                required
                 placeholder={t("superadmin.documents.placeholderFileUrl")}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono"
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t("superadmin.documents.fieldVisibility")}</label>
+              <p className="text-xs text-gray-500 mb-2">{t("superadmin.documents.visibilityHint")}</p>
               <select
                 value={form.visibility}
                 onChange={(e) => setForm((f) => ({ ...f, visibility: e.target.value as (typeof VISIBILITY_OPTIONS)[number] }))}

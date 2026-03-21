@@ -5,11 +5,12 @@ import { getDocumentById } from "@vbt/core";
 import { getDownloadUrl, isR2StorageKey } from "@/lib/r2-client";
 
 function canAccessDocument(
-  doc: { organizationId: string | null },
+  doc: { organizationId: string | null; visibility: string },
   ctx: { isPlatformSuperadmin: boolean; activeOrgId: string | null } | null
 ): boolean {
-  if (!doc.organizationId) return true;
   if (!ctx) return false;
+  if (!ctx.isPlatformSuperadmin && doc.visibility === "internal") return false;
+  if (!doc.organizationId) return true;
   if (ctx.isPlatformSuperadmin) return true;
   return ctx.activeOrgId === doc.organizationId;
 }
