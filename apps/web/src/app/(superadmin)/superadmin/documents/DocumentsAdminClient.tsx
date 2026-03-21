@@ -115,6 +115,14 @@ export function DocumentsAdminClient() {
     fetchDocuments();
   }, [fetchDocuments]);
 
+  useEffect(() => {
+    if (formOpen !== "new") return;
+    setForm((f) => {
+      if (f.categoryId || !categories[0]?.id) return f;
+      return { ...f, categoryId: categories[0].id };
+    });
+  }, [categories, formOpen]);
+
   const openNew = () => {
     setForm({
       title: "",
@@ -404,7 +412,7 @@ export function DocumentsAdminClient() {
             <div className="flex gap-2">
               <button
                 type="submit"
-                disabled={saving}
+                disabled={saving || uploadingFile}
                 className="rounded-lg bg-vbt-blue px-4 py-2 text-sm font-medium text-white hover:bg-vbt-blue/90 disabled:opacity-50"
               >
                 {saving ? t("common.saving") : editingId ? t("superadmin.documents.buttonUpdate") : t("superadmin.documents.buttonCreate")}
@@ -432,6 +440,14 @@ export function DocumentsAdminClient() {
             <FileText className="mx-auto h-12 w-12 text-gray-300" />
             <p className="mt-2 text-sm font-medium text-gray-900">{t("superadmin.documents.noDocumentsYet")}</p>
             <p className="text-sm text-gray-500 mt-1">{t("superadmin.documents.addDocumentHint")}</p>
+            <button
+              type="button"
+              onClick={openNew}
+              className="mt-4 inline-flex items-center gap-2 rounded-lg bg-vbt-blue px-4 py-2 text-sm font-medium text-white hover:bg-vbt-blue/90"
+            >
+              <Plus className="h-4 w-4" />
+              {t("superadmin.documents.emptyStateAddButton")}
+            </button>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -450,15 +466,19 @@ export function DocumentsAdminClient() {
                 {documents.map((doc) => (
                   <tr key={doc.id} className="hover:bg-gray-50">
                     <td className="px-5 py-3">
-                      <a
-                        href={doc.fileUrl ? `/api/saas/documents/${doc.id}/file` : "#"}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="font-medium text-gray-900 hover:text-vbt-blue flex items-center gap-1"
-                      >
-                        {doc.title}
-                        <ExternalLink className="h-3.5 w-3.5" />
-                      </a>
+                      {doc.fileUrl?.trim() ? (
+                        <a
+                          href={`/api/saas/documents/${doc.id}/file`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-medium text-gray-900 hover:text-vbt-blue inline-flex items-center gap-1"
+                        >
+                          {doc.title}
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </a>
+                      ) : (
+                        <span className="font-medium text-gray-500">{doc.title}</span>
+                      )}
                     </td>
                     <td className="px-5 py-3 text-sm text-gray-600">{doc.category?.name ?? doc.categoryId}</td>
                     <td className="px-5 py-3 text-sm text-gray-600">{visibilityOptionLabel(t, doc.visibility)}</td>

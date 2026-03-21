@@ -22,17 +22,27 @@ export function DocumentsPartnerClient() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/saas/documents?limit=100")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (!cancelled && data) {
-          setDocuments(data.documents ?? []);
-          setTotal(data.total ?? 0);
+    (async () => {
+      try {
+        const r = await fetch("/api/saas/documents?limit=100");
+        if (cancelled) return;
+        if (!r.ok) {
+          setError(t("partner.documents.failedToLoad"));
+          return;
         }
-      })
-      .catch(() => { if (!cancelled) setError(t("partner.documents.failedToLoad")); })
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
+        const data = await r.json();
+        if (cancelled) return;
+        setDocuments(data.documents ?? []);
+        setTotal(data.total ?? 0);
+      } catch {
+        if (!cancelled) setError(t("partner.documents.failedToLoad"));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [t]);
 
   if (loading) return <div className="rounded-xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-500">{t("common.loading")}</div>;
@@ -51,15 +61,19 @@ export function DocumentsPartnerClient() {
             <li key={doc.id} className="px-5 py-4 flex items-start gap-3 hover:bg-gray-50">
               <FileText className="h-5 w-5 text-gray-400 flex-shrink-0 mt-0.5" />
               <div className="min-w-0 flex-1">
-                <a
-                  href={doc.fileUrl ? `/api/saas/documents/${doc.id}/file` : "#"}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-medium text-gray-900 hover:text-vbt-blue flex items-center gap-1"
-                >
-                  {doc.title}
-                  <ExternalLink className="h-3.5 w-3.5" />
-                </a>
+                {doc.fileUrl?.trim() ? (
+                  <a
+                    href={`/api/saas/documents/${doc.id}/file`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-medium text-gray-900 hover:text-vbt-blue inline-flex items-center gap-1"
+                  >
+                    {doc.title}
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                ) : (
+                  <span className="font-medium text-gray-500">{doc.title}</span>
+                )}
                 {doc.description && <p className="text-sm text-gray-500 mt-0.5">{doc.description}</p>}
                 {doc.category && <p className="text-xs text-gray-400 mt-1">{doc.category.name}</p>}
               </div>
