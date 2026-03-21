@@ -1,6 +1,7 @@
 export * from "./tenant-context";
 export * from "./projects";
 export * from "./quotes";
+export * from "./quote-tax-rules";
 export * from "./engineering";
 export * from "./documents";
 export * from "./training";

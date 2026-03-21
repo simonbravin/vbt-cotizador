@@ -55,6 +55,26 @@ export async function getVisionLatamCommissionPctForOrg(
   return raw?.visionLatamCommissionPct ?? 20;
 }
 
+/**
+ * Platform-wide pricing knobs (server-side). No auth check — use only from trusted services.
+ * Partner-specific resolution layers on top in `resolvePartnerPricingConfig`.
+ */
+export async function getPlatformPricingFallback(prisma: PrismaClient): Promise<{
+  visionLatamCommissionPct: number;
+  defaultMarginMinPct: number | null;
+  defaultMarginMaxPct: number | null;
+}> {
+  const row = await prisma.platformConfig.findFirst({
+    select: { configJson: true },
+  });
+  const p = (row?.configJson as PlatformConfigJson | undefined)?.pricing ?? {};
+  return {
+    visionLatamCommissionPct: p.visionLatamCommissionPct ?? 20,
+    defaultMarginMinPct: p.defaultMarginMinPct ?? null,
+    defaultMarginMaxPct: p.defaultMarginMaxPct ?? null,
+  };
+}
+
 export async function getPlatformConfig(
   prisma: PrismaClient,
   ctx: TenantContext

@@ -1,5 +1,9 @@
+import type { Prisma } from "@vbt/db";
 import type { PrismaClient, Quote, QuoteStatus } from "@vbt/db";
+import { canonicalizeSaaSQuotePayload } from "../pricing/saas-quote-persist";
+import { clampPartnerMarkupPct, resolvePartnerPricingConfig } from "../pricing/partner-pricing-resolution";
 import { orgScopeWhere, type TenantContext } from "./tenant-context";
+import { resolveTaxRulesForSaaSQuote } from "./quote-tax-rules";
 
 export type QuoteItemType = "product" | "service" | "other";
 
@@ -105,7 +109,11 @@ export type CreateQuoteInput = {
   validUntil?: Date | null;
   preparedByUserId?: string | null;
   approvedByUserId?: string | null;
+  /** Partner / internal notes (persisted on Quote). */
+  notes?: string | null;
   items?: CreateQuoteItemInput[];
+  /** Tax rules JSON snapshot at pricing write (canonical historical basis). */
+  taxRulesSnapshotJson?: Prisma.InputJsonValue;
 };
 
 function toQuoteData(input: CreateQuoteInput, organizationId: string, preparedByUserId: string | null) {
@@ -126,6 +134,10 @@ function toQuoteData(input: CreateQuoteInput, organizationId: string, preparedBy
     totalPrice: input.totalPrice ?? 0,
     validUntil: input.validUntil ?? undefined,
     preparedByUserId: input.preparedByUserId ?? preparedByUserId,
+    ...(input.notes !== undefined ? { notes: input.notes } : {}),
+    ...(input.taxRulesSnapshotJson !== undefined
+      ? { taxRulesSnapshotJson: input.taxRulesSnapshotJson }
+      : {}),
   };
 }
 
@@ -182,6 +194,7 @@ export type UpdateQuoteInput = Partial<
   superadminComment?: string | null;
   reviewedAt?: Date | null;
   approvedByUserId?: string | null;
+  taxRulesSnapshotJson?: Prisma.InputJsonValue | null;
 };
 
 export async function updateQuote(
@@ -213,10 +226,14 @@ export async function updateQuote(
           ...(data.localTransportCost != null && { localTransportCost: data.localTransportCost }),
           ...(data.technicalServiceCost != null && { technicalServiceCost: data.technicalServiceCost }),
           ...(data.totalPrice != null && { totalPrice: data.totalPrice }),
+          ...(data.taxRulesSnapshotJson !== undefined && {
+            taxRulesSnapshotJson: data.taxRulesSnapshotJson,
+          }),
           ...(data.validUntil !== undefined && { validUntil: data.validUntil }),
           ...(data.approvedByUserId !== undefined && { approvedByUserId: data.approvedByUserId }),
           ...(data.superadminComment !== undefined && { superadminComment: data.superadminComment }),
           ...(data.reviewedAt !== undefined && { reviewedAt: data.reviewedAt }),
+          ...(data.notes !== undefined && { notes: data.notes }),
         },
       });
       await tx.quoteItem.deleteMany({ where: { quoteId } });
@@ -258,12 +275,28 @@ export async function updateQuote(
       ...(data.localTransportCost != null && { localTransportCost: data.localTransportCost }),
       ...(data.technicalServiceCost != null && { technicalServiceCost: data.technicalServiceCost }),
       ...(data.totalPrice != null && { totalPrice: data.totalPrice }),
+      ...(data.taxRulesSnapshotJson !== undefined && {
+        taxRulesSnapshotJson: data.taxRulesSnapshotJson,
+      }),
       ...(data.validUntil !== undefined && { validUntil: data.validUntil }),
       ...(data.approvedByUserId !== undefined && { approvedByUserId: data.approvedByUserId }),
       ...(data.superadminComment !== undefined && { superadminComment: data.superadminComment }),
       ...(data.reviewedAt !== undefined && { reviewedAt: data.reviewedAt }),
+      ...(data.notes !== undefined && { notes: data.notes }),
     },
   });
+}
+
+export async function deleteQuote(prisma: PrismaClient, ctx: TenantContext, quoteId: string): Promise<Quote> {
+  const orgWhere = orgScopeWhere(ctx);
+  const existing = await prisma.quote.findFirst({
+    where: { id: quoteId, ...orgWhere },
+  });
+  if (!existing) {
+    throw new Error("Quote not found");
+  }
+  await prisma.quote.delete({ where: { id: quoteId } });
+  return existing;
 }
 
 export async function duplicateQuote(
@@ -274,7 +307,10 @@ export async function duplicateQuote(
   const orgWhere = orgScopeWhere(ctx);
   const existing = await prisma.quote.findFirst({
     where: { id: quoteId, ...orgWhere },
-    include: { items: { orderBy: { sortOrder: "asc" } } },
+    include: {
+      items: { orderBy: { sortOrder: "asc" } },
+      project: { select: { countryCode: true } },
+    },
   });
   if (!existing) throw new Error("Quote not found");
   const nextVersion = existing.version + 1;
@@ -291,22 +327,48 @@ export async function duplicateQuote(
     sortOrder: it.sortOrder,
     catalogPieceId: (it as { catalogPieceId?: string | null }).catalogPieceId ?? null,
   }));
+  const taxRules = await resolveTaxRulesForSaaSQuote(prisma, {
+    organizationId: existing.organizationId,
+    projectCountryCode: existing.project?.countryCode,
+  });
+  const resolved = await resolvePartnerPricingConfig(prisma, {
+    organizationId: existing.organizationId,
+    projectCountryCode: existing.project?.countryCode,
+  });
+  const partnerMarkupPct = clampPartnerMarkupPct(
+    Number(existing.partnerMarkupPct ?? 0),
+    resolved.allowedPartnerMarkupMinPct,
+    resolved.allowedPartnerMarkupMaxPct
+  );
+  const canon = canonicalizeSaaSQuotePayload({
+    items: itemInputs,
+    headerFactoryExwUsd: itemInputs.length > 0 ? undefined : Number(existing.factoryCostTotal ?? 0),
+    visionLatamMarkupPct: Number(existing.visionLatamMarkupPct ?? 0),
+    partnerMarkupPct,
+    logisticsCostUsd: Number(existing.logisticsCost ?? 0),
+    localTransportCostUsd: Number(existing.localTransportCost ?? 0),
+    importCostUsd: Number(existing.importCost ?? 0),
+    technicalServiceUsd: Number(existing.technicalServiceCost ?? 0),
+    taxRules,
+  });
   const created = await createQuote(prisma, ctx, {
     projectId: existing.projectId,
     quoteNumber: existing.quoteNumber,
     version: nextVersion,
     status: "draft",
     currency: existing.currency,
-    factoryCostTotal: existing.factoryCostTotal,
-    visionLatamMarkupPct: existing.visionLatamMarkupPct,
-    partnerMarkupPct: existing.partnerMarkupPct,
-    logisticsCost: existing.logisticsCost,
-    importCost: existing.importCost,
-    localTransportCost: existing.localTransportCost,
-    technicalServiceCost: existing.technicalServiceCost,
-    totalPrice: existing.totalPrice,
+    factoryCostTotal: canon.factoryCostTotal,
+    visionLatamMarkupPct: canon.visionLatamMarkupPct,
+    partnerMarkupPct: canon.partnerMarkupPct,
+    logisticsCost: canon.logisticsCostUsd,
+    importCost: canon.importCostUsd,
+    localTransportCost: canon.localTransportCostUsd,
+    technicalServiceCost: canon.technicalServiceUsd,
+    totalPrice: canon.totalPrice,
     validUntil: existing.validUntil,
-    items: itemInputs,
+    notes: existing.notes ?? null,
+    items: canon.items,
+    taxRulesSnapshotJson: taxRules as unknown as Prisma.InputJsonValue,
   });
   return created as Quote & { items: unknown[] };
 }

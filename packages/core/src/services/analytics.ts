@@ -184,6 +184,7 @@ export type QuoteAnalyticsResult = {
   quotes_sent: number;
   quotes_accepted: number;
   quotes_rejected: number;
+  quotes_archived: number;
   average_quote_value: number;
   conversion_rate: number;
   average_sales_cycle_days: number;
@@ -206,11 +207,12 @@ export async function getQuoteAnalytics(
       : {};
   const where = { ...qWhere, ...dateFilter };
 
-  const [created, sent, accepted, rejected, avgValue, acceptedQuotes] = await Promise.all([
+  const [created, sent, accepted, rejected, archived, avgValue, acceptedQuotes] = await Promise.all([
     prisma.quote.count({ where }),
     prisma.quote.count({ where: { ...where, status: "sent" } }),
     prisma.quote.count({ where: { ...where, status: "accepted" } }),
     prisma.quote.count({ where: { ...where, status: "rejected" } }),
+    prisma.quote.count({ where: { ...where, status: "archived" } }),
     prisma.quote.aggregate({
       where: { ...where, totalPrice: { gt: 0 } },
       _avg: { totalPrice: true },
@@ -222,7 +224,6 @@ export async function getQuoteAnalytics(
     }),
   ]);
 
-  const totalQuotes = created + sent + accepted + rejected;
   const withValue = avgValue._count.id;
   const average_quote_value = withValue > 0 ? (avgValue._avg.totalPrice ?? 0) : 0;
   const sentTotal = sent + accepted;
@@ -242,6 +243,7 @@ export async function getQuoteAnalytics(
     quotes_sent: sent,
     quotes_accepted: accepted,
     quotes_rejected: rejected,
+    quotes_archived: archived,
     average_quote_value,
     conversion_rate,
     average_sales_cycle_days,

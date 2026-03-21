@@ -8,6 +8,8 @@ export type ListDocumentsOptions = {
   categoryId?: string;
   categoryCode?: string;
   visibility?: "public" | "partners_only" | "internal";
+  /** Exclude these visibility values (e.g. hide `internal` for partners). */
+  excludeVisibilities?: ("public" | "partners_only" | "internal")[];
   countryScope?: string; // e.g. "PA" or "*"
   projectId?: string;
   engineeringRequestId?: string;
@@ -54,6 +56,9 @@ export async function listDocuments(
       ],
     });
   }
+  if (options.excludeVisibilities?.length) {
+    and.push({ NOT: { visibility: { in: options.excludeVisibilities } } });
+  }
   const where = and.length === 1 ? and[0] : { AND: and };
   const [documents, total] = await Promise.all([
     prisma.document.findMany({
@@ -66,6 +71,51 @@ export async function listDocuments(
     prisma.document.count({ where }),
   ]);
   return { documents, total };
+}
+
+/** Tenant + role context for document library (foundation for partner scaling). */
+export type DocumentVisibilityContext = {
+  organizationId: string | null;
+  /** Partner org default country / filter (ISO-2). */
+  countryCode?: string | null;
+  isPlatformSuperadmin: boolean;
+  /** Reserved for future rules (e.g. technical_user). */
+  role?: string | null;
+};
+
+/**
+ * Single entry point for “what documents may this principal see”.
+ * - Superadmin: all visibilities, optional org filter via `options.organizationId`.
+ * - Partner: platform + org docs, never `internal`, optional country scope.
+ */
+export async function getVisibleDocuments(
+  prisma: PrismaClient,
+  ctx: DocumentVisibilityContext,
+  options: Omit<ListDocumentsOptions, "organizationId" | "countryScope" | "excludeVisibilities"> & {
+    countryScope?: string;
+    organizationId?: string | null;
+  } = {}
+): Promise<{ documents: Document[]; total: number }> {
+  if (!ctx.isPlatformSuperadmin && !ctx.organizationId) {
+    return { documents: [], total: 0 };
+  }
+
+  const countryScope = options.countryScope ?? ctx.countryCode ?? undefined;
+  const listOptions: ListDocumentsOptions = {
+    ...options,
+    countryScope,
+  };
+
+  if (ctx.isPlatformSuperadmin) {
+    if (options.organizationId !== undefined) {
+      listOptions.organizationId = options.organizationId;
+    }
+    return listDocuments(prisma, listOptions);
+  }
+
+  listOptions.organizationId = ctx.organizationId;
+  listOptions.excludeVisibilities = ["internal"];
+  return listDocuments(prisma, listOptions);
 }
 
 export async function getDocumentById(
