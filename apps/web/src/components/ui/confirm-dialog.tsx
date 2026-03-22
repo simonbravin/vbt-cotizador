@@ -22,9 +22,9 @@ export interface ConfirmDialogProps {
 }
 
 const overlayClass =
-  "fixed inset-0 bg-black/50 z-[9999] flex items-center justify-center p-4";
+  "fixed inset-0 bg-black/65 z-[9999] flex items-center justify-center p-4";
 const contentClass =
-  "bg-white rounded-xl shadow-xl max-w-md w-full p-6 border border-gray-100";
+  "bg-background rounded-sm max-w-md w-full p-6 border border-border/60 ring-1 ring-border/60";
 
 export function ConfirmDialog({
   open,
@@ -56,8 +56,8 @@ export function ConfirmDialog({
 
   const confirmButtonClass =
     variant === "danger"
-      ? "px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50"
-      : "px-4 py-2 bg-vbt-blue text-white rounded-lg text-sm font-medium hover:bg-vbt-blue/90 disabled:opacity-50";
+      ? "px-4 py-2 bg-destructive text-destructive-foreground rounded-sm text-sm font-semibold hover:opacity-90 disabled:opacity-50 border border-destructive/30"
+      : "px-4 py-2 bg-primary text-primary-foreground rounded-sm text-sm font-semibold hover:opacity-90 disabled:opacity-50 border border-primary/20";
 
   return createPortal(
     <div
@@ -74,17 +74,14 @@ export function ConfirmDialog({
         className={contentClass}
         onClick={(e) => e.stopPropagation()}
       >
-        <h3
-          id="confirm-dialog-title"
-          className={`font-semibold text-lg mb-2 ${variant === "danger" ? "text-gray-900" : "text-gray-900"}`}
-        >
+        <h3 id="confirm-dialog-title" className="font-semibold text-lg mb-2 text-foreground tracking-tight">
           {title}
         </h3>
-        <p id="confirm-dialog-desc" className="text-gray-600 text-sm mb-4">
+        <p id="confirm-dialog-desc" className="text-muted-foreground text-sm mb-4">
           {description}
         </p>
         {error && (
-          <p className="text-sm text-red-600 mb-4" role="alert">
+          <p className="text-sm text-destructive mb-4 border border-destructive/25 rounded-sm px-2 py-1.5 bg-destructive/5" role="alert">
             {error}
           </p>
         )}
@@ -93,7 +90,7 @@ export function ConfirmDialog({
             type="button"
             onClick={() => !loading && onOpenChange(false)}
             disabled={loading}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            className="px-4 py-2 border border-border/60 rounded-sm text-sm text-foreground hover:bg-muted disabled:opacity-50 font-medium"
           >
             {cancelLabel}
           </button>

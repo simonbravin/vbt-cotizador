@@ -63,36 +63,45 @@ export default async function QuotesPage({ searchParams }: { searchParams: { sta
   const statuses = ["draft", "sent", "accepted", "rejected", "expired", "archived"];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {dataLoadError && quotes.length > 0 && (
-        <div className="bg-amber-500/15 border border-amber-500/40 rounded-xl px-4 py-3 text-sm flex items-center justify-between gap-4 flex-wrap">
+        <div className="bg-amber-500/15 border border-amber-500/40 rounded-sm px-4 py-3 text-sm flex items-center justify-between gap-4 flex-wrap">
           <p className="text-foreground">
             <span className="font-medium">{t("dashboard.errorLoad")}</span>
             <span className="text-muted-foreground ml-1">{t("dashboard.errorHelp")}</span>
           </p>
-          <Link href="/quotes" className="shrink-0 px-3 py-1.5 bg-muted text-foreground rounded-lg text-sm font-medium hover:bg-muted/80">
+          <Link href="/quotes" className="shrink-0 px-3 py-1.5 bg-muted text-foreground rounded-sm text-sm font-medium hover:bg-muted/80 border border-border">
             {t("common.retry")}
           </Link>
         </div>
       )}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between border-b border-border/60 pb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{t("quotes.title")}</h1>
-          <p className="text-gray-500 text-sm mt-0.5">{t("quotes.quotesCount", { count: quotes.length })}</p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">{t("quotes.title")}</h1>
+          <p className="text-muted-foreground mt-1 font-mono text-[11px] tabular-nums uppercase tracking-wider">
+            {t("quotes.quotesCount", { count: quotes.length })}
+          </p>
         </div>
-        <div className="flex flex-col items-end gap-1">
-          <Link href="/quotes/create" className="inline-flex items-center gap-2 px-4 py-2 bg-vbt-orange text-white rounded-lg text-sm font-medium hover:bg-orange-600">
-            <Plus className="w-4 h-4" /> {t("quotes.newQuote")}
+        <div className="flex flex-col items-stretch sm:items-end gap-1">
+          <Link
+            href="/quotes/create"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-vbt-orange text-white rounded-sm text-sm font-semibold hover:brightness-110 border border-orange-600/30"
+          >
+            <Plus className="w-4 h-4 shrink-0" /> {t("quotes.newQuote")}
           </Link>
-          <p className="text-xs text-gray-400 max-w-xs text-right hidden sm:block">{t("quotes.legacyImportNote")}</p>
+          <p className="text-xs text-muted-foreground max-w-xs text-right hidden sm:block">{t("quotes.legacyImportNote")}</p>
         </div>
       </div>
 
       {/* Filter tabs */}
-      <div className="flex gap-2 flex-wrap">
+      <div className="flex gap-1 flex-wrap border border-border/60 rounded-sm p-1 bg-muted/30 w-fit max-w-full">
         <Link
           href="/quotes"
-          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${!searchParams.status ? "bg-vbt-blue text-white" : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"}`}
+          className={`px-3 py-1.5 rounded-sm text-xs font-mono font-semibold uppercase tracking-wider transition-colors ${
+            !searchParams.status
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted/80"
+          }`}
         >
           {t("quotes.all")}
         </Link>
@@ -100,7 +109,11 @@ export default async function QuotesPage({ searchParams }: { searchParams: { sta
           <Link
             key={s}
             href={`/quotes?status=${s}`}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${searchParams.status === s ? "bg-vbt-blue text-white" : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"}`}
+            className={`px-3 py-1.5 rounded-sm text-xs font-mono font-semibold uppercase tracking-wider transition-colors ${
+              searchParams.status === s
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/80"
+            }`}
           >
             {t(STATUS_KEYS[s] ?? s)}
           </Link>

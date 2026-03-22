@@ -64,6 +64,8 @@ export const translations = {
     "auth.resetSuccess": "Password updated. You can sign in now.",
     "auth.forgotSuccess": "If an account exists for that email, we sent a reset link. Check your inbox and spam folder.",
     "auth.appSubtitle": "Vision Building Technologies",
+    "auth.shellTagline":
+      "Secure partner workspace for quotes, projects, logistics, and distributor operations.",
     "auth.errorGeneric": "Something went wrong. Try again.",
     "auth.errorUnexpected": "An unexpected error occurred.",
     "auth.signupFailed": "Signup failed. Please try again.",
@@ -1996,6 +1998,8 @@ export const translations = {
     "auth.resetSuccess": "Contraseña actualizada. Ya puedes iniciar sesión.",
     "auth.forgotSuccess": "Si existe una cuenta con ese correo, enviamos un enlace. Revisa tu bandeja y spam.",
     "auth.appSubtitle": "Vision Building Technologies",
+    "auth.shellTagline":
+      "Espacio seguro para socios: cotizaciones, proyectos, logística y operaciones de distribución.",
     "auth.errorGeneric": "Algo salió mal. Intenta de nuevo.",
     "auth.errorUnexpected": "Ocurrió un error inesperado.",
     "auth.signupFailed": "Error al crear la cuenta. Intenta de nuevo.",

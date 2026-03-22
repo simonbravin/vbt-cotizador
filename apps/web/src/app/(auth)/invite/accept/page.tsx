@@ -3,8 +3,10 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { useT } from "@/lib/i18n/context";
+import { AuthEngineeringShell, AuthFormSurface } from "@/components/auth/AuthEngineeringShell";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 type InviteInfo = {
   partnerName: string;
@@ -84,118 +86,103 @@ function InviteAcceptContent() {
     }
   }
 
-  const authLayout = (
-    <>
-      <div className="absolute inset-0 bg-gradient-to-br from-vbt-blue via-blue-900 to-slate-900" />
-      <div
-        className="absolute inset-0 opacity-[0.06]"
-        style={{
-          backgroundImage: `linear-gradient(hsl(var(--auth-grid-overlay)) 1px, transparent 1px),
-            linear-gradient(90deg, hsl(var(--auth-grid-overlay)) 1px, transparent 1px)`,
-          backgroundSize: "48px 48px",
-        }}
-      />
-      <div className="absolute top-1/4 -left-32 w-64 h-64 bg-vbt-orange/20 rounded-full blur-3xl" />
-      <div className="absolute bottom-1/4 -right-32 w-80 h-80 bg-blue-400/15 rounded-full blur-3xl" />
-    </>
-  );
-
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-        {authLayout}
-        <div className="relative z-10 bg-slate-800/95 backdrop-blur-sm rounded-2xl shadow-2xl border border-white/20 p-8 max-w-md w-full text-center">
-          <p className="text-white/80">{t("auth.inviteLoading")}</p>
-        </div>
-      </div>
+      <AuthEngineeringShell>
+        <AuthFormSurface>
+          <p className="text-center text-sm text-muted-foreground py-2">{t("auth.inviteLoading")}</p>
+        </AuthFormSurface>
+      </AuthEngineeringShell>
     );
   }
 
   if (error || !invite) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-        {authLayout}
-        <div className="relative z-10 bg-slate-800/95 backdrop-blur-sm rounded-2xl shadow-2xl border border-white/20 p-8 max-w-md w-full text-center">
-          <p className="text-red-300 mb-4">{error ?? t("auth.inviteInvalidShort")}</p>
-          <Link href="/login" className="text-vbt-orange hover:underline font-medium">
-            {t("auth.inviteGoSignIn")}
-          </Link>
-        </div>
-      </div>
+      <AuthEngineeringShell>
+        <AuthFormSurface>
+          <p className="text-sm text-destructive mb-4 text-center">{error ?? t("auth.inviteInvalidShort")}</p>
+          <p className="text-center">
+            <Link href="/login" className="text-sm text-primary font-medium hover:underline underline-offset-2">
+              {t("auth.inviteGoSignIn")}
+            </Link>
+          </p>
+        </AuthFormSurface>
+      </AuthEngineeringShell>
     );
   }
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-        {authLayout}
-        <div className="relative z-10 bg-slate-800/95 backdrop-blur-sm rounded-2xl shadow-2xl border border-white/20 p-8 max-w-md w-full text-center">
-          <p className="text-green-300 font-medium">{t("auth.inviteAccountCreated")}</p>
-          <p className="text-white/70 text-sm mt-2">{t("auth.inviteRedirecting")}</p>
-        </div>
-      </div>
+      <AuthEngineeringShell>
+        <AuthFormSurface>
+          <p className="text-sm font-medium text-foreground text-center">{t("auth.inviteAccountCreated")}</p>
+          <p className="text-sm text-muted-foreground text-center mt-2">{t("auth.inviteRedirecting")}</p>
+        </AuthFormSurface>
+      </AuthEngineeringShell>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-      {authLayout}
-      <div className="relative z-10 w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="flex justify-center mb-4">
-            <Image
-              src="/logo-vbt-white.png"
-              alt="Vision Building Technologies"
-              width={240}
-              height={56}
-              className="h-14 w-auto object-contain"
-            />
-          </div>
-          <h1 className="text-3xl font-bold text-white">{t("auth.inviteJoin", { name: invite.partnerName })}</h1>
-          <p className="text-slate-300 mt-1 text-sm">{t("auth.inviteSubtitle")}</p>
+    <AuthEngineeringShell>
+      <div className="space-y-4">
+        <div className="lg:hidden">
+          <h2 className="text-lg font-semibold text-foreground tracking-tight">
+            {t("auth.inviteJoin", { name: invite.partnerName })}
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">{t("auth.inviteSubtitle")}</p>
         </div>
+        <AuthFormSurface>
+          <h2 className="hidden lg:block text-lg font-semibold text-foreground tracking-tight mb-1">
+            {t("auth.inviteJoin", { name: invite.partnerName })}
+          </h2>
+          <p className="hidden lg:block text-sm text-muted-foreground mb-5">{t("auth.inviteSubtitle")}</p>
 
-        <div className="bg-slate-800/95 backdrop-blur-sm rounded-2xl shadow-2xl border border-white/20 p-8 ring-1 ring-white/10">
-          <p className="text-sm text-white/80 mb-4">
-            {t("auth.inviteInvitedAs")} <strong>{invite.role}</strong>. {t("auth.inviteCompleteForm")}
+          <p className="text-sm text-muted-foreground mb-3">
+            {t("auth.inviteInvitedAs")} <span className="text-foreground font-medium font-mono text-xs">{invite.role}</span>.{" "}
+            {t("auth.inviteCompleteForm")}
           </p>
-          <p className="text-sm text-white/70 mb-6">{t("auth.inviteEmailLabel")} <strong className="text-white">{invite.email}</strong></p>
+          <p className="text-xs font-mono text-muted-foreground mb-6 border-b border-border/60 pb-4">
+            {t("auth.inviteEmailLabel")} <span className="text-foreground">{invite.email}</span>
+          </p>
 
           {submitError && (
-            <div className="mb-4 p-3 bg-red-900/50 border border-red-400/50 rounded-lg text-red-200 text-sm">
+            <div className="mb-4 p-3 rounded-sm border border-destructive/30 bg-destructive/10 text-sm text-destructive">
               {submitError}
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-white mb-1">{t("auth.inviteFullName")}</label>
-              <input
+              <label className="block text-[11px] font-mono font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+                {t("auth.inviteFullName")}
+              </label>
+              <Input
                 type="text"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder={t("auth.placeholderName")}
                 required
                 minLength={2}
-                className="w-full px-3 py-2 bg-white/10 border border-white/30 rounded-lg text-sm text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-vbt-blue focus:border-transparent"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-white mb-1">{t("auth.invitePasswordLabel")}</label>
+              <label className="block text-[11px] font-mono font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+                {t("auth.invitePasswordLabel")}
+              </label>
               <div className="relative">
-                <input
+                <Input
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder={t("auth.invitePasswordPlaceholder")}
                   required
                   minLength={8}
-                  className="w-full px-3 py-2 pr-10 bg-white/10 border border-white/30 rounded-lg text-sm text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-vbt-blue focus:border-transparent"
+                  className="pr-10"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
-                  className="absolute inset-y-0 right-0 flex items-center px-3 text-white/50 hover:text-white"
+                  className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground hover:text-foreground"
                   tabIndex={-1}
                   aria-label={showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
                 >
@@ -212,48 +199,33 @@ function InviteAcceptContent() {
                 </button>
               </div>
             </div>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="w-full bg-vbt-orange hover:bg-orange-600 text-white font-medium py-2.5 px-4 rounded-lg text-sm transition-colors disabled:opacity-50"
-            >
+            <Button type="submit" disabled={submitting} className="w-full border border-primary/20">
               {submitting ? t("auth.inviteCreating") : t("auth.inviteCreateAccount")}
-            </button>
+            </Button>
           </form>
 
-          <div className="mt-6 text-center">
-            <p className="text-sm text-white/70">
+          <div className="mt-6 pt-6 border-t border-border/60 text-center">
+            <p className="text-sm text-muted-foreground">
               {t("auth.alreadyAccount")}{" "}
-              <Link href="/login" className="text-vbt-orange hover:underline font-medium">
+              <Link href="/login" className="text-primary font-medium hover:underline underline-offset-2">
                 {t("auth.signInLink")}
               </Link>
             </p>
           </div>
-        </div>
+        </AuthFormSurface>
       </div>
-    </div>
+    </AuthEngineeringShell>
   );
 }
 
 function InviteAcceptFallback() {
   const t = useT();
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-vbt-blue via-blue-900 to-slate-900" />
-      <div
-        className="absolute inset-0 opacity-[0.06]"
-        style={{
-          backgroundImage: `linear-gradient(hsl(var(--auth-grid-overlay)) 1px, transparent 1px),
-            linear-gradient(90deg, hsl(var(--auth-grid-overlay)) 1px, transparent 1px)`,
-          backgroundSize: "48px 48px",
-        }}
-      />
-      <div className="absolute top-1/4 -left-32 w-64 h-64 bg-vbt-orange/20 rounded-full blur-3xl" />
-      <div className="absolute bottom-1/4 -right-32 w-80 h-80 bg-blue-400/15 rounded-full blur-3xl" />
-      <div className="relative z-10 bg-slate-800/95 backdrop-blur-sm rounded-2xl shadow-2xl border border-white/20 p-8 max-w-md w-full text-center">
-        <p className="text-white/80">{t("common.loading")}</p>
-      </div>
-    </div>
+    <AuthEngineeringShell>
+      <AuthFormSurface>
+        <p className="text-center text-sm text-muted-foreground py-2">{t("common.loading")}</p>
+      </AuthFormSurface>
+    </AuthEngineeringShell>
   );
 }
 

@@ -91,11 +91,11 @@ export function SuperadminSidebar({ userDisplayName }: SuperadminSidebarProps) {
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
 
   return (
-    <div className="w-64 bg-header flex flex-col h-full shadow-xl flex-shrink-0">
-      <div className="box-border h-14 flex-shrink-0 border-b border-header-foreground/10 px-3 py-0.5 flex items-center justify-center">
+    <div className="w-64 bg-header flex flex-col h-full flex-shrink-0 border-r border-header-foreground/15">
+      <div className="box-border h-14 flex-shrink-0 border-b border-header-foreground/15 px-3 py-0.5 flex items-center justify-center">
         <Link
           href="/superadmin/dashboard"
-          className="flex max-h-full w-full items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-header-foreground/40 focus-visible:ring-offset-2 focus-visible:ring-offset-header rounded-md"
+          className="flex max-h-full w-full items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-header-foreground/35 focus-visible:ring-offset-2 focus-visible:ring-offset-header rounded-sm"
           aria-label={t("nav.superadmin.dashboard")}
         >
           <Image
@@ -125,10 +125,10 @@ export function SuperadminSidebar({ userDisplayName }: SuperadminSidebarProps) {
                   type="button"
                   onClick={() => toggle(item.labelKey)}
                   className={cn(
-                    "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors",
+                    "w-full flex items-center gap-2.5 px-3 py-2 rounded-sm text-sm tracking-wide transition-colors border border-transparent",
                     hasActiveChild
-                      ? "text-header-foreground bg-header-foreground/10"
-                      : "text-header-foreground/70 hover:text-header-foreground hover:bg-header-foreground/10"
+                      ? "text-header-foreground bg-header-foreground/10 border-header-foreground/10"
+                      : "text-header-foreground/70 hover:text-header-foreground hover:bg-header-foreground/5"
                   )}
                 >
                   <item.icon className="w-4 h-4 flex-shrink-0" />
@@ -140,16 +140,16 @@ export function SuperadminSidebar({ userDisplayName }: SuperadminSidebarProps) {
                   )}
                 </button>
                 {isOpen && (
-                  <div className="ml-4 mt-0.5 space-y-0.5 border-l border-header-foreground/10 pl-3">
+                  <div className="ml-4 mt-0.5 space-y-0.5 border-l border-header-foreground/20 pl-3">
                     {item.children.map((child) => (
                       <Link
                         key={child.href}
                         href={child.href!}
                         className={cn(
-                          "flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors",
+                          "flex items-center gap-2.5 px-3 py-2 rounded-sm text-sm transition-colors",
                           child.href && isActive(child.href)
-                            ? "text-header-foreground bg-header-foreground/10"
-                            : "text-header-foreground/60 hover:text-header-foreground hover:bg-header-foreground/10"
+                            ? "text-header-foreground bg-header-foreground/10 border border-header-foreground/10"
+                            : "text-header-foreground/60 hover:text-header-foreground hover:bg-header-foreground/5"
                         )}
                       >
                         <child.icon className="w-3.5 h-3.5 flex-shrink-0" />
@@ -166,10 +166,10 @@ export function SuperadminSidebar({ userDisplayName }: SuperadminSidebarProps) {
               key={item.href}
               href={item.href!}
               className={cn(
-                "flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors",
+                "flex items-center gap-2.5 px-3 py-2 rounded-sm text-sm tracking-wide transition-colors border border-transparent",
                 isActive(item.href!)
-                  ? "text-header-foreground bg-header-foreground/15 font-medium"
-                  : "text-header-foreground/70 hover:text-header-foreground hover:bg-header-foreground/10"
+                  ? "text-header-foreground bg-header-foreground/12 font-medium border-header-foreground/15"
+                  : "text-header-foreground/70 hover:text-header-foreground hover:bg-header-foreground/5"
               )}
             >
               <item.icon className="w-4 h-4 flex-shrink-0" />

@@ -239,8 +239,18 @@ export default function QuoteDetailPage() {
     return action.replace(/_/g, " ").toLowerCase();
   };
 
-  if (loading) return <div className="p-8 text-center text-gray-400">{t("common.loading")}</div>;
-  if (!quote || quote.error) return <div className="p-8 text-center text-red-500">{t("quotes.quoteNotFound")}</div>;
+  if (loading)
+    return (
+      <div className="p-12 text-center text-muted-foreground font-mono text-sm tracking-widest uppercase animate-pulse border border-dashed border-border rounded-sm">
+        {t("common.loading")}
+      </div>
+    );
+  if (!quote || quote.error)
+    return (
+      <div className="p-12 text-center text-destructive font-medium border border-destructive/30 bg-destructive/5 rounded-sm">
+        {t("quotes.quoteNotFound")}
+      </div>
+    );
 
   const p = quote.pricing as
     | {
@@ -261,28 +271,38 @@ export default function QuoteDetailPage() {
   const taxLinesFromPricing = hasPricing && Array.isArray(p!.taxLines) ? p!.taxLines : [];
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    <div className="max-w-5xl mx-auto space-y-10 pb-10">
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-3">
-          <Link href="/quotes" className="text-gray-400 hover:text-gray-600">
+      <div className="animate-engine-reveal flex flex-col gap-7 border-b border-border/60 pb-8 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex items-start gap-4 min-w-0">
+          <Link
+            href="/quotes"
+            className="mt-1 shrink-0 p-2 text-muted-foreground hover:text-foreground border border-border/60 hover:border-primary/35 rounded-sm transition-colors"
+            aria-label={t("quotes.title")}
+          >
             <ArrowLeft className="w-5 h-5" />
           </Link>
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-gray-900">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground font-mono tabular-nums">
                 {quote.quoteNumber ?? quote.id.slice(0, 8).toUpperCase()}
               </h1>
-              <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${
-                (() => {
-                  const s = String(quote.status ?? "").toLowerCase();
-                  if (s === "sent" || s === "accepted") return "bg-green-100 text-green-700";
-                  if (s === "draft") return "bg-amber-100 text-amber-700";
-                  return "bg-gray-100 text-gray-600";
-                })()
-              }`}>{t(statusTranslationKey(quote.status))}</span>
+              <span
+                className={`px-2 py-0.5 text-[11px] rounded-sm font-mono font-semibold uppercase tracking-wider border ${
+                  (() => {
+                    const s = String(quote.status ?? "").toLowerCase();
+                    if (s === "sent" || s === "accepted")
+                      return "border-emerald-600/45 bg-emerald-500/10 text-emerald-950 dark:text-emerald-300";
+                    if (s === "draft")
+                      return "border-amber-600/45 bg-amber-500/10 text-amber-950 dark:text-amber-200";
+                    return "border-border bg-muted text-muted-foreground";
+                  })()
+                }`}
+              >
+                {t(statusTranslationKey(quote.status))}
+              </span>
             </div>
-            <p className="text-gray-500 text-sm mt-0.5">
+            <p className="text-muted-foreground text-sm mt-2 font-medium leading-relaxed">
               {(quote.project as { projectName?: string; name?: string } | undefined)?.projectName ??
                 quote.project?.name}
               {quote.project?.client &&
@@ -292,51 +312,51 @@ export default function QuoteDetailPage() {
           </div>
         </div>
 
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap sm:justify-end">
           <button
             type="button"
             onClick={() => void duplicateQuote()}
             disabled={duplicating}
-            className="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+            className="inline-flex items-center gap-2 px-3 py-2 border border-border/60 rounded-sm text-sm text-foreground hover:bg-muted disabled:opacity-50 font-medium tracking-wide"
           >
-            <Copy className="w-4 h-4" /> {duplicating ? t("quotes.duplicating") : t("quotes.duplicate")}
+            <Copy className="w-4 h-4 shrink-0" /> {duplicating ? t("quotes.duplicating") : t("quotes.duplicate")}
           </button>
           {quote.projectId && (
             <Link
               href={`/sales/new?quoteId=${quote.id}&projectId=${quote.projectId}&clientId=${(quote.project as any)?.clientId ?? ""}`}
-              className="inline-flex items-center gap-2 px-3 py-2 bg-vbt-orange text-white rounded-lg text-sm font-medium hover:bg-orange-600"
+              className="inline-flex items-center gap-2 px-3 py-2 bg-vbt-orange text-white rounded-sm text-sm font-semibold hover:brightness-110 border border-orange-600/30"
             >
-              <ShoppingCart className="w-4 h-4" /> {t("quotes.createSale")}
+              <ShoppingCart className="w-4 h-4 shrink-0" /> {t("quotes.createSale")}
             </Link>
           )}
           <button
             onClick={openEdit}
-            className="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50"
+            className="inline-flex items-center gap-2 px-3 py-2 border border-border/60 rounded-sm text-sm text-foreground hover:bg-muted font-medium"
           >
-            <Pencil className="w-4 h-4" /> {t("common.edit")}
+            <Pencil className="w-4 h-4 shrink-0" /> {t("common.edit")}
           </button>
           <button
             onClick={() => setPdfDialog(true)}
-            className="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50"
+            className="inline-flex items-center gap-2 px-3 py-2 border border-border/60 rounded-sm text-sm text-foreground hover:bg-muted font-medium"
           >
-            <Download className="w-4 h-4" /> {t("quotes.pdf")}
+            <Download className="w-4 h-4 shrink-0" /> {t("quotes.pdf")}
           </button>
           <button
             onClick={() => setEmailDialog(true)}
-            className="inline-flex items-center gap-2 px-3 py-2 bg-vbt-blue text-white rounded-lg text-sm hover:bg-blue-900"
+            className="inline-flex items-center gap-2 px-3 py-2 bg-primary text-primary-foreground rounded-sm text-sm font-semibold hover:opacity-90 border border-primary/20"
           >
-            <Mail className="w-4 h-4" /> {t("quotes.sendEmail")}
+            <Mail className="w-4 h-4 shrink-0" /> {t("quotes.sendEmail")}
           </button>
           <button
             onClick={() => setArchiveDialog(true)}
-            className="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50"
+            className="inline-flex items-center gap-2 px-3 py-2 border border-border/60 rounded-sm text-sm text-foreground hover:bg-muted"
             title={t("quotes.archive")}
           >
             <Archive className="w-4 h-4" />
           </button>
           <button
             onClick={() => setDeleteDialog(true)}
-            className="inline-flex items-center gap-2 px-3 py-2 border border-red-200 text-red-600 rounded-lg text-sm hover:bg-red-50"
+            className="inline-flex items-center gap-2 px-3 py-2 border border-destructive/40 text-destructive rounded-sm text-sm hover:bg-destructive/10"
             title={t("quotes.deleteTitle")}
           >
             <Trash2 className="w-4 h-4" />
@@ -345,11 +365,19 @@ export default function QuoteDetailPage() {
       </div>
 
       {duplicateError && (
-        <div className="p-3 rounded-lg text-sm bg-red-50 text-red-700 border border-red-200">{duplicateError}</div>
+        <div className="p-3 rounded-sm text-sm bg-destructive/10 text-destructive border border-destructive/30 font-medium">
+          {duplicateError}
+        </div>
       )}
 
       {sendResult && (
-        <div className={`p-3 rounded-lg text-sm ${sendResult === "__success__" ? "bg-green-50 text-green-700 border border-green-200" : "bg-red-50 text-red-700 border border-red-200"}`}>
+        <div
+          className={`p-3 rounded-sm text-sm border font-medium ${
+            sendResult === "__success__"
+              ? "bg-primary/10 text-primary border-primary/30"
+              : "bg-destructive/10 text-destructive border-destructive/30"
+          }`}
+        >
           {sendResult === "__success__" ? t("quotes.emailSent") : sendResult}
         </div>
       )}
@@ -360,28 +388,48 @@ export default function QuoteDetailPage() {
         const totalM2PerKit = Number(quote.wallAreaM2Total) || 0;
         const totalM2Total = totalM2PerKit * tk;
         return (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-            <p className="text-xs text-gray-400 uppercase">{t("quotes.s80WallArea")}</p>
-            <p className="text-xl font-bold text-gray-800 mt-1">{(Number(quote.wallAreaM2S80) || 0).toFixed(1)} m²</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-border/60 rounded-sm overflow-hidden border border-border/60 animate-engine-reveal [animation-delay:80ms]">
+            <div className="bg-background p-5">
+              <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                {t("quotes.s80WallArea")}
+              </p>
+              <p className="text-xl font-bold mt-2 tabular-nums font-mono text-foreground">
+                {(Number(quote.wallAreaM2S80) || 0).toFixed(1)} m²
+              </p>
             </div>
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-              <p className="text-xs text-gray-400 uppercase">{t("quotes.s150WallArea")}</p>
-              <p className="text-xl font-bold text-gray-800 mt-1">{(Number(quote.wallAreaM2S150) || 0).toFixed(1)} m²</p>
+            <div className="bg-background p-5">
+              <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                {t("quotes.s150WallArea")}
+              </p>
+              <p className="text-xl font-bold mt-2 tabular-nums font-mono text-foreground">
+                {(Number(quote.wallAreaM2S150) || 0).toFixed(1)} m²
+              </p>
             </div>
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-              <p className="text-xs text-gray-400 uppercase">{t("quotes.s200WallArea")}</p>
-              <p className="text-xl font-bold text-gray-800 mt-1">{(Number(quote.wallAreaM2S200) || 0).toFixed(1)} m²</p>
+            <div className="bg-background p-5">
+              <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                {t("quotes.s200WallArea")}
+              </p>
+              <p className="text-xl font-bold mt-2 tabular-nums font-mono text-foreground">
+                {(Number(quote.wallAreaM2S200) || 0).toFixed(1)} m²
+              </p>
             </div>
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-              <p className="text-xs text-gray-400 uppercase">{t("quotes.totalWallArea")}</p>
+            <div className="bg-background p-5 border-l border-border/60 md:border-l">
+              <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                {t("quotes.totalWallArea")}
+              </p>
               {tk > 1 ? (
                 <>
-                  <p className="text-sm font-semibold text-gray-800 mt-1">{t("quotes.perKit")}: {totalM2PerKit.toFixed(1)} m²</p>
-                  <p className="text-lg font-bold text-gray-800">{t("quotes.totalLabel")}: {totalM2Total.toFixed(1)} m²</p>
+                  <p className="text-xs font-medium text-muted-foreground mt-2 font-mono tabular-nums">
+                    {t("quotes.perKit")}: {totalM2PerKit.toFixed(1)} m²
+                  </p>
+                  <p className="text-lg font-bold text-foreground font-mono tabular-nums mt-1">
+                    {t("quotes.totalLabel")}: {totalM2Total.toFixed(1)} m²
+                  </p>
                 </>
               ) : (
-                <p className="text-xl font-bold text-gray-800 mt-1">{t("quotes.totalLabel")}: {totalM2Total.toFixed(1)} m²</p>
+                <p className="text-xl font-bold mt-2 tabular-nums font-mono text-foreground">
+                  {t("quotes.totalLabel")}: {totalM2Total.toFixed(1)} m²
+                </p>
               )}
             </div>
           </div>
@@ -390,35 +438,58 @@ export default function QuoteDetailPage() {
 
       {/* SaaS quote line items */}
       {quote.items?.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+        <div className="rounded-sm border border-border/60 bg-background overflow-hidden animate-engine-reveal [animation-delay:120ms]">
           <button
             type="button"
             onClick={() => setMaterialLinesOpen((o) => !o)}
-            className="w-full p-4 border-b border-gray-100 flex items-center justify-between text-left hover:bg-gray-50/50 transition-colors"
+            className="w-full p-5 border-b border-border/60 flex items-center justify-between text-left hover:bg-muted/40 transition-colors"
           >
-            <h2 className="font-semibold text-gray-800">{t("quotes.materialLinesCount", { count: quote.items.length })}</h2>
-            {materialLinesOpen ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
+            <h2 className="text-base font-semibold text-foreground tracking-tight">
+              {t("quotes.materialLinesCount", { count: quote.items.length })}
+            </h2>
+            {materialLinesOpen ? (
+              <ChevronDown className="w-5 h-5 text-muted-foreground shrink-0" />
+            ) : (
+              <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
+            )}
           </button>
           {materialLinesOpen && (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase">{t("quotes.description")}</th>
-                    <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase">{t("quotes.system")}</th>
-                    <th className="text-right px-3 py-2 text-xs font-semibold text-gray-500 uppercase">{t("quotes.qty")}</th>
-                    <th className="text-right px-3 py-2 text-xs font-semibold text-gray-500 uppercase">{t("quotes.unitPrice")}</th>
-                    <th className="text-right px-3 py-2 text-xs font-semibold text-gray-500 uppercase">{t("quotes.total")}</th>
+            <div className="overflow-x-auto bg-background">
+              <table className="w-full text-sm border-collapse">
+                <thead>
+                  <tr className="border-b border-border/60 bg-muted/40">
+                    <th className="text-left px-3 py-2.5 text-[10px] font-mono font-semibold uppercase tracking-wider text-muted-foreground">
+                      {t("quotes.description")}
+                    </th>
+                    <th className="text-left px-3 py-2.5 text-[10px] font-mono font-semibold uppercase tracking-wider text-muted-foreground">
+                      {t("quotes.system")}
+                    </th>
+                    <th className="text-right px-3 py-2.5 text-[10px] font-mono font-semibold uppercase tracking-wider text-muted-foreground">
+                      {t("quotes.qty")}
+                    </th>
+                    <th className="text-right px-3 py-2.5 text-[10px] font-mono font-semibold uppercase tracking-wider text-muted-foreground">
+                      {t("quotes.unitPrice")}
+                    </th>
+                    <th className="text-right px-3 py-2.5 text-[10px] font-mono font-semibold uppercase tracking-wider text-muted-foreground">
+                      {t("quotes.total")}
+                    </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50">
+                <tbody>
                   {quote.items.map((line: any, i: number) => (
-                    <tr key={line.id ?? i} className={i % 2 === 0 ? "" : "bg-gray-50/50"}>
-                      <td className="px-3 py-2 text-gray-800">{line.description ?? line.sku ?? "—"}</td>
-                      <td className="px-3 py-2 text-gray-500">{line.itemType ?? "—"}</td>
-                      <td className="px-3 py-2 text-right">{line.quantity ?? 0}</td>
-                      <td className="px-3 py-2 text-right">{fmt(Number(line.unitPrice) || 0)}</td>
-                      <td className="px-3 py-2 text-right font-medium">{fmt(Number(line.totalPrice) || 0)}</td>
+                    <tr
+                      key={line.id ?? i}
+                      className={`border-b border-border/60 last:border-0 ${i % 2 === 1 ? "bg-muted/20" : ""}`}
+                    >
+                      <td className="px-3 py-2 text-foreground">{line.description ?? line.sku ?? "—"}</td>
+                      <td className="px-3 py-2 text-muted-foreground font-mono text-xs">{line.itemType ?? "—"}</td>
+                      <td className="px-3 py-2 text-right font-mono tabular-nums">{line.quantity ?? 0}</td>
+                      <td className="px-3 py-2 text-right font-mono tabular-nums text-muted-foreground">
+                        {fmt(Number(line.unitPrice) || 0)}
+                      </td>
+                      <td className="px-3 py-2 text-right font-mono tabular-nums font-semibold text-foreground">
+                        {fmt(Number(line.totalPrice) || 0)}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -430,10 +501,12 @@ export default function QuoteDetailPage() {
 
       {/* Financial summary + taxes (canonical `quote.pricing` from SaaS API) */}
       {hasPricing && p ? (
-        <div className="grid md:grid-cols-2 gap-4">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 space-y-3">
-            <h2 className="font-semibold text-gray-800">{t("quotes.costBreakdown")}</h2>
-            <div className="space-y-2 text-sm">
+        <div className="grid md:grid-cols-2 gap-6 animate-engine-reveal [animation-delay:160ms]">
+          <div className="rounded-sm border border-border/60 bg-background p-6 space-y-5">
+            <h2 className="text-xs font-mono font-semibold uppercase tracking-[0.12em] text-muted-foreground border-b border-border/60 pb-3">
+              {t("quotes.costBreakdown")}
+            </h2>
+            <div className="space-y-0 text-sm font-mono tabular-nums">
               {(() => {
                 const showExw = p.factoryExwUsd != null && p.factoryExwUsd !== undefined;
                 const firstRow = showExw
@@ -455,35 +528,49 @@ export default function QuoteDetailPage() {
                 ];
                 return rows;
               })().map((row) => (
-                <div key={row.label} className={`flex justify-between ${row.bold ? "font-semibold border-t pt-2" : ""}`}>
-                  <span className={row.bold ? "" : "text-gray-500"}>{row.label}</span>
-                  <span>{fmt(Number(row.value) || 0)}</span>
+                <div
+                  key={row.label}
+                  className={`flex justify-between gap-4 py-2.5 border-b border-border/60 last:border-0 ${
+                    row.bold ? "font-semibold text-foreground border-t border-border/60 mt-1 pt-4" : ""
+                  }`}
+                >
+                  <span className={row.bold ? "text-foreground" : "text-muted-foreground text-xs uppercase tracking-wide font-sans"}>
+                    {row.label}
+                  </span>
+                  <span
+                    className={`shrink-0 ${row.bold ? "text-foreground font-semibold" : "text-muted-foreground"}`}
+                  >
+                    {fmt(Number(row.value) || 0)}
+                  </span>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 space-y-3">
-            <h2 className="font-semibold text-gray-800">
+          <div className="rounded-sm border border-border/60 bg-background p-6 space-y-5">
+            <h2 className="text-xs font-mono font-semibold uppercase tracking-[0.12em] text-muted-foreground border-b border-border/60 pb-3">
               {t("quotes.taxesFees")}
               {quote.project?.countryCode && ` (${String(quote.project.countryCode)})`}
             </h2>
             {taxLinesFromPricing.length > 0 ? (
-              <div className="space-y-2 text-sm">
+              <div className="space-y-0 text-sm font-mono tabular-nums">
                 {taxLinesFromPricing.map((tl) => {
                   const label =
                     tl.perContainer || /per container/i.test(tl.label || "")
                       ? (tl.label || "").replace(/\s*\(per container\)/gi, " (per order)")
                       : tl.label || "";
                   return (
-                    <div key={`${tl.order}-${tl.label}`} className="flex justify-between">
-                      <span className="text-gray-500">{label}</span>
-                      <span className="font-medium">{fmt(Number(tl.computedAmount) || 0)}</span>
+                    <div
+                      key={`${tl.order}-${tl.label}`}
+                      className="flex justify-between gap-4 py-2.5 border-b border-border/60"
+                    >
+                      <span className="text-muted-foreground text-xs font-sans pr-2">{label}</span>
+                      <span className="font-medium text-muted-foreground shrink-0">{fmt(Number(tl.computedAmount) || 0)}</span>
                     </div>
                   );
                 })}
-                <div className="flex justify-between font-semibold border-t pt-2">
-                  <span>{t("quotes.totalTaxesLabel")}</span>
+                <div className="flex justify-between font-semibold border-t border-border/60 pt-4 mt-1 text-foreground">
+                  <span className="uppercase text-xs tracking-wide font-sans">{t("quotes.totalTaxesLabel")}</span>
                   <span>
                     {fmt(
                       taxLinesFromPricing.reduce((s, tl) => s + (Number(tl.computedAmount) || 0), 0)
@@ -492,23 +579,25 @@ export default function QuoteDetailPage() {
                 </div>
               </div>
             ) : (
-              <p className="text-gray-400 text-sm">{t("quotes.noTaxesApplied")}</p>
+              <p className="text-muted-foreground text-sm font-mono">{t("quotes.noTaxesApplied")}</p>
             )}
           </div>
         </div>
       ) : (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-900">
+        <div className="bg-alert-warning border border-alert-warningBorder rounded-sm p-4 text-sm text-foreground">
           {t("quotes.pricingUnavailable")}
         </div>
       )}
 
       {/* Total (persisted totalPrice = source of truth) */}
-      <div className="bg-vbt-blue rounded-xl p-6">
-        <div className="flex items-center justify-between">
+      <div className="rounded-sm border-2 border-engine-accent/45 bg-background p-8 animate-engine-reveal [animation-delay:200ms]">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-white/70">{t("quotes.landedDdpTotal")}</p>
+            <p className="text-xs font-mono font-semibold uppercase tracking-[0.16em] text-engine-accent">
+              {t("quotes.landedDdpTotal")}
+            </p>
             {(Number(quote.totalKits) || 0) > 0 && (
-              <div className="text-white/50 text-sm mt-1 space-y-0.5">
+              <div className="text-muted-foreground/90 text-xs mt-4 space-y-1 font-mono tabular-nums">
                 <p>
                   {quote.totalKits} kits · {quote.numContainers} container{Number(quote.numContainers) !== 1 ? "s" : ""} ·{" "}
                   {fmt(mainTotalUsd / Math.max(Number(quote.numContainers) || 1, 1))}/container
@@ -517,13 +606,17 @@ export default function QuoteDetailPage() {
               </div>
             )}
           </div>
-          <p className="text-4xl font-bold text-white">{fmt(mainTotalUsd)}</p>
+          <p className="text-5xl sm:text-6xl font-bold tabular-nums font-mono text-foreground tracking-wide">
+            {fmt(mainTotalUsd)}
+          </p>
         </div>
       </div>
 
       {/* Informational — stored values are per kit (CSV = one kit); total = per kit × totalKits. Show "Por kit" only when totalKits > 1. */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-        <h2 className="font-semibold text-gray-800 mb-3">{t("quotes.informational")}</h2>
+      <div className="rounded-sm border border-border/60 bg-background p-6 animate-engine-reveal [animation-delay:240ms]">
+        <h2 className="text-xs font-mono font-semibold uppercase tracking-[0.12em] text-muted-foreground border-b border-border/60 pb-3 mb-5">
+          {t("quotes.informational")}
+        </h2>
         {(() => {
           const tk = Math.max(Number(quote.totalKits) || 1, 1);
           const m2PerKit = Number(quote.wallAreaM2Total) || 0;
@@ -534,26 +627,62 @@ export default function QuoteDetailPage() {
           const kgTotal = kgPerKit * tk;
           return (
             <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-                <div className="bg-gray-50 rounded-lg p-3">
-                  <p className="text-gray-500 text-xs font-medium uppercase mb-1">{t("quotes.wallsM2")}</p>
-                  {tk > 1 && <p className="font-semibold text-gray-800">{t("quotes.perKit")}: {m2PerKit.toLocaleString("en-US", { minimumFractionDigits: 2 })} m²</p>}
-                  <p className={tk > 1 ? "text-gray-600" : "font-semibold text-gray-800"}>{t("quotes.totalLabel")}: {m2Total.toLocaleString("en-US", { minimumFractionDigits: 2 })} m²</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-border/60 rounded-sm overflow-hidden border border-border/60">
+                <div className="bg-background p-4">
+                  <p className="text-[10px] font-mono font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                    {t("quotes.wallsM2")}
+                  </p>
+                  {tk > 1 && (
+                    <p className="font-mono tabular-nums text-sm text-foreground">
+                      {t("quotes.perKit")}: {m2PerKit.toLocaleString("en-US", { minimumFractionDigits: 2 })} m²
+                    </p>
+                  )}
+                  <p
+                    className={`font-mono tabular-nums ${tk > 1 ? "text-muted-foreground text-sm mt-1" : "text-lg font-semibold text-foreground"}`}
+                  >
+                    {t("quotes.totalLabel")}: {m2Total.toLocaleString("en-US", { minimumFractionDigits: 2 })} m²
+                  </p>
                 </div>
-                <div className="bg-gray-50 rounded-lg p-3">
-                  <p className="text-gray-500 text-xs font-medium uppercase mb-1">{t("quotes.concreteM3")}</p>
-                  {tk > 1 && <p className="font-semibold text-gray-800">{t("quotes.perKit")}: {m3PerKit.toLocaleString("en-US", { minimumFractionDigits: 2 })} m³</p>}
-                  <p className={tk > 1 ? "text-gray-600" : "font-semibold text-gray-800"}>{t("quotes.totalLabel")}: {m3Total.toLocaleString("en-US", { minimumFractionDigits: 2 })} m³</p>
+                <div className="bg-background p-4">
+                  <p className="text-[10px] font-mono font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                    {t("quotes.concreteM3")}
+                  </p>
+                  {tk > 1 && (
+                    <p className="font-mono tabular-nums text-sm text-foreground">
+                      {t("quotes.perKit")}: {m3PerKit.toLocaleString("en-US", { minimumFractionDigits: 2 })} m³
+                    </p>
+                  )}
+                  <p
+                    className={`font-mono tabular-nums ${tk > 1 ? "text-muted-foreground text-sm mt-1" : "text-lg font-semibold text-foreground"}`}
+                  >
+                    {t("quotes.totalLabel")}: {m3Total.toLocaleString("en-US", { minimumFractionDigits: 2 })} m³
+                  </p>
                 </div>
-                <div className="bg-gray-50 rounded-lg p-3">
-                  <p className="text-gray-500 text-xs font-medium uppercase mb-1">{t("quotes.steelKg")}</p>
-                  {tk > 1 && <p className="font-semibold text-gray-800">{t("quotes.perKit")}: {kgPerKit.toLocaleString("en-US", { minimumFractionDigits: 1 })} kg</p>}
-                  <p className={tk > 1 ? "text-gray-600" : "font-semibold text-gray-800"}>{t("quotes.totalLabel")}: {kgTotal.toLocaleString("en-US", { minimumFractionDigits: 1 })} kg</p>
+                <div className="bg-background p-4">
+                  <p className="text-[10px] font-mono font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                    {t("quotes.steelKg")}
+                  </p>
+                  {tk > 1 && (
+                    <p className="font-mono tabular-nums text-sm text-foreground">
+                      {t("quotes.perKit")}: {kgPerKit.toLocaleString("en-US", { minimumFractionDigits: 1 })} kg
+                    </p>
+                  )}
+                  <p
+                    className={`font-mono tabular-nums ${tk > 1 ? "text-muted-foreground text-sm mt-1" : "text-lg font-semibold text-foreground"}`}
+                  >
+                    {t("quotes.totalLabel")}: {kgTotal.toLocaleString("en-US", { minimumFractionDigits: 1 })} kg
+                  </p>
                 </div>
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm border-t border-gray-100 pt-3">
-                <div><p className="text-gray-400 text-xs">{t("quotes.panelWeight")}</p><p className="font-semibold">{(Number(quote.totalWeightKg) || 0).toFixed(0)} kg</p></div>
-                <div><p className="text-gray-400 text-xs">{t("quotes.panelVolume")}</p><p className="font-semibold">{(Number(quote.totalVolumeM3) || 0).toFixed(2)} m³</p></div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm border-t border-border/60 pt-5 font-mono tabular-nums">
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-sans">{t("quotes.panelWeight")}</p>
+                  <p className="font-semibold text-foreground mt-1">{(Number(quote.totalWeightKg) || 0).toFixed(0)} kg</p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-sans">{t("quotes.panelVolume")}</p>
+                  <p className="font-semibold text-foreground mt-1">{(Number(quote.totalVolumeM3) || 0).toFixed(2)} m³</p>
+                </div>
               </div>
             </div>
           );
@@ -561,22 +690,22 @@ export default function QuoteDetailPage() {
       </div>
 
       {/* Activity */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-        <div className="p-5 border-b border-gray-100 flex items-center gap-2">
-          <Activity className="w-5 h-5 text-gray-500" />
-          <h2 className="font-semibold text-gray-800">{t("quotes.activity")}</h2>
+      <div className="rounded-sm border border-border/60 bg-background overflow-hidden animate-engine-reveal [animation-delay:280ms]">
+        <div className="px-5 py-3.5 border-b border-border/60 flex items-center gap-2 bg-muted/25">
+          <Activity className="w-4 h-4 text-muted-foreground shrink-0" />
+          <h2 className="text-xs font-mono font-semibold uppercase tracking-[0.12em] text-foreground">{t("quotes.activity")}</h2>
         </div>
-        <div className="p-5">
+        <div className="p-6">
           {loadingAudit ? (
-            <p className="text-gray-400 text-sm">{t("common.loading")}</p>
+            <p className="text-muted-foreground text-sm font-mono">{t("common.loading")}</p>
           ) : auditLog.length === 0 ? (
-            <p className="text-gray-400 text-sm">{t("quotes.noActivityYet")}</p>
+            <p className="text-muted-foreground text-sm">{t("quotes.noActivityYet")}</p>
           ) : (
-            <ul className="space-y-3">
+            <ul className="divide-y divide-border/60">
               {auditLog.map((entry) => (
-                <li key={entry.id} className="flex items-center justify-between text-sm border-b border-gray-50 pb-2 last:border-0 last:pb-0">
-                  <span className="text-gray-700">{formatQuoteAction(entry.action, entry.meta)}</span>
-                  <span className="text-gray-400 text-xs">
+                <li key={entry.id} className="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between text-sm first:pt-0">
+                  <span className="text-foreground font-sans leading-snug">{formatQuoteAction(entry.action, entry.meta)}</span>
+                  <span className="text-muted-foreground text-xs font-mono tabular-nums shrink-0">
                     {entry.userName ?? t("projects.system")} · {new Date(entry.createdAt).toLocaleString()}
                   </span>
                 </li>
@@ -588,16 +717,21 @@ export default function QuoteDetailPage() {
 
       {/* Edit quote modal */}
       {editOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md m-4">
-            <h3 className="font-semibold text-lg mb-4">{t("quotes.editQuote")}</h3>
+        <div className="fixed inset-0 bg-black/65 flex items-center justify-center z-50">
+          <div className="bg-background border border-border/60 rounded-sm p-6 w-full max-w-md m-4 ring-1 ring-border/60">
+            <h3 className="font-semibold text-lg mb-1 text-foreground tracking-tight">{t("quotes.editQuote")}</h3>
+            <p className="text-xs font-mono uppercase tracking-wider text-muted-foreground mb-4 border-b border-border/60 pb-3">
+              {quote.quoteNumber ?? quote.id.slice(0, 8).toUpperCase()}
+            </p>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t("common.status")}</label>
+                <label className="block text-[10px] font-mono font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+                  {t("common.status")}
+                </label>
                 <select
                   value={editStatus}
                   onChange={(e) => setEditStatus(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  className="w-full border border-input rounded-sm px-3 py-2 text-sm bg-background"
                 >
                   <option value="draft">{t("quotes.draft")}</option>
                   <option value="sent">{t("quotes.sent")}</option>
@@ -608,12 +742,14 @@ export default function QuoteDetailPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t("quotes.notes")}</label>
+                <label className="block text-[10px] font-mono font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+                  {t("quotes.notes")}
+                </label>
                 <textarea
                   value={editNotes}
                   onChange={(e) => setEditNotes(e.target.value)}
                   rows={3}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  className="w-full border border-input rounded-sm px-3 py-2 text-sm bg-background"
                   placeholder={t("quotes.internalNotesPlaceholder")}
                 />
               </div>
@@ -622,7 +758,7 @@ export default function QuoteDetailPage() {
               <button
                 type="button"
                 onClick={() => setEditOpen(false)}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50"
+                className="px-4 py-2 border border-border/60 rounded-sm text-sm text-foreground hover:bg-muted font-medium"
               >
                 {t("common.cancel")}
               </button>
@@ -630,7 +766,7 @@ export default function QuoteDetailPage() {
                 type="button"
                 onClick={saveEdit}
                 disabled={saving}
-                className="px-4 py-2 bg-vbt-orange text-white rounded-lg text-sm font-medium hover:bg-orange-600 disabled:opacity-50"
+                className="px-4 py-2 bg-vbt-orange text-white rounded-sm text-sm font-semibold hover:brightness-110 disabled:opacity-50 border border-orange-600/30"
               >
                 {saving ? t("common.saving") : t("common.save")}
               </button>
@@ -641,46 +777,53 @@ export default function QuoteDetailPage() {
 
       {/* PDF options dialog */}
       {pdfDialog && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md m-4">
-            <h3 className="font-semibold text-lg mb-4">{t("quotes.pdfOptions")}</h3>
-            <div className="space-y-3 text-sm">
-              <label className="flex items-center gap-2 cursor-pointer">
+        <div className="fixed inset-0 bg-black/65 flex items-center justify-center z-50">
+          <div className="bg-background border border-border/60 rounded-sm p-6 w-full max-w-md m-4 ring-1 ring-border/60">
+            <h3 className="font-semibold text-lg mb-1 text-foreground">{t("quotes.pdfOptions")}</h3>
+            <p className="text-xs font-mono text-muted-foreground uppercase tracking-wider mb-4">{t("quotes.pdf")}</p>
+            <div className="space-y-3 text-sm border-t border-border/60 pt-4">
+              <label className="flex items-center gap-3 cursor-pointer py-1">
                 <input
                   type="checkbox"
                   checked={pdfOptions.includeMaterialLines}
                   onChange={(e) => setPdfOptions((o) => ({ ...o, includeMaterialLines: e.target.checked }))}
-                  className="rounded border-gray-300"
+                  className="rounded-sm border-input"
                 />
                 {t("quotes.includeMaterialLinesPdf")}
               </label>
-              <label className="flex items-center gap-2 cursor-pointer">
+              <label className="flex items-center gap-3 cursor-pointer py-1">
                 <input
                   type="checkbox"
                   checked={pdfOptions.showUnitPrice}
                   onChange={(e) => setPdfOptions((o) => ({ ...o, showUnitPrice: e.target.checked }))}
-                  className="rounded border-gray-300"
+                  className="rounded-sm border-input"
                 />
                 {t("quotes.showUnitPricePdf")}
               </label>
-              <label className="flex items-center gap-2 cursor-pointer">
+              <label className="flex items-center gap-3 cursor-pointer py-1">
                 <input
                   type="checkbox"
                   checked={pdfOptions.includeAlerts}
                   onChange={(e) => setPdfOptions((o) => ({ ...o, includeAlerts: e.target.checked }))}
-                  className="rounded border-gray-300"
+                  className="rounded-sm border-input"
                 />
                 {t("quotes.includeMinRunAlerts")}
               </label>
             </div>
             {/* PDF: legacy `/api/quotes/:id/pdf` hasta que exista SaaS. */}
             <div className="flex justify-end gap-2 mt-6">
-              <button type="button" onClick={() => setPdfDialog(false)} className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50">{t("common.cancel")}</button>
+              <button
+                type="button"
+                onClick={() => setPdfDialog(false)}
+                className="px-4 py-2 border border-border/60 rounded-sm text-sm text-foreground hover:bg-muted"
+              >
+                {t("common.cancel")}
+              </button>
               <a
                 href={`/api/quotes/${quote.id}/pdf?includeAlerts=${pdfOptions.includeAlerts ? "1" : "0"}&includeMaterialLines=${pdfOptions.includeMaterialLines ? "1" : "0"}&showUnitPrice=${pdfOptions.showUnitPrice ? "1" : "0"}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-vbt-blue text-white rounded-lg text-sm hover:bg-blue-900"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-sm text-sm font-semibold hover:opacity-90 border border-primary/20"
                 onClick={() => setPdfDialog(false)}
               >
                 <Download className="w-4 h-4" /> {t("quotes.downloadPdf")}
@@ -718,39 +861,48 @@ export default function QuoteDetailPage() {
 
       {/* Email Dialog */}
       {emailDialog && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md m-4">
-            <h3 className="font-semibold text-lg mb-4">{t("quotes.sendQuoteEmail")}</h3>
+        <div className="fixed inset-0 bg-black/65 flex items-center justify-center z-50">
+          <div className="bg-background border border-border/60 rounded-sm p-6 w-full max-w-md m-4 ring-1 ring-border/60">
+            <h3 className="font-semibold text-lg mb-4 text-foreground">{t("quotes.sendQuoteEmail")}</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t("quotes.to")} *</label>
+                <label className="block text-[10px] font-mono font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+                  {t("quotes.to")} *
+                </label>
                 <input
                   type="email"
                   value={emailTo}
                   onChange={(e) => setEmailTo(e.target.value)}
                   placeholder={t("quotes.emailPlaceholder")}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-vbt-blue"
+                  className="w-full px-3 py-2 border border-input rounded-sm text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t("quotes.message")}</label>
+                <label className="block text-[10px] font-mono font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+                  {t("quotes.message")}
+                </label>
                 <textarea
                   rows={3}
                   value={emailMsg}
                   onChange={(e) => setEmailMsg(e.target.value)}
                   placeholder={t("quotes.messagePlaceholder")}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-vbt-blue"
+                  className="w-full px-3 py-2 border border-input rounded-sm text-sm resize-none bg-background focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
               {sendResult && sendResult !== "__success__" && (
-                <p className="text-red-600 text-sm">{sendResult}</p>
+                <p className="text-destructive text-sm border border-destructive/30 rounded-sm px-2 py-1.5 bg-destructive/5">{sendResult}</p>
               )}
-              <div className="flex gap-3 justify-end">
-                <button onClick={() => setEmailDialog(false)} className="px-4 py-2 border border-gray-300 rounded-lg text-sm">{t("common.cancel")}</button>
+              <div className="flex gap-3 justify-end pt-2">
+                <button
+                  onClick={() => setEmailDialog(false)}
+                  className="px-4 py-2 border border-border/60 rounded-sm text-sm hover:bg-muted"
+                >
+                  {t("common.cancel")}
+                </button>
                 <button
                   onClick={sendEmail}
                   disabled={sending || !emailTo}
-                  className="px-4 py-2 bg-vbt-blue text-white rounded-lg text-sm disabled:opacity-50"
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-sm text-sm font-semibold disabled:opacity-50 border border-primary/20"
                 >
                   {sending ? t("quotes.sending") : t("quotes.send")}
                 </button>

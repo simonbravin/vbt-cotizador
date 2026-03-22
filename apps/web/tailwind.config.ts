@@ -16,6 +16,10 @@ const config: Config = {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ["var(--font-plex-sans)", "IBM Plex Sans", "system-ui", "sans-serif"],
+        mono: ["var(--font-plex-mono)", "IBM Plex Mono", "ui-monospace", "monospace"],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -68,6 +72,9 @@ const config: Config = {
           successBorder: "hsl(var(--alert-success-border))",
           error: "hsl(var(--alert-error-bg))",
           errorBorder: "hsl(var(--alert-error-border))",
+        },
+        engine: {
+          accent: "hsl(var(--engine-accent))",
         },
       },
       borderRadius: {

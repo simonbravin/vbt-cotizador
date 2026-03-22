@@ -86,19 +86,19 @@ export default async function DashboardPage(props: PageProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {accessDeniedSuperadmin && (
-        <div className="bg-destructive/15 border border-destructive/30 text-destructive rounded-xl px-4 py-3 text-sm">
+        <div className="bg-destructive/15 border border-destructive/30 text-destructive rounded-sm px-4 py-3 text-sm">
           {t("dashboard.accessDeniedSuperadmin")}
         </div>
       )}
-      {dataLoadError && (projectCount > 0 || quoteCount > 0) && (
-        <div className="bg-alert-warning border border-alert-warningBorder rounded-xl px-4 py-3 text-sm flex items-center justify-between gap-4 flex-wrap">
+        {dataLoadError && (projectCount > 0 || quoteCount > 0) && (
+        <div className="bg-alert-warning border border-alert-warningBorder rounded-sm px-4 py-3 text-sm flex items-center justify-between gap-4 flex-wrap">
           <p className="text-foreground">
             <span className="font-medium">{t("dashboard.errorLoad")}</span>
             <span className="text-muted-foreground ml-1">{t("dashboard.errorHelp")}</span>
           </p>
-          <Link href="/dashboard" className="shrink-0 px-3 py-1.5 bg-muted text-foreground rounded-lg text-sm font-medium hover:bg-muted/80">
+          <Link href="/dashboard" className="shrink-0 px-3 py-1.5 bg-muted text-foreground rounded-sm text-sm font-medium hover:bg-muted/80 border border-border">
             {t("common.retry")}
           </Link>
         </div>
@@ -114,14 +114,14 @@ export default async function DashboardPage(props: PageProps) {
         <div className="flex gap-3">
           <Link
             href="/projects/new"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-sm text-sm font-semibold hover:opacity-90 transition-opacity border border-primary/20"
           >
             <Plus className="w-4 h-4" />
             {t("dashboard.newProject")}
           </Link>
           <Link
             href="/quotes/create"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-vbt-orange text-white rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-vbt-orange text-white rounded-sm text-sm font-semibold hover:brightness-110 transition-[filter] border border-orange-600/30"
           >
             <Plus className="w-4 h-4" />
             {t("dashboard.newQuote")}
@@ -131,7 +131,7 @@ export default async function DashboardPage(props: PageProps) {
 
       {/* Pending users alert: only superadmin can see and access admin approval (partners never see this) */}
       {(user as { isPlatformSuperadmin?: boolean }).isPlatformSuperadmin && pendingUsers > 0 && (
-        <div className="bg-alert-warning border border-alert-warningBorder rounded-xl p-4 flex items-center justify-between">
+        <div className="bg-alert-warning border border-alert-warningBorder rounded-sm p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
               <span className="text-foreground font-bold text-sm">{pendingUsers}</span>
@@ -198,24 +198,24 @@ export default async function DashboardPage(props: PageProps) {
           <Link
             key={stat.href}
             href={stat.href}
-            className="bg-card rounded-xl p-5 shadow-sm border border-border hover:shadow-md transition-shadow"
+            className="bg-background rounded-sm p-6 border border-border/60 hover:border-border transition-colors"
           >
             <div className="flex items-center justify-between mb-3">
-              <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-muted border border-border/60 rounded-sm flex items-center justify-center">
                 <stat.icon className="w-5 h-5 text-primary" />
               </div>
             </div>
-            <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-            <p className="text-muted-foreground text-sm mt-0.5">{stat.label}</p>
+            <p className="text-2xl font-bold text-foreground font-mono tabular-nums tracking-tight">{stat.value}</p>
+            <p className="text-muted-foreground text-[11px] font-mono uppercase tracking-wider mt-1">{stat.label}</p>
           </Link>
         ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Quotes */}
-        <div className="bg-card rounded-xl shadow-sm border border-border">
-          <div className="p-5 border-b border-border flex items-center justify-between">
-            <h2 className="font-semibold text-foreground">{t("dashboard.recentQuotes")}</h2>
+        <div className="bg-background rounded-sm border border-border/60">
+          <div className="p-5 border-b border-border/60 flex items-center justify-between bg-muted/25">
+            <h2 className="text-xs font-mono font-semibold uppercase tracking-[0.12em] text-foreground">{t("dashboard.recentQuotes")}</h2>
             <Link href="/quotes" className="text-sm text-primary hover:underline">
               {t("common.viewAll")}
             </Link>
@@ -259,9 +259,9 @@ export default async function DashboardPage(props: PageProps) {
         </div>
 
         {/* Recent Projects */}
-        <div className="bg-card rounded-xl shadow-sm border border-border">
-          <div className="p-5 border-b border-border flex items-center justify-between">
-            <h2 className="font-semibold text-foreground">{t("dashboard.recentProjects")}</h2>
+        <div className="bg-background rounded-sm border border-border/60">
+          <div className="p-5 border-b border-border/60 flex items-center justify-between bg-muted/25">
+            <h2 className="text-xs font-mono font-semibold uppercase tracking-[0.12em] text-foreground">{t("dashboard.recentProjects")}</h2>
             <Link href="/projects" className="text-sm text-primary hover:underline">
               {t("common.viewAll")}
             </Link>

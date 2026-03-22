@@ -16,10 +16,10 @@ interface ThemeContextValue {
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 function readThemeFromCookie(): Theme {
-  if (typeof document === "undefined") return "light";
+  if (typeof document === "undefined") return "dark";
   const match = document.cookie.match(new RegExp(`${THEME_COOKIE_NAME}=([^;]+)`));
   const value = match?.[1];
-  return value === "dark" ? "dark" : "light";
+  return value === "light" ? "light" : "dark";
 }
 
 function applyTheme(theme: Theme) {
@@ -38,7 +38,7 @@ function persistTheme(theme: Theme) {
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>("light");
+  const [theme, setThemeState] = useState<Theme>("dark");
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -64,7 +64,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <ThemeContext.Provider value={{ theme: mounted ? theme : "light", setTheme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme: mounted ? theme : "dark", setTheme, toggleTheme }}>
       {children}
     </ThemeContext.Provider>
   );

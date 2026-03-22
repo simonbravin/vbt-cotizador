@@ -7,9 +7,10 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import Link from "next/link";
-import Image from "next/image";
 import { useLanguage } from "@/lib/i18n/context";
-import { Locale } from "@/lib/i18n/translations";
+import { AuthEngineeringShell, AuthFormSurface } from "@/components/auth/AuthEngineeringShell";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 function getLoginSchema(t: (key: string) => string) {
   return z.object({
@@ -60,64 +61,63 @@ function LoginForm() {
   }
 
   return (
-    <div className="bg-slate-800/95 backdrop-blur-sm rounded-2xl shadow-2xl border border-white/20 p-8 ring-1 ring-white/10">
-      <h2 className="text-xl font-semibold text-white mb-6">{t("auth.signIn")}</h2>
+    <AuthFormSurface>
+      <h2 className="text-lg font-semibold text-foreground tracking-tight mb-6">{t("auth.signIn")}</h2>
 
       {searchParams.get("reset") === "success" && (
-        <div className="mb-4 p-3 bg-green-900/50 border border-green-400/50 rounded-lg text-green-200 text-sm">
+        <div className="mb-4 p-3 rounded-sm border border-primary/30 bg-primary/10 text-sm text-foreground">
           {t("auth.resetSuccess")}
         </div>
       )}
       {searchParams.get("message") && (
-        <div className="mb-4 p-3 bg-green-900/50 border border-green-400/50 rounded-lg text-green-200 text-sm">
+        <div className="mb-4 p-3 rounded-sm border border-primary/30 bg-primary/10 text-sm text-foreground">
           {decodeURIComponent(searchParams.get("message") ?? "")}
         </div>
       )}
       {searchParams.get("error") === "INACTIVE" && (
-        <div className="mb-4 p-3 bg-red-900/50 border border-red-400/50 rounded-lg text-red-200 text-sm">
+        <div className="mb-4 p-3 rounded-sm border border-destructive/30 bg-destructive/10 text-sm text-destructive">
           {t("auth.suspended")}
         </div>
       )}
 
       {error && (
-        <div className="mb-4 p-3 bg-red-900/50 border border-red-400/50 rounded-lg text-red-200 text-sm">
+        <div className="mb-4 p-3 rounded-sm border border-destructive/30 bg-destructive/10 text-sm text-destructive">
           {error}
         </div>
       )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-white mb-1">
+          <label className="block text-[11px] font-mono font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
             {t("auth.email")}
           </label>
-          <input
+          <Input
             {...register("email")}
             type="email"
             autoComplete="email"
-            className="w-full px-3 py-2 bg-white text-gray-900 border border-white/30 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-vbt-blue focus:border-transparent"
             placeholder={t("auth.placeholderEmail")}
           />
           {errors.email && (
-            <p className="mt-1 text-xs text-red-600">{errors.email.message}</p>
+            <p className="mt-1 text-xs text-destructive">{errors.email.message}</p>
           )}
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-white mb-1">
+          <label className="block text-[11px] font-mono font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
             {t("auth.password")}
           </label>
           <div className="relative">
-            <input
+            <Input
               {...register("password")}
               type={showPassword ? "text" : "password"}
               autoComplete="current-password"
-              className="w-full px-3 py-2 pr-10 bg-white text-gray-900 border border-white/30 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-vbt-blue focus:border-transparent"
+              className="pr-10"
               placeholder="••••••••"
             />
             <button
               type="button"
               onClick={() => setShowPassword((v) => !v)}
-              className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-gray-600"
+              className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground hover:text-foreground"
               tabIndex={-1}
             >
               {showPassword ? (
@@ -134,88 +134,42 @@ function LoginForm() {
           </div>
         </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-vbt-blue hover:bg-blue-900 text-white font-medium py-2.5 px-4 rounded-lg text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
+        <Button type="submit" disabled={loading} className="w-full border border-primary/20">
           {loading ? t("auth.signingIn") : t("auth.signInBtn")}
-        </button>
-        <p className="text-center mt-3">
-          <Link href="/forgot-password" className="text-sm text-white/80 hover:text-vbt-orange hover:underline">
+        </Button>
+        <p className="text-center pt-1">
+          <Link href="/forgot-password" className="text-sm text-muted-foreground hover:text-primary hover:underline underline-offset-2">
             {t("auth.forgotPassword")}
           </Link>
         </p>
       </form>
 
-      <div className="mt-6 text-center">
-        <p className="text-sm text-white/80">
+      <div className="mt-6 pt-6 border-t border-border/60 text-center">
+        <p className="text-sm text-muted-foreground">
           {t("auth.noAccount")}{" "}
-          <Link href="/signup" className="text-vbt-orange hover:underline font-medium">
+          <Link href="/signup" className="text-primary font-medium hover:underline underline-offset-2">
             {t("auth.requestAccess")}
           </Link>
         </p>
       </div>
-    </div>
+    </AuthFormSurface>
   );
 }
 
 export default function LoginPage() {
-  const { locale, setLocale, t } = useLanguage();
+  const { t } = useLanguage();
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Language toggle – top right */}
-      <div className="absolute top-4 right-4 z-20">
-        <div className="flex items-center rounded-xl border border-white/25 bg-white/5 backdrop-blur-sm overflow-hidden text-xs font-medium shadow-lg">
-          {(["en", "es"] as Locale[]).map((l) => (
-            <button
-              key={l}
-              onClick={() => setLocale(l)}
-              className={`px-3 py-2 transition-colors ${
-                locale === l ? "bg-white text-vbt-blue" : "text-white/80 hover:text-white hover:bg-white/10"
-              }`}
-            >
-              {l === "en" ? "ENG" : "ESP"}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Background: gradient + subtle grid */}
-      <div className="absolute inset-0 bg-gradient-to-br from-vbt-blue via-blue-900 to-slate-900" />
-      <div
-        className="absolute inset-0 opacity-[0.06]"
-        style={{
-          backgroundImage: `linear-gradient(hsl(var(--auth-grid-overlay)) 1px, transparent 1px),
-            linear-gradient(90deg, hsl(var(--auth-grid-overlay)) 1px, transparent 1px)`,
-          backgroundSize: "48px 48px",
-        }}
-      />
-      {/* Soft glow accent */}
-      <div className="absolute top-1/4 -left-32 w-64 h-64 bg-vbt-orange/20 rounded-full blur-3xl" />
-      <div className="absolute bottom-1/4 -right-32 w-80 h-80 bg-blue-400/15 rounded-full blur-3xl" />
-
-      <div className="w-full max-w-md relative z-10">
-        {/* Logo & Title */}
-        <div className="text-center mb-8">
-          <div className="flex justify-center mb-4 drop-shadow-lg">
-            <Image
-              src="/logo-vbt-white.png"
-              alt="Vision Building Technologies"
-              width={320}
-              height={72}
-              className="h-16 w-auto object-contain"
-            />
-          </div>
-          <h1 className="text-2xl font-bold text-white tracking-tight drop-shadow-md">{t("topbar.title")}</h1>
-          <p className="text-white/70 mt-1.5 text-sm">{t("auth.appSubtitle")}</p>
-        </div>
-
-        <Suspense fallback={<div className="bg-white/95 backdrop-blur rounded-2xl shadow-2xl p-8 text-center text-gray-400 text-sm">{t("common.loading")}</div>}>
-          <LoginForm />
-        </Suspense>
-      </div>
-    </div>
+    <AuthEngineeringShell>
+      <Suspense
+        fallback={
+          <AuthFormSurface>
+            <p className="text-center text-sm text-muted-foreground py-4">{t("common.loading")}</p>
+          </AuthFormSurface>
+        }
+      >
+        <LoginForm />
+      </Suspense>
+    </AuthEngineeringShell>
   );
 }

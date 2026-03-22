@@ -147,9 +147,9 @@ export function TopBar({ user, showContextSwitcher, activeOrgName }: TopBarProps
   };
 
   return (
-    <header className="h-14 bg-header border-b border-header-foreground/10 flex items-center justify-between px-6 flex-shrink-0 shadow-sm">
+    <header className="h-14 bg-header border-b border-header-foreground/15 flex items-center justify-between px-6 flex-shrink-0">
       <div className="flex items-center gap-3">
-        <h1 className="text-lg font-semibold text-header-foreground">{t("topbar.title")}</h1>
+        <h1 className="text-lg font-semibold text-header-foreground tracking-tight">{t("topbar.title")}</h1>
         <span className="text-header-foreground/40">|</span>
         {showContextSwitcher ? (
           <div className="relative">
@@ -166,7 +166,7 @@ export function TopBar({ user, showContextSwitcher, activeOrgName }: TopBarProps
             {switcherOpen && (
               <>
                 <div className="fixed inset-0 z-10" aria-hidden onClick={() => setSwitcherOpen(false)} />
-                <div className="absolute left-0 top-full mt-1 z-20 min-w-[200px] rounded-lg border border-border bg-popover shadow-lg py-1 text-left">
+                <div className="absolute left-0 top-full mt-1 z-20 min-w-[200px] rounded-sm border border-border bg-popover py-1 text-left shadow-none ring-1 ring-border/60">
                   <button
                     type="button"
                     onClick={() => setActiveOrg(null)}
@@ -199,7 +199,7 @@ export function TopBar({ user, showContextSwitcher, activeOrgName }: TopBarProps
         <button
           type="button"
           onClick={toggleTheme}
-          className="p-2 rounded-lg text-header-foreground/70 hover:text-header-foreground hover:bg-header-foreground/10 transition-colors"
+          className="p-2 rounded-sm text-header-foreground/70 hover:text-header-foreground hover:bg-header-foreground/10 transition-colors"
           title={theme === "dark" ? "Light mode" : "Dark mode"}
           aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
         >
@@ -233,7 +233,7 @@ export function TopBar({ user, showContextSwitcher, activeOrgName }: TopBarProps
           <button
             type="button"
             onClick={() => setBellOpen((o) => !o)}
-            className="relative p-2 text-header-foreground/70 hover:text-header-foreground transition-colors rounded-lg"
+            className="relative p-2 text-header-foreground/70 hover:text-header-foreground transition-colors rounded-sm"
             aria-expanded={bellOpen}
             aria-haspopup="true"
           >
@@ -247,7 +247,7 @@ export function TopBar({ user, showContextSwitcher, activeOrgName }: TopBarProps
           {bellOpen && (
             <>
               <div className="fixed inset-0 z-10" aria-hidden onClick={() => setBellOpen(false)} />
-              <div className="absolute right-0 top-full mt-1 z-20 w-[320px] max-h-[400px] overflow-hidden rounded-lg border border-border bg-popover shadow-xl flex flex-col">
+              <div className="absolute right-0 top-full mt-1 z-20 w-[320px] max-h-[400px] overflow-hidden rounded-sm border border-border bg-popover flex flex-col ring-1 ring-border/60">
                 <div className="px-3 py-2 border-b border-border font-medium text-popover-foreground text-sm">
                   {t("notifications.title")}
                 </div>
