@@ -718,7 +718,7 @@ export default function QuoteDetailPage() {
       {/* Edit quote modal */}
       {editOpen && (
         <div className="fixed inset-0 bg-black/65 flex items-center justify-center z-50">
-          <div className="bg-background border border-border/60 rounded-sm p-6 w-full max-w-md m-4 ring-1 ring-border/60">
+          <div className="bg-background border border-border/60 rounded-sm p-6 w-full max-w-md m-4">
             <h3 className="font-semibold text-lg mb-1 text-foreground tracking-tight">{t("quotes.editQuote")}</h3>
             <p className="text-xs font-mono uppercase tracking-wider text-muted-foreground mb-4 border-b border-border/60 pb-3">
               {quote.quoteNumber ?? quote.id.slice(0, 8).toUpperCase()}
@@ -778,7 +778,7 @@ export default function QuoteDetailPage() {
       {/* PDF options dialog */}
       {pdfDialog && (
         <div className="fixed inset-0 bg-black/65 flex items-center justify-center z-50">
-          <div className="bg-background border border-border/60 rounded-sm p-6 w-full max-w-md m-4 ring-1 ring-border/60">
+          <div className="bg-background border border-border/60 rounded-sm p-6 w-full max-w-md m-4">
             <h3 className="font-semibold text-lg mb-1 text-foreground">{t("quotes.pdfOptions")}</h3>
             <p className="text-xs font-mono text-muted-foreground uppercase tracking-wider mb-4">{t("quotes.pdf")}</p>
             <div className="space-y-3 text-sm border-t border-border/60 pt-4">
@@ -862,7 +862,7 @@ export default function QuoteDetailPage() {
       {/* Email Dialog */}
       {emailDialog && (
         <div className="fixed inset-0 bg-black/65 flex items-center justify-center z-50">
-          <div className="bg-background border border-border/60 rounded-sm p-6 w-full max-w-md m-4 ring-1 ring-border/60">
+          <div className="bg-background border border-border/60 rounded-sm p-6 w-full max-w-md m-4">
             <h3 className="font-semibold text-lg mb-4 text-foreground">{t("quotes.sendQuoteEmail")}</h3>
             <div className="space-y-4">
               <div>

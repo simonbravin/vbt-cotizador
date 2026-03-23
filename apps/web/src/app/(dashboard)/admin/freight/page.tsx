@@ -164,7 +164,7 @@ export default function FreightPage() {
 
       {showAdd && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4">
-          <div className="m-4 w-full max-w-md rounded-sm border border-border/60 bg-background p-6 ring-1 ring-border/60">
+          <div className="m-4 w-full max-w-md rounded-sm border border-border/60 bg-background p-6">
             <h3 className="mb-4 text-lg font-semibold tracking-tight text-foreground">{editItem ? t("admin.freight.editTitle") : t("admin.freight.addTitle")}</h3>
             {saveError && (
               <div className="mb-4 rounded-sm border border-destructive/25 bg-destructive/5 px-3 py-2 text-sm text-destructive">

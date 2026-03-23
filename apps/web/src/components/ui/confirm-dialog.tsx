@@ -24,7 +24,7 @@ export interface ConfirmDialogProps {
 const overlayClass =
   "fixed inset-0 bg-black/65 z-[9999] flex items-center justify-center p-4";
 const contentClass =
-  "bg-background rounded-sm max-w-md w-full p-6 border border-border/60 ring-1 ring-border/60";
+  "bg-background rounded-sm max-w-md w-full p-6 border border-border/60";
 
 export function ConfirmDialog({
   open,

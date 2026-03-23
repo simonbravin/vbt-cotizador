@@ -187,7 +187,7 @@ export default function CatalogPage() {
       </div>
 
       {/* Table */}
-      <div className="overflow-hidden rounded-sm border border-border/60 bg-card ring-1 ring-border/40">
+      <div className="overflow-hidden rounded-sm border border-border/60 bg-card">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="border-b border-border/60 bg-muted/30">
@@ -256,7 +256,7 @@ export default function CatalogPage() {
       {/* Import Dialog */}
       {importDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4">
-          <div className="m-4 w-full max-w-lg rounded-sm border border-border/60 bg-background p-6 ring-1 ring-border/60">
+          <div className="m-4 w-full max-w-lg rounded-sm border border-border/60 bg-background p-6">
             <h3 className="mb-4 text-lg font-semibold tracking-tight text-foreground">{t("admin.catalog.importTitle")}</h3>
             <input
               ref={fileRef}
@@ -289,7 +289,7 @@ export default function CatalogPage() {
       {/* Edit Piece Dialog */}
       {editPiece && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4">
-          <div className="m-4 w-full max-w-md rounded-sm border border-border/60 bg-background p-6 ring-1 ring-border/60">
+          <div className="m-4 w-full max-w-md rounded-sm border border-border/60 bg-background p-6">
             <h3 className="mb-4 text-lg font-semibold tracking-tight text-foreground">{t("admin.catalog.editPiece")}</h3>
             <p className="mb-4 text-sm text-muted-foreground">{editPiece.canonicalName}</p>
             <div className="space-y-3">

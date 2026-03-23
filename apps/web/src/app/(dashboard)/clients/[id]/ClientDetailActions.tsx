@@ -184,7 +184,7 @@ export function ClientDetailActions({
             onClick={() => setEditOpen(false)}
           >
             <div
-              className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-sm border border-border/60 bg-background p-6 ring-1 ring-border/60"
+              className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-sm border border-border/60 bg-background p-6"
               onClick={(e) => e.stopPropagation()}
             >
               <h2 className="mb-4 text-lg font-semibold tracking-tight text-foreground">Edit client</h2>

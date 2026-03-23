@@ -211,7 +211,7 @@ export function StatementsClient({
 
       {emailOpen && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/65 p-4" onClick={() => !emailSending && setEmailOpen(false)}>
-          <div className="mx-4 w-full max-w-md rounded-sm border border-border/60 bg-background p-5 ring-1 ring-border/60" onClick={(e) => e.stopPropagation()}>
+          <div className="mx-4 w-full max-w-md rounded-sm border border-border/60 bg-background p-5" onClick={(e) => e.stopPropagation()}>
             <h3 className="mb-3 font-semibold tracking-tight text-foreground">{t("partner.sales.emailStatementsTitle")}</h3>
             <p className="mb-3 text-sm text-muted-foreground">{t("partner.sales.emailStatementsHint")}</p>
             <div className="space-y-3">
@@ -238,7 +238,7 @@ export function StatementsClient({
         document.body
       )}
 
-      <div className="overflow-x-auto rounded-sm border border-border/60 bg-card ring-1 ring-border/40">
+      <div className="overflow-x-auto rounded-sm border border-border/60 bg-card">
         {loading ? (
           <div className="p-8 text-center text-muted-foreground">{t("partner.sales.loading")}</div>
         ) : !data?.statements?.length ? (

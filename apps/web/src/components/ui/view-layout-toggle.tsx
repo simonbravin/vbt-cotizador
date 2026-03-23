@@ -21,7 +21,7 @@ export function ViewLayoutToggle({ view, onViewChange, className }: ViewLayoutTo
   return (
     <div
       className={cn(
-        "inline-flex shrink-0 rounded-sm border border-border/60 bg-muted/30 p-0.5 ring-1 ring-border/40",
+        "inline-flex shrink-0 rounded-sm border border-border/60 bg-muted/30 p-0.5",
         className
       )}
       role="group"

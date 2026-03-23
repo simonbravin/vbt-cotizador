@@ -117,14 +117,14 @@
    * Prefer these over ad-hoc bg-white / rounded-sm / shadow-sm.
    */
   .surface-card {
-    @apply rounded-sm border border-border/60 bg-card text-card-foreground shadow-none ring-1 ring-border/40;
+    @apply rounded-sm border border-border/60 bg-card text-card-foreground shadow-none;
   }
   .surface-card-overflow {
-    @apply rounded-sm border border-border/60 bg-card text-card-foreground shadow-none ring-1 ring-border/40 overflow-hidden;
+    @apply rounded-sm border border-border/60 bg-card text-card-foreground shadow-none overflow-hidden;
   }
   /** Modal / dialog panel (overlays) */
   .surface-modal {
-    @apply rounded-sm border border-border/60 bg-background text-foreground shadow-none ring-1 ring-border/60;
+    @apply rounded-sm border border-border/60 bg-background text-foreground shadow-none;
   }
   /** Native inputs outside shadcn Input (forms, admin) */
   .input-native {

@@ -631,7 +631,7 @@ export function ReportsClient({ countries, clients, canSendReport = true }: { co
       {/* Email report modal */}
       {emailOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4">
-          <div className="m-4 w-full max-w-sm rounded-sm border border-border/60 bg-background p-6 ring-1 ring-border/60">
+          <div className="m-4 w-full max-w-sm rounded-sm border border-border/60 bg-background p-6">
             <h3 className="mb-4 text-lg font-semibold tracking-tight text-foreground">{t("partner.reports.emailModalTitle")}</h3>
             <p className="mb-4 text-sm text-muted-foreground">{t("partner.reports.emailModalDescription")}</p>
             <div className="space-y-3">

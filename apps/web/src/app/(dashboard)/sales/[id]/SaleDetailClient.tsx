@@ -537,7 +537,7 @@ export function SaleDetailClient({
 
       {paymentOpen && typeof document !== "undefined" && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/65 p-4" onClick={(e) => e.target === e.currentTarget && setPaymentOpen(false)}>
-          <div className="w-full max-w-md rounded-sm border border-border/60 bg-background p-6 ring-1 ring-border/60" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-md rounded-sm border border-border/60 bg-background p-6" onClick={(e) => e.stopPropagation()}>
             <h3 className="mb-4 font-semibold tracking-tight text-foreground">{t("partner.sales.detail.addPaymentTitle")}</h3>
             <form onSubmit={handleAddPayment} className="space-y-4">
               {payError && <p className="text-sm text-destructive">{payError}</p>}
@@ -657,7 +657,7 @@ export function SaleDetailClient({
 
       {invoiceModalMode && typeof document !== "undefined" && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/65 p-4" onClick={(e) => e.target === e.currentTarget && !invSubmitting && setInvoiceModalMode(null)}>
-          <div className="w-full max-w-md rounded-sm border border-border/60 bg-background p-6 ring-1 ring-border/60" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-md rounded-sm border border-border/60 bg-background p-6" onClick={(e) => e.stopPropagation()}>
             <h3 className="mb-4 font-semibold tracking-tight text-foreground">
               {invoiceModalMode === "add" ? t("partner.sales.detail.invoiceModalAdd") : t("partner.sales.detail.invoiceModalEdit")}
             </h3>

@@ -203,7 +203,7 @@ export default function SettingsWarehousesClient() {
 
       {showAdd && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4">
-          <div className="w-full max-w-md rounded-sm border border-border/60 bg-background p-6 ring-1 ring-border/60">
+          <div className="w-full max-w-md rounded-sm border border-border/60 bg-background p-6">
             <h3 className="mb-4 text-lg font-semibold tracking-tight text-foreground">
               {editItem ? t("admin.warehouses.editTitle") : t("admin.warehouses.addTitle")}
             </h3>

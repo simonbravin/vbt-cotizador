@@ -166,7 +166,7 @@ export function TopBar({ user, showContextSwitcher, activeOrgName }: TopBarProps
             {switcherOpen && (
               <>
                 <div className="fixed inset-0 z-10" aria-hidden onClick={() => setSwitcherOpen(false)} />
-                <div className="absolute left-0 top-full mt-1 z-20 min-w-[200px] rounded-sm border border-border bg-popover py-1 text-left shadow-none ring-1 ring-border/60">
+                <div className="absolute left-0 top-full mt-1 z-20 min-w-[200px] rounded-sm border border-border bg-popover py-1 text-left shadow-none">
                   <button
                     type="button"
                     onClick={() => setActiveOrg(null)}
@@ -247,7 +247,7 @@ export function TopBar({ user, showContextSwitcher, activeOrgName }: TopBarProps
           {bellOpen && (
             <>
               <div className="fixed inset-0 z-10" aria-hidden onClick={() => setBellOpen(false)} />
-              <div className="absolute right-0 top-full mt-1 z-20 w-[320px] max-h-[400px] overflow-hidden rounded-sm border border-border bg-popover flex flex-col ring-1 ring-border/60">
+              <div className="absolute right-0 top-full mt-1 z-20 w-[320px] max-h-[400px] overflow-hidden rounded-sm border border-border bg-popover flex flex-col">
                 <div className="px-3 py-2 border-b border-border font-medium text-popover-foreground text-sm">
                   {t("notifications.title")}
                 </div>

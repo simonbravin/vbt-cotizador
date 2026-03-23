@@ -153,7 +153,7 @@ export default function WarehousesPage() {
 
       {showAdd && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4">
-          <div className="m-4 w-full max-w-sm rounded-sm border border-border/60 bg-background p-6 ring-1 ring-border/60">
+          <div className="m-4 w-full max-w-sm rounded-sm border border-border/60 bg-background p-6">
             <h3 className="mb-4 text-lg font-semibold tracking-tight text-foreground">{editItem ? t("admin.warehouses.editTitle") : t("admin.warehouses.addTitle")}</h3>
             <div className="space-y-3">
               <div>

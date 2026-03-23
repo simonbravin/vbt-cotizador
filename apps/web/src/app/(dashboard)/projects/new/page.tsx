@@ -132,7 +132,7 @@ export default function NewProjectPage() {
         <h1 className="text-2xl font-bold text-foreground">{t("projects.newProjectTitle")}</h1>
       </div>
 
-      <form onSubmit={submit} className="space-y-5 rounded-sm border border-border/60 bg-card p-6 ring-1 ring-border/40">
+      <form onSubmit={submit} className="space-y-5 rounded-sm border border-border/60 bg-card p-6">
         {error && (
           <div className="rounded-sm border border-destructive/25 bg-destructive/5 p-3 text-sm text-destructive">{error}</div>
         )}
@@ -252,7 +252,7 @@ export default function NewProjectPage() {
             onClick={() => setNewClientOpen(false)}
           >
             <div
-              className="w-full max-w-md space-y-3 rounded-sm border border-border/60 bg-background p-6 ring-1 ring-border/60"
+              className="w-full max-w-md space-y-3 rounded-sm border border-border/60 bg-background p-6"
               onClick={(e) => e.stopPropagation()}
             >
               <h2 className="text-lg font-semibold tracking-tight text-foreground">{t("projects.newClientModalTitle")}</h2>

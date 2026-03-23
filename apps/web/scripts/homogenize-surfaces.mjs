@@ -96,7 +96,7 @@ const REPLACEMENTS = [
   ],
   [
     "absolute z-10 mt-1 w-full rounded-lg border border-border bg-card shadow-lg max-h-64 overflow-hidden flex flex-col",
-    "absolute z-10 mt-1 flex max-h-64 w-full flex-col overflow-hidden rounded-sm border border-border/60 bg-popover shadow-none ring-1 ring-border/40",
+    "absolute z-10 mt-1 flex max-h-64 w-full flex-col overflow-hidden rounded-sm border border-border/60 bg-popover shadow-none",
   ],
 
   // Analytics / reports / dashboard skeletons & alerts

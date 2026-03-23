@@ -435,7 +435,7 @@ export function ProjectDetailClient({ initialProject }: { initialProject: Projec
       {/* Edit modal (portal so overlay covers full viewport including sidebar/header) */}
       {editOpen && typeof document !== "undefined" && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/65 p-4">
-          <div className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-sm border border-border/60 bg-background p-6 ring-1 ring-border/60">
+          <div className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-sm border border-border/60 bg-background p-6">
             <h3 className="mb-4 text-lg font-semibold tracking-tight text-foreground">{t("projects.editProject")}</h3>
             <div className="space-y-3 text-sm">
               <div>
@@ -511,7 +511,7 @@ export function ProjectDetailClient({ initialProject }: { initialProject: Projec
 
       {newClientOpen && typeof document !== "undefined" && createPortal(
         <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/65 p-4" onClick={() => setNewClientOpen(false)}>
-          <div className="w-full max-w-md space-y-3 rounded-sm border border-border/60 bg-background p-6 ring-1 ring-border/60" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-md space-y-3 rounded-sm border border-border/60 bg-background p-6" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-semibold tracking-tight text-foreground">{t("projects.newClientModalTitle")}</h3>
             {newClientError && (
               <div className="rounded-sm border border-destructive/25 bg-destructive/5 p-2 text-sm text-destructive">{newClientError}</div>

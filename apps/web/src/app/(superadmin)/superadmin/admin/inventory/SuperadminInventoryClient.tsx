@@ -246,7 +246,7 @@ export function SuperadminInventoryClient() {
               <span className="text-muted-foreground">{partnerDropdownOpen ? "▲" : "▼"}</span>
             </button>
             {partnerDropdownOpen && (
-              <div className="absolute z-10 mt-1 flex max-h-64 w-full flex-col overflow-hidden rounded-sm border border-border/60 bg-popover shadow-none ring-1 ring-border/40">
+              <div className="absolute z-10 mt-1 flex max-h-64 w-full flex-col overflow-hidden rounded-sm border border-border/60 bg-popover shadow-none">
                 <div className="p-2 border-b border-border relative">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                   <input
