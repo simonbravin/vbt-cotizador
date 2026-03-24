@@ -1610,6 +1610,8 @@ export const translations = {
     "partner.training.notEnrolledYet": "You are not enrolled in any program yet.",
     "partner.training.availablePrograms": "Available programs",
     "partner.training.noProgramsAvailable": "No programs available.",
+    "partner.training.pageNothingToShow":
+      "There is nothing to show here yet. When programs, live sessions, quizzes, or certificates are available for your organization, they will appear on this page.",
     "partner.training.programFallback": "Program",
     "partner.training.levelLabel": "Level: {{level}}",
     "partner.training.enrolling": "Enrolling...",
@@ -3703,6 +3705,8 @@ export const translations = {
     "partner.training.notEnrolledYet": "Aún no estás inscrito en ningún programa.",
     "partner.training.availablePrograms": "Programas disponibles",
     "partner.training.noProgramsAvailable": "No hay programas disponibles.",
+    "partner.training.pageNothingToShow":
+      "Por ahora no hay nada para mostrar. Cuando haya programas, sesiones en vivo, cuestionarios o certificados para tu organización, aparecerán en esta página.",
     "partner.training.programFallback": "Programa",
     "partner.training.levelLabel": "Nivel: {{level}}",
     "partner.training.enrolling": "Inscribiendo...",

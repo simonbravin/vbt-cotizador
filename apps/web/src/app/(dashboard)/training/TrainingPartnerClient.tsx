@@ -115,6 +115,26 @@ export function TrainingPartnerClient() {
     return m;
   }, [liveRegs]);
 
+  const activeLiveRegs = useMemo(
+    () => liveRegs.filter((r) => r.status !== "cancelled"),
+    [liveRegs]
+  );
+
+  const showProgramsBlock = programs.length > 0;
+  const showLiveRegsBlock = activeLiveRegs.length > 0;
+  const showEnrollmentsBlock = enrollments.length > 0;
+  const showQuizzesBlock = quizzes.length > 0;
+  const showQuizHistoryBlock = quizAttempts.length > 0;
+  const showCertsBlock = certs.length > 0;
+
+  const hasMainTrainingContent =
+    showProgramsBlock ||
+    showLiveRegsBlock ||
+    showEnrollmentsBlock ||
+    showQuizzesBlock ||
+    showQuizHistoryBlock ||
+    showCertsBlock;
+
   function sessionRegStatusLabel(status: string): string {
     if (status === "attended") return t("partner.training.sessionRegStatus.attended");
     if (status === "no_show") return t("partner.training.sessionRegStatus.no_show");
@@ -332,13 +352,11 @@ export function TrainingPartnerClient() {
         </div>
       )}
 
+      {showProgramsBlock && (
       <div className="surface-card-overflow">
         <div className="px-5 py-4 border-b border-border/60">
           <h2 className="text-lg font-semibold text-foreground">{t("partner.training.availablePrograms")}</h2>
         </div>
-        {programs.length === 0 ? (
-          <div className="p-8 text-center text-sm text-muted-foreground">{t("partner.training.noProgramsAvailable")}</div>
-        ) : (
           <ul className="divide-y divide-border/60">
             {programs.map((p) => {
               const enrolled = isEnrolled(p.id);
@@ -442,20 +460,16 @@ export function TrainingPartnerClient() {
               );
             })}
           </ul>
-        )}
       </div>
+      )}
 
+      {showLiveRegsBlock && (
       <div className="surface-card-overflow">
         <div className="px-5 py-4 border-b border-border/60">
           <h2 className="text-lg font-semibold text-foreground">{t("partner.training.myLiveRegistrations")}</h2>
         </div>
-        {liveRegs.filter((r) => r.status !== "cancelled").length === 0 ? (
-          <div className="p-8 text-center text-sm text-muted-foreground">{t("partner.training.notEnrolledYet")}</div>
-        ) : (
           <ul className="divide-y divide-border/60">
-            {liveRegs
-              .filter((r) => r.status !== "cancelled")
-              .map((r) => (
+            {activeLiveRegs.map((r) => (
                 <li key={r.id} className="px-5 py-4 flex items-center justify-between gap-4">
                   <div>
                     <p className="font-medium text-foreground">{r.liveSession?.title ?? "—"}</p>
@@ -478,17 +492,15 @@ export function TrainingPartnerClient() {
                 </li>
               ))}
           </ul>
-        )}
       </div>
+      )}
 
+      {showEnrollmentsBlock && (
       <div className="surface-card-overflow">
         <div className="px-5 py-4 border-b border-border/60">
           <h2 className="text-lg font-semibold text-foreground">{t("partner.training.myEnrollments")}</h2>
           <p className="text-xs text-muted-foreground mt-1">{t("partner.training.programInterestHint")}</p>
         </div>
-        {enrollments.length === 0 ? (
-          <div className="p-8 text-center text-sm text-muted-foreground">{t("partner.training.notEnrolledYet")}</div>
-        ) : (
           <ul className="divide-y divide-border/60">
             {enrollments.map((e) => (
               <li key={e.id} className="px-5 py-4 flex items-center justify-between">
@@ -507,17 +519,15 @@ export function TrainingPartnerClient() {
               </li>
             ))}
           </ul>
-        )}
       </div>
+      )}
 
+      {showQuizzesBlock && (
       <div className="surface-card-overflow">
         <div className="px-5 py-4 border-b border-border/60 flex items-center gap-2">
           <ClipboardList className="h-5 w-5 text-muted-foreground" />
           <h2 className="text-lg font-semibold text-foreground">{t("partner.training.quizzesHeading")}</h2>
         </div>
-        {quizzes.length === 0 ? (
-          <div className="p-8 text-center text-sm text-muted-foreground">{t("partner.training.noQuizzes")}</div>
-        ) : (
           <ul className="divide-y divide-border/60">
             {quizzes.map((q) => (
               <li key={q.id} className="px-5 py-4 flex items-center justify-between gap-4">
@@ -538,17 +548,15 @@ export function TrainingPartnerClient() {
               </li>
             ))}
           </ul>
-        )}
       </div>
+      )}
 
+      {showQuizHistoryBlock && (
       <div className="surface-card-overflow">
         <div className="px-5 py-4 border-b border-border/60 flex items-center gap-2">
           <ClipboardList className="h-5 w-5 text-muted-foreground" />
           <h2 className="text-lg font-semibold text-foreground">{t("partner.training.quizHistoryHeading")}</h2>
         </div>
-        {quizAttempts.length === 0 ? (
-          <div className="p-8 text-center text-sm text-muted-foreground">{t("partner.training.quizHistoryEmpty")}</div>
-        ) : (
           <ul className="divide-y divide-border/60">
             {quizAttempts.map((a) => (
               <li key={a.id} className="px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -575,17 +583,15 @@ export function TrainingPartnerClient() {
               </li>
             ))}
           </ul>
-        )}
       </div>
+      )}
 
+      {showCertsBlock && (
       <div className="surface-card-overflow">
         <div className="px-5 py-4 border-b border-border/60 flex items-center gap-2">
           <Award className="h-5 w-5 text-muted-foreground" />
           <h2 className="text-lg font-semibold text-foreground">{t("partner.training.certificatesHeading")}</h2>
         </div>
-        {certs.length === 0 ? (
-          <div className="p-8 text-center text-sm text-muted-foreground">{t("partner.training.noCertificates")}</div>
-        ) : (
           <ul className="divide-y divide-border/60">
             {certs.map((c) => (
               <li key={c.id} className="px-5 py-4 flex items-center justify-between gap-4">
@@ -604,8 +610,14 @@ export function TrainingPartnerClient() {
               </li>
             ))}
           </ul>
-        )}
       </div>
+      )}
+
+      {!hasMainTrainingContent && !activeQuiz && !quizResult && (
+        <div className="surface-card p-8 text-center text-sm text-muted-foreground max-w-lg mx-auto">
+          {t("partner.training.pageNothingToShow")}
+        </div>
+      )}
     </div>
   );
 }
