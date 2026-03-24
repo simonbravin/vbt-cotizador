@@ -1,13 +1,29 @@
+import fs from "fs";
+import path from "path";
 import { NextResponse } from "next/server";
+import QRCode from "qrcode";
 import { prisma } from "@/lib/db";
 import { getTenantContext } from "@/lib/tenant";
 import { getCertificateById } from "@vbt/core";
 import { renderTrainingCertificatePdfBuffer } from "@/lib/training-certificate-pdf";
 
-export async function GET(
-  _req: Request,
-  { params }: { params: { id: string } }
-) {
+function publicAppBaseUrl(): string {
+  const u = process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/$/, "");
+  return u && u.length > 0 ? u : "https://app.visionlatam.com";
+}
+
+function loadLogoDataUrl(): string | null {
+  try {
+    const logoPath = path.join(process.cwd(), "public", "brand", "vision-logo.png");
+    if (!fs.existsSync(logoPath)) return null;
+    const b64 = fs.readFileSync(logoPath).toString("base64");
+    return `data:image/png;base64,${b64}`;
+  } catch {
+    return null;
+  }
+}
+
+export async function GET(_req: Request, { params }: { params: { id: string } }) {
   const ctx = await getTenantContext();
   if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -21,28 +37,41 @@ export async function GET(
 
   const issued = cert.issuedAt.toISOString().slice(0, 10);
   const meta = cert.metadataJson as { scorePct?: number } | null;
-  const quizStatement =
-    cert.type === "quiz" && meta?.scorePct != null
-      ? `Certificate of completion for the knowledge quiz. Score: ${meta.scorePct}%.`
-      : "Certificate of completion for the knowledge quiz.";
+  const scoreLabel =
+    cert.type === "quiz" && meta?.scorePct != null ? `${meta.scorePct}%` : "—";
+
+  const verifyUrl = `${publicAppBaseUrl()}/certificados/verificar/${cert.verifyPublicCode}`;
+  let qrDataUrl: string | null = null;
+  try {
+    qrDataUrl = await QRCode.toDataURL(verifyUrl, {
+      margin: 1,
+      width: 160,
+      color: { dark: "#0c4a6e", light: "#ffffff" },
+    });
+  } catch {
+    qrDataUrl = null;
+  }
 
   const buf = await renderTrainingCertificatePdfBuffer({
-    title: cert.titleSnapshot,
     participantName: cert.participantNameSnapshot,
     organizationName: cert.orgNameSnapshot,
+    programTitle: cert.titleSnapshot,
+    scoreLabel,
     issuedAtLabel: issued,
-    statement:
-      cert.type === "live_session"
-        ? "Certificate of participation in the live training session."
-        : quizStatement,
-    brandLine: "VBT Platform",
+    statementPrimary: cert.statementPrimarySnapshot ?? "",
+    statementSecondary: cert.statementSecondarySnapshot ?? null,
+    verifyPublicCode: cert.verifyPublicCode,
+    internalId: cert.id,
+    verifyUrl,
+    logoDataUrl: loadLogoDataUrl(),
+    qrDataUrl,
   });
 
   return new NextResponse(new Uint8Array(buf), {
     status: 200,
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="certificate-${params.id.slice(0, 8)}.pdf"`,
+      "Content-Disposition": `attachment; filename="certificado-vbt-${cert.verifyPublicCode.slice(0, 8)}.pdf"`,
     },
   });
 }

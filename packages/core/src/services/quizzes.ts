@@ -145,6 +145,8 @@ export type CreateQuizDefinitionInput = {
   visibility?: Prisma.QuizDefinitionCreateInput["visibility"];
   topicRules: QuizTopicRuleInput[];
   allowedOrganizationIds?: string[];
+  certificateStatementPrimary?: string | null;
+  certificateStatementSecondary?: string | null;
 };
 
 export async function createQuizDefinition(
@@ -165,6 +167,8 @@ export async function createQuizDefinition(
       status: input.status ?? "draft",
       publishedAt: input.publishedAt ?? null,
       visibility: input.visibility ?? "all_partners",
+      certificateStatementPrimary: input.certificateStatementPrimary ?? null,
+      certificateStatementSecondary: input.certificateStatementSecondary ?? null,
       topicRules: {
         create: input.topicRules.map((r) => ({
           topicId: r.topicId,
@@ -221,6 +225,12 @@ export async function updateQuizDefinition(
       ...(input.status !== undefined && { status: input.status }),
       ...(input.publishedAt !== undefined && { publishedAt: input.publishedAt }),
       ...(input.visibility !== undefined && { visibility: input.visibility }),
+      ...(input.certificateStatementPrimary !== undefined && {
+        certificateStatementPrimary: input.certificateStatementPrimary,
+      }),
+      ...(input.certificateStatementSecondary !== undefined && {
+        certificateStatementSecondary: input.certificateStatementSecondary,
+      }),
     },
     include: definitionListInclude,
   });

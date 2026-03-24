@@ -36,6 +36,8 @@ export const createTrainingProgramSchema = z.object({
   visibility: trainingProgramVisibilityEnum.optional(),
   publishedAt: z.union([z.string().datetime(), z.null()]).optional(),
   allowedOrganizationIds: z.array(z.string()).optional(),
+  certificateStatementPrimary: z.string().nullable().optional(),
+  certificateStatementSecondary: z.string().nullable().optional(),
 });
 
 export const updateTrainingProgramSchema = createTrainingProgramSchema.partial();

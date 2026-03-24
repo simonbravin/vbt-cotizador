@@ -55,6 +55,8 @@ export const createQuizDefinitionSchema = z.object({
   visibility: trainingProgramVisibilityEnum.optional(),
   topicRules: z.array(quizTopicRuleSchema).min(1),
   allowedOrganizationIds: z.array(z.string()).optional(),
+  certificateStatementPrimary: z.string().nullable().optional(),
+  certificateStatementSecondary: z.string().nullable().optional(),
 });
 
 export const updateQuizDefinitionSchema = createQuizDefinitionSchema.partial();

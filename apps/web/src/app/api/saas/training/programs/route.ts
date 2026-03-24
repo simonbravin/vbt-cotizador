@@ -51,6 +51,8 @@ async function postHandler(req: Request) {
     visibility: data.visibility,
     publishedAt: data.publishedAt ? new Date(data.publishedAt) : data.publishedAt === null ? null : undefined,
     allowedOrganizationIds: data.allowedOrganizationIds,
+    certificateStatementPrimary: data.certificateStatementPrimary,
+    certificateStatementSecondary: data.certificateStatementSecondary,
   });
   const user = await getTenantContext();
   if (user) {

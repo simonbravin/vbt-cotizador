@@ -95,6 +95,8 @@ export type CreateTrainingProgramInput = {
   visibility?: Prisma.TrainingProgramCreateInput["visibility"];
   publishedAt?: Date | null;
   allowedOrganizationIds?: string[];
+  certificateStatementPrimary?: string | null;
+  certificateStatementSecondary?: string | null;
 };
 
 export async function createTrainingProgram(
@@ -112,6 +114,8 @@ export async function createTrainingProgram(
       durationHours: rest.durationHours ?? null,
       visibility: rest.visibility ?? "all_partners",
       publishedAt: rest.publishedAt ?? null,
+      certificateStatementPrimary: rest.certificateStatementPrimary ?? null,
+      certificateStatementSecondary: rest.certificateStatementSecondary ?? null,
       allowedOrganizations:
         allowedOrganizationIds.length > 0
           ? { create: allowedOrganizationIds.map((organizationId) => ({ organizationId })) }
@@ -151,6 +155,12 @@ export async function updateTrainingProgram(
       ...(rest.durationHours !== undefined && { durationHours: rest.durationHours }),
       ...(rest.visibility !== undefined && { visibility: rest.visibility }),
       ...(rest.publishedAt !== undefined && { publishedAt: rest.publishedAt }),
+      ...(rest.certificateStatementPrimary !== undefined && {
+        certificateStatementPrimary: rest.certificateStatementPrimary,
+      }),
+      ...(rest.certificateStatementSecondary !== undefined && {
+        certificateStatementSecondary: rest.certificateStatementSecondary,
+      }),
     },
     include: programAdminInclude,
   });

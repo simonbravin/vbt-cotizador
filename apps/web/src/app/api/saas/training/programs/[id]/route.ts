@@ -54,6 +54,8 @@ export async function PATCH(
             ? null
             : new Date(data.publishedAt),
       allowedOrganizationIds: data.allowedOrganizationIds,
+      certificateStatementPrimary: data.certificateStatementPrimary,
+      certificateStatementSecondary: data.certificateStatementSecondary,
     });
     return NextResponse.json(program);
   } catch {

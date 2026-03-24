@@ -1,5 +1,29 @@
-import type { PrismaClient, TrainingCertificate } from "@vbt/db";
+import { randomBytes } from "crypto";
+import type { PrismaClient, TrainingCertificate, TrainingCertificateType } from "@vbt/db";
 import { orgScopeWhere, type TenantContext } from "./tenant-context";
+import {
+  DEFAULT_CERTIFICATE_STATEMENT_LIVE_PRIMARY,
+  DEFAULT_CERTIFICATE_STATEMENT_QUIZ_PRIMARY,
+  DEFAULT_CERTIFICATE_STATEMENT_QUIZ_SECONDARY,
+} from "./certificate-default-copy";
+
+function trimOrEmpty(s: string | null | undefined): string | null {
+  if (s == null) return null;
+  const t = s.trim();
+  return t.length ? t : null;
+}
+
+async function allocateVerifyPublicCode(prisma: PrismaClient): Promise<string> {
+  for (let i = 0; i < 8; i++) {
+    const code = randomBytes(16).toString("hex");
+    const clash = await prisma.trainingCertificate.findUnique({
+      where: { verifyPublicCode: code },
+      select: { id: true },
+    });
+    if (!clash) return code;
+  }
+  throw new Error("Could not allocate unique certificate verification code");
+}
 
 export async function issueLiveSessionCertificate(
   prisma: PrismaClient,
@@ -17,6 +41,17 @@ export async function issueLiveSessionCertificate(
   const existing = await prisma.trainingCertificate.findUnique({ where: { dedupeKey } });
   if (existing) return existing;
 
+  const session = await prisma.trainingLiveSession.findUnique({
+    where: { id: input.liveSessionId },
+    include: { trainingProgram: true },
+  });
+  const pPrimary =
+    trimOrEmpty(session?.trainingProgram?.certificateStatementPrimary) ??
+    DEFAULT_CERTIFICATE_STATEMENT_LIVE_PRIMARY;
+  const pSecondary = trimOrEmpty(session?.trainingProgram?.certificateStatementSecondary);
+
+  const verifyPublicCode = await allocateVerifyPublicCode(prisma);
+
   return prisma.trainingCertificate.create({
     data: {
       type: "live_session",
@@ -28,6 +63,9 @@ export async function issueLiveSessionCertificate(
       orgNameSnapshot: input.orgNameSnapshot,
       metadataJson: input.metadataJson ?? undefined,
       dedupeKey,
+      verifyPublicCode,
+      statementPrimarySnapshot: pPrimary,
+      statementSecondarySnapshot: pSecondary,
     },
   });
 }
@@ -48,6 +86,18 @@ export async function issueQuizCertificate(
   const existing = await prisma.trainingCertificate.findUnique({ where: { dedupeKey } });
   if (existing) return existing;
 
+  const attempt = await prisma.quizAttempt.findUnique({
+    where: { id: input.quizAttemptId },
+    include: { quizDefinition: true },
+  });
+  const def = attempt?.quizDefinition;
+  const pPrimary =
+    trimOrEmpty(def?.certificateStatementPrimary) ?? DEFAULT_CERTIFICATE_STATEMENT_QUIZ_PRIMARY;
+  const pSecondary =
+    trimOrEmpty(def?.certificateStatementSecondary) ?? DEFAULT_CERTIFICATE_STATEMENT_QUIZ_SECONDARY;
+
+  const verifyPublicCode = await allocateVerifyPublicCode(prisma);
+
   return prisma.trainingCertificate.create({
     data: {
       type: "quiz",
@@ -59,8 +109,27 @@ export async function issueQuizCertificate(
       orgNameSnapshot: input.orgNameSnapshot,
       metadataJson: input.metadataJson ?? undefined,
       dedupeKey,
+      verifyPublicCode,
+      statementPrimarySnapshot: pPrimary,
+      statementSecondarySnapshot: pSecondary,
     },
   });
+}
+
+/** Public verification: no PII; confirms a certificate was issued with this title and date. */
+export async function getTrainingCertificatePublicSummary(
+  prisma: PrismaClient,
+  verifyPublicCode: string
+): Promise<{
+  type: TrainingCertificateType;
+  titleSnapshot: string;
+  issuedAt: Date;
+} | null> {
+  const row = await prisma.trainingCertificate.findUnique({
+    where: { verifyPublicCode },
+    select: { type: true, titleSnapshot: true, issuedAt: true },
+  });
+  return row;
 }
 
 export async function listCertificatesForUser(

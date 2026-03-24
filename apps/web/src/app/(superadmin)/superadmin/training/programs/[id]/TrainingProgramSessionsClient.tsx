@@ -31,6 +31,9 @@ export function TrainingProgramSessionsClient({ programId }: { programId: string
   const [regs, setRegs] = useState<RegRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ title: "", startsAt: "", meetingUrl: "" });
+  const [certPrimary, setCertPrimary] = useState("");
+  const [certSecondary, setCertSecondary] = useState("");
+  const [savingCert, setSavingCert] = useState(false);
 
   const loadSessions = useCallback(async () => {
     const res = await fetch(`/api/saas/training/programs/${programId}/sessions`);
@@ -46,7 +49,15 @@ export function TrainingProgramSessionsClient({ programId }: { programId: string
       const pr = await fetch(`/api/saas/training/programs/${programId}`);
       if (pr.ok) {
         const p = await pr.json();
-        if (!c) setProgramTitle(p.title ?? "");
+        if (!c) {
+          setProgramTitle(p.title ?? "");
+          setCertPrimary(
+            typeof p.certificateStatementPrimary === "string" ? p.certificateStatementPrimary : ""
+          );
+          setCertSecondary(
+            typeof p.certificateStatementSecondary === "string" ? p.certificateStatementSecondary : ""
+          );
+        }
       }
       await loadSessions();
       if (!c) setLoading(false);
@@ -88,6 +99,31 @@ export function TrainingProgramSessionsClient({ programId }: { programId: string
     }
   }
 
+  async function saveCertificateText(e: React.FormEvent) {
+    e.preventDefault();
+    setSavingCert(true);
+    try {
+      const res = await fetch(`/api/saas/training/programs/${programId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          certificateStatementPrimary: certPrimary.trim() || null,
+          certificateStatementSecondary: certSecondary.trim() || null,
+        }),
+      });
+      if (res.ok) {
+        toast({ title: t("superadmin.training.certStatementsSaved") });
+      } else {
+        toast({
+          title: t("superadmin.training.toast.sessionCreateError"),
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setSavingCert(false);
+    }
+  }
+
   async function markAttendance(enrollmentId: string, status: "attended" | "no_show") {
     const res = await fetch(`/api/saas/training/session-enrollments/${enrollmentId}/attendance`, {
       method: "PATCH",
@@ -126,6 +162,38 @@ export function TrainingProgramSessionsClient({ programId }: { programId: string
         </Link>{" "}
         {t("superadmin.training.studyMaterialsAdminHint")}
       </p>
+
+      <form onSubmit={saveCertificateText} className="surface-card p-4 space-y-3 max-w-2xl">
+        <h2 className="font-medium text-foreground">{t("superadmin.training.certStatementsSave")}</h2>
+        <p className="text-xs text-muted-foreground">{t("superadmin.training.certStatementHint")}</p>
+        <div>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">
+            {t("superadmin.training.certStatementPrimary")}
+          </label>
+          <textarea
+            className="input-native w-full min-h-[56px]"
+            value={certPrimary}
+            onChange={(e) => setCertPrimary(e.target.value)}
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">
+            {t("superadmin.training.certStatementSecondary")}
+          </label>
+          <textarea
+            className="input-native w-full min-h-[48px]"
+            value={certSecondary}
+            onChange={(e) => setCertSecondary(e.target.value)}
+          />
+        </div>
+        <button
+          type="submit"
+          disabled={savingCert}
+          className="rounded-sm border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-muted/50 disabled:opacity-50"
+        >
+          {savingCert ? t("common.loading") : t("common.save")}
+        </button>
+      </form>
 
       <form onSubmit={addSession} className="surface-card p-4 space-y-3 max-w-lg">
         <h2 className="font-medium text-foreground">{t("superadmin.training.addSession")}</h2>

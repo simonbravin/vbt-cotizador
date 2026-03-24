@@ -44,6 +44,8 @@ async function postHandler(req: Request) {
       visibility: d.visibility,
       topicRules: d.topicRules,
       allowedOrganizationIds: d.allowedOrganizationIds,
+      certificateStatementPrimary: d.certificateStatementPrimary,
+      certificateStatementSecondary: d.certificateStatementSecondary,
     });
     return NextResponse.json(def, { status: 201 });
   } catch (e) {

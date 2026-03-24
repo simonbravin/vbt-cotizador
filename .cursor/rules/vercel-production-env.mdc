@@ -1,0 +1,23 @@
+---
+description: Variables de entorno ya configuradas en Vercel (todos los entornos); no sugerir al usuario que las agregue salvo cambio de producto.
+alwaysApply: true
+---
+
+En **Vercel** el proyecto ya tiene definidas (nombres exactos; **no** documentar valores secretos aquí):
+
+| Variable | Uso típico |
+|----------|------------|
+| `DATABASE_URL` | Neon / Postgres; Prisma |
+| `NEXTAUTH_SECRET` | NextAuth |
+| `NEXTAUTH_URL` | URL canónica de la app para auth |
+| `NEXT_PUBLIC_APP_URL` | URL pública de la app (enlaces, QR de certificados, etc.) |
+| `RESEND_API_KEY` | Envío de correo (Resend) |
+| `RESEND_FROM_EMAIL` | Remitente verificado |
+| `SUPERADMIN_EMAIL` | Bootstrap / acceso superadmin |
+| `SUPERADMIN_PASSWORD` | Bootstrap / acceso superadmin |
+| `R2_ACCOUNT_ID` | Cloudflare R2 |
+| `R2_ACCESS_KEY_ID` | Credencial R2 |
+| `R2_SECRET_ACCESS_KEY` | Secreto R2 (requerido por `r2-client.ts` junto con bucket) |
+| `R2_BUCKET_NAME` | Bucket de objetos |
+
+Si el usuario pide aplicar migraciones contra producción, puede hacerlo con `DATABASE_URL` apuntando a Neon (p. ej. `pnpm --filter @vbt/db migrate:deploy` desde `packages/db` con la URL cargada en el entorno).

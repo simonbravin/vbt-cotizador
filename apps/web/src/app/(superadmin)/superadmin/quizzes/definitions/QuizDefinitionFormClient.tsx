@@ -27,6 +27,8 @@ type DefApi = {
   visibility: string;
   topicRules: { topicId: string; pickCount: number }[];
   allowedOrganizations?: { organizationId: string }[];
+  certificateStatementPrimary?: string | null;
+  certificateStatementSecondary?: string | null;
 };
 
 export function QuizDefinitionFormClient({ definitionId }: { definitionId?: string }) {
@@ -47,6 +49,8 @@ export function QuizDefinitionFormClient({ definitionId }: { definitionId?: stri
   const [status, setStatus] = useState<"draft" | "published" | "archived">("draft");
   const [publishedAtLocal, setPublishedAtLocal] = useState("");
   const [topicRules, setTopicRules] = useState<TopicRuleRow[]>([{ topicId: "", pickCount: 1 }]);
+  const [certPrimary, setCertPrimary] = useState("");
+  const [certSecondary, setCertSecondary] = useState("");
 
   const loadRefs = useCallback(async () => {
     const [tRes, pRes] = await Promise.all([
@@ -86,6 +90,8 @@ export function QuizDefinitionFormClient({ definitionId }: { definitionId?: stri
           ? d.topicRules.map((r) => ({ topicId: r.topicId, pickCount: r.pickCount }))
           : [{ topicId: "", pickCount: 1 }]
       );
+      setCertPrimary(d.certificateStatementPrimary ?? "");
+      setCertSecondary(d.certificateStatementSecondary ?? "");
       setLoading(false);
     })();
     return () => {
@@ -118,6 +124,8 @@ export function QuizDefinitionFormClient({ definitionId }: { definitionId?: stri
       status,
       topicRules: rules,
       allowedOrganizationIds: allowed,
+      certificateStatementPrimary: certPrimary.trim() || null,
+      certificateStatementSecondary: certSecondary.trim() || null,
     };
 
     if (status === "published") {
@@ -227,6 +235,30 @@ export function QuizDefinitionFormClient({ definitionId }: { definitionId?: stri
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           />
+        </div>
+
+        <div className="border border-border/60 rounded-sm p-3 space-y-2">
+          <p className="text-xs text-muted-foreground">{t("superadmin.quizzes.definitions.certStatementHint")}</p>
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
+              {t("superadmin.quizzes.definitions.certStatementPrimary")}
+            </label>
+            <textarea
+              className="input-native w-full min-h-[56px]"
+              value={certPrimary}
+              onChange={(e) => setCertPrimary(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
+              {t("superadmin.quizzes.definitions.certStatementSecondary")}
+            </label>
+            <textarea
+              className="input-native w-full min-h-[48px]"
+              value={certSecondary}
+              onChange={(e) => setCertSecondary(e.target.value)}
+            />
+          </div>
         </div>
 
         <div>

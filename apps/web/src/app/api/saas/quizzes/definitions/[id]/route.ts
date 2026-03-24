@@ -52,6 +52,8 @@ async function patchHandler(req: Request, routeContext?: unknown) {
       visibility: d.visibility,
       topicRules: d.topicRules,
       allowedOrganizationIds: d.allowedOrganizationIds,
+      certificateStatementPrimary: d.certificateStatementPrimary,
+      certificateStatementSecondary: d.certificateStatementSecondary,
     });
     return NextResponse.json(def);
   } catch (e) {

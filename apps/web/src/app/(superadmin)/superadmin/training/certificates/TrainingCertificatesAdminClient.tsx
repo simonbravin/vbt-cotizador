@@ -10,6 +10,7 @@ type Cert = {
   type: string;
   titleSnapshot: string;
   issuedAt: string;
+  verifyPublicCode: string;
   user?: { id: string; fullName: string | null; email: string | null };
   organization?: { id: string; name: string };
 };
@@ -123,6 +124,9 @@ export function TrainingCertificatesAdminClient() {
                 <th className="px-5 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                   {t("superadmin.certificates.colType")}
                 </th>
+                <th className="px-5 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
+                  {t("superadmin.certificates.colVerify")}
+                </th>
                 <th className="px-5 py-3 text-right text-xs font-medium text-muted-foreground uppercase">
                   {t("superadmin.certificates.colPdf")}
                 </th>
@@ -136,6 +140,16 @@ export function TrainingCertificatesAdminClient() {
                   <td className="px-5 py-3 text-sm">{c.user?.fullName ?? c.user?.email ?? "—"}</td>
                   <td className="px-5 py-3 text-sm font-medium text-foreground">{c.titleSnapshot}</td>
                   <td className="px-5 py-3 text-sm text-muted-foreground">{c.type}</td>
+                  <td className="px-5 py-3 text-sm">
+                    <a
+                      href={`/certificados/verificar/${c.verifyPublicCode}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="font-mono text-xs text-primary hover:underline break-all"
+                    >
+                      {t("superadmin.certificates.verifyOpen")}
+                    </a>
+                  </td>
                   <td className="px-5 py-3 text-right">
                     <a
                       href={`/api/saas/training/certificates/${c.id}/pdf`}

@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en" class="theme-light">
+<html lang="es" class="theme-light">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>VBT — Certificate of Completion</title>
+    <title>VBT — Certificado de finalización</title>
     <style>
       /* =============================================================================
          VBT Certificate — A4 landscape, print/PDF safe, engineering blueprint style
@@ -331,6 +331,20 @@
         margin: 0;
       }
 
+      .sig-name {
+        font-size: 9.5pt;
+        font-weight: 700;
+        color: var(--text);
+        margin: 0 0 1mm;
+      }
+
+      .sig-title {
+        font-size: 8.5pt;
+        color: var(--text-muted);
+        margin: 0 0 2mm;
+        line-height: 1.3;
+      }
+
       .footer-legal {
         text-align: center;
         font-size: 8pt;
@@ -373,6 +387,21 @@
         letter-spacing: 0.06em;
       }
 
+      .qr-img {
+        width: 22mm;
+        height: 22mm;
+        object-fit: contain;
+        flex-shrink: 0;
+      }
+
+      .brand-logo-img {
+        height: 14mm;
+        width: auto;
+        max-width: 36mm;
+        object-fit: contain;
+        display: block;
+      }
+
       /* Screen preview toolbar */
       .no-print {
         position: fixed;
@@ -401,28 +430,14 @@
     </style>
   </head>
   <body>
-    <div class="sheet" role="document" aria-label="Certificate of completion">
+    <div class="sheet" role="document" aria-label="Certificado de finalización">
       <div class="frame-inner" aria-hidden="true"></div>
 
       <div class="content">
         <header class="header">
           <div class="brand">
             <div class="brand-mark" aria-hidden="true">
-              <!-- Replace entire .brand-mark with: <img src="..." alt="VBT" style="height:14mm;width:auto;" /> -->
-              <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                <rect x="1.5" y="1.5" width="29" height="29" fill="none" stroke="currentColor" stroke-width="1" />
-                <text
-                  x="16"
-                  y="21"
-                  text-anchor="middle"
-                  font-size="9"
-                  font-weight="700"
-                  fill="currentColor"
-                  font-family="system-ui, Segoe UI, sans-serif"
-                >
-                  VBT
-                </text>
-              </svg>
+              <img class="brand-logo-img" src="/brand/vision-logo.png" alt="VISION Building Technologies" />
             </div>
             <div class="brand-text">
               Vision Building Technologies
@@ -430,36 +445,32 @@
             </div>
           </div>
           <div class="doc-title-block">
-            <h1 class="doc-title">Certificate of Completion</h1>
-            <p class="doc-subtitle">Technical training record</p>
+            <h1 class="doc-title">Certificado de finalización</h1>
+            <p class="doc-subtitle">Registro técnico de capacitación</p>
           </div>
         </header>
 
         <main class="main">
-          <p class="recipient-label">Recipient</p>
+          <p class="recipient-label">Destinatario</p>
           <p class="recipient-name">{{name}}</p>
-          <p class="statement">
-            has successfully completed the VBT Technical Training Program
-          </p>
-          <p class="statement-secondary">
-            and demonstrated understanding of the system fundamentals.
-          </p>
+          <p class="statement">{{statementPrimary}}</p>
+          <p class="statement-secondary">{{statementSecondary}}</p>
 
-          <div class="details" role="table" aria-label="Completion details">
+          <div class="details" role="table" aria-label="Datos del certificado">
             <div class="detail-cell">
-              <p class="detail-label">Program / Assessment</p>
+              <p class="detail-label">Programa / Evaluación</p>
               <p class="detail-value">{{programName}}</p>
             </div>
             <div class="detail-cell">
-              <p class="detail-label">Score</p>
+              <p class="detail-label">Puntuación</p>
               <p class="detail-value mono">{{score}}</p>
             </div>
             <div class="detail-cell">
-              <p class="detail-label">Date of issue</p>
+              <p class="detail-label">Fecha de emisión</p>
               <p class="detail-value mono">{{date}}</p>
             </div>
             <div class="detail-cell">
-              <p class="detail-label">Organization</p>
+              <p class="detail-label">Organización</p>
               <p class="detail-value">{{organization}}</p>
             </div>
           </div>
@@ -469,27 +480,32 @@
           <div class="signatures">
             <div class="sig">
               <div class="sig-line"></div>
-              <p class="sig-label">Issued by</p>
+              <p class="sig-name">Simon Bravin</p>
+              <p class="sig-title">Gerente comercial</p>
+              <p class="sig-label">Emitido por</p>
             </div>
             <div class="sig">
               <div class="sig-line"></div>
-              <p class="sig-label">Authorized by</p>
+              <p class="sig-name">Leonardo Bravin</p>
+              <p class="sig-title">Presidente · Vision Latam S.A.</p>
+              <p class="sig-label">Autorizado por</p>
             </div>
           </div>
           <p class="footer-legal">Vision Building Technologies</p>
           <div class="meta-row">
-            <p class="cert-id">Document ID: {{certificateId}}</p>
-            <div class="qr-placeholder" aria-label="QR verification placeholder">
-              Verification<br />QR
-            </div>
+            <p class="cert-id">
+              Código de verificación: {{verifyPublicCode}} · ID interno: {{internalId}}
+            </p>
+            <!-- Sustituir src por data URI PNG del QR apuntando a {{verifyUrl}}, o eliminar el bloque .qr-placeholder -->
+            <img class="qr-img" src="{{qrDataUrl}}" alt="" />
           </div>
         </footer>
       </div>
     </div>
 
     <div class="no-print">
-      <button type="button" id="toggleTheme">Toggle light / dark</button>
-      <button type="button" onclick="window.print()">Print / Save PDF</button>
+      <button type="button" id="toggleTheme">Tema claro / oscuro</button>
+      <button type="button" onclick="window.print()">Imprimir / Guardar PDF</button>
     </div>
 
     <script>

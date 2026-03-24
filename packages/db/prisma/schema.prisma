@@ -931,6 +931,9 @@ model TrainingProgram {
   durationHours Float?   @map("duration_hours")
   visibility    TrainingProgramVisibility @default(all_partners) @map("visibility")
   publishedAt   DateTime? @map("published_at")
+  /// Custom Spanish (or other) lines for PDF certificate body; falls back to platform defaults if null.
+  certificateStatementPrimary   String? @map("certificate_statement_primary")
+  certificateStatementSecondary   String? @map("certificate_statement_secondary")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
@@ -1097,6 +1100,9 @@ model QuizDefinition {
   status           QuizDefinitionStatus @default(draft)
   publishedAt      DateTime?           @map("published_at")
   visibility       TrainingProgramVisibility @default(all_partners) @map("visibility")
+  /// Custom lines for PDF certificate body when this quiz is passed; falls back to platform defaults if null.
+  certificateStatementPrimary   String? @map("certificate_statement_primary")
+  certificateStatementSecondary String? @map("certificate_statement_secondary")
   createdAt        DateTime            @default(now()) @map("created_at")
   updatedAt        DateTime            @updatedAt @map("updated_at")
 
@@ -1193,6 +1199,11 @@ model TrainingCertificate {
   issuedAt                  DateTime               @default(now()) @map("issued_at")
   metadataJson              Json?                  @map("metadata_json")
   pdfUrl                    String?                @map("pdf_url")
+  /// Opaque code for public verification page + QR on PDF (not the internal cuid).
+  verifyPublicCode          String                 @unique @map("verify_public_code")
+  /// Snapshot of certificate body lines at issue time.
+  statementPrimarySnapshot   String?               @map("statement_primary_snapshot")
+  statementSecondarySnapshot String?               @map("statement_secondary_snapshot")
   /// Stable idempotency key: e.g. live:{sessionId}:{userId} or quiz:{attemptId}
   dedupeKey                 String                 @unique @map("dedupe_key")
   createdAt                 DateTime               @default(now()) @map("created_at")
