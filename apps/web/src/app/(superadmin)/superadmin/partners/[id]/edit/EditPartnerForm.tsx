@@ -17,10 +17,17 @@ const FEE_MODES = [
 ] as const;
 
 const MODULE_KEYS = [
+  { key: "dashboard", labelKey: "nav.dashboard" },
+  { key: "clients", labelKey: "nav.clients" },
   { key: "engineering", labelKey: "superadmin.settings.engineering" },
+  { key: "projects", labelKey: "nav.projects" },
+  { key: "quotes", labelKey: "nav.quotes" },
+  { key: "sales", labelKey: "nav.sales" },
+  { key: "inventory", labelKey: "nav.inventory" },
   { key: "documents", labelKey: "superadmin.settings.documents" },
   { key: "training", labelKey: "superadmin.settings.training" },
   { key: "reports", labelKey: "superadmin.settings.reports" },
+  { key: "settings", labelKey: "nav.settings" },
 ] as const;
 
 const SYSTEM_OPTIONS = [
@@ -59,7 +66,19 @@ export function EditPartnerForm({
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [form, setForm] = useState(initial);
   const [visibility, setVisibility] = useState<Record<string, boolean>>(
-    () => initial.moduleVisibility ?? { engineering: true, documents: true, training: true, reports: true }
+    () => initial.moduleVisibility ?? {
+      dashboard: true,
+      clients: true,
+      engineering: true,
+      projects: true,
+      quotes: true,
+      sales: true,
+      inventory: true,
+      documents: true,
+      training: true,
+      reports: true,
+      settings: true,
+    }
   );
   const [enabledSystems, setEnabledSystems] = useState<string[]>(
     () => initial.enabledSystems?.length ? [...initial.enabledSystems] : ["S80", "S150", "S200"]

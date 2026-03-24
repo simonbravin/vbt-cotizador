@@ -1,21 +1,17 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import type { SessionUser } from "@/lib/auth";
 import { getEffectiveActiveOrgId } from "@/lib/tenant";
 import { prisma } from "@/lib/db";
+import { requireModuleRouteAuth } from "@/lib/module-route-auth";
 import { getCountryName } from "@/lib/countries";
-import type { SessionUser } from "@/lib/auth";
 
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 10000;
 
 export async function GET(req: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const user = session.user as SessionUser & { activeOrgId?: string | null };
+  const auth = await requireModuleRouteAuth("reports");
+  if (!auth.ok) return auth.response;
+  const user = auth.user as SessionUser & { activeOrgId?: string | null };
   const organizationId = await getEffectiveActiveOrgId(user);
   if (!organizationId) {
     return NextResponse.json({

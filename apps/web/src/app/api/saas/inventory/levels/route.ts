@@ -36,4 +36,4 @@ async function getHandler(req: Request) {
   }
 }
 
-export const GET = withSaaSHandler({ rateLimitTier: "read" }, getHandler);
+export const GET = withSaaSHandler({ rateLimitTier: "read", module: "inventory" }, getHandler);

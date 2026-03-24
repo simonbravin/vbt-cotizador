@@ -191,5 +191,5 @@ async function postHandler(req: Request) {
   });
 }
 
-export const GET = withSaaSHandler({}, getHandler);
-export const POST = withSaaSHandler({}, postHandler);
+export const GET = withSaaSHandler({ module: "quotes" }, getHandler);
+export const POST = withSaaSHandler({ module: "quotes" }, postHandler);

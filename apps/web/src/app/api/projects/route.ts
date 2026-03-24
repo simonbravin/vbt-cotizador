@@ -5,6 +5,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getTenantContext, requireActiveOrg, TenantError, tenantErrorStatus } from "@/lib/tenant";
+import { assertPartnerModuleEnabled } from "@/lib/module-access";
 import { listProjects, createProject } from "@vbt/core";
 import { createActivityLog } from "@/lib/audit";
 import { z } from "zod";
@@ -25,6 +26,7 @@ const createSchema = z.object({
 export async function GET(req: Request) {
   try {
     const ctx = await getTenantContext();
+    await assertPartnerModuleEnabled("projects", ctx ?? {});
     if (!ctx?.activeOrgId && !ctx?.isPlatformSuperadmin) {
       return NextResponse.json({ error: "No active organization" }, { status: 403 });
     }
@@ -65,6 +67,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const user = await requireActiveOrg();
+    await assertPartnerModuleEnabled("projects", user);
     if (["viewer"].includes((user.role as string)?.toLowerCase?.())) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }

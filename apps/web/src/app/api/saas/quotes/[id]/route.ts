@@ -11,6 +11,7 @@ import {
   TenantError,
   tenantErrorStatus,
 } from "@/lib/tenant";
+import { assertPartnerModuleEnabled } from "@/lib/module-access";
 import {
   canonicalizeSaaSQuotePayload,
   clampPartnerMarkupOnMergedSaaSSource,
@@ -94,6 +95,7 @@ export async function GET(
   try {
     const ctx = await getTenantContext();
     if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    await assertPartnerModuleEnabled("quotes", ctx);
     const tenantCtx = {
       userId: ctx.userId,
       organizationId: ctx.activeOrgId ?? null,
@@ -124,6 +126,7 @@ export async function PATCH(
 ) {
   try {
     const user = await requireActiveOrg();
+    await assertPartnerModuleEnabled("quotes", user);
     if (!canManageQuotes(user)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -393,6 +396,7 @@ export async function DELETE(
   try {
     const sessionUser = await getSessionUser();
     if (!sessionUser) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    await assertPartnerModuleEnabled("quotes", sessionUser);
     if (!canDeleteQuote(sessionUser)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }

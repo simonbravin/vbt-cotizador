@@ -92,5 +92,5 @@ async function postHandler(req: Request) {
   return NextResponse.json(formatDocumentListItem(doc as ListedDoc, true), { status: 201 });
 }
 
-export const GET = withSaaSHandler({}, getHandler);
-export const POST = withSaaSHandler({}, postHandler);
+export const GET = withSaaSHandler({ module: "documents" }, getHandler);
+export const POST = withSaaSHandler({ module: "documents" }, postHandler);

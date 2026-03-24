@@ -2,9 +2,9 @@
  * @deprecated Legacy clients API. There is no `/api/saas/clients` yet — do not remove until canonical clients API exists.
  */
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions, type SessionUser } from "@/lib/auth";
+import type { SessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { requireModuleRouteAuth } from "@/lib/module-route-auth";
 import { getEffectiveOrganizationId } from "@/lib/tenant";
 import { createActivityLog } from "@/lib/audit";
 import { z } from "zod";
@@ -21,9 +21,9 @@ const createSchema = z.object({
 });
 
 export async function GET(req: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const user = session.user as SessionUser;
+  const auth = await requireModuleRouteAuth("clients");
+  if (!auth.ok) return auth.response;
+  const user = auth.user as SessionUser;
   const url = new URL(req.url);
   const paramOrg = url.searchParams.get("organizationId")?.trim();
   const organizationId =
@@ -61,9 +61,9 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const user = session.user as { activeOrgId?: string; orgId?: string; role?: string };
+  const auth = await requireModuleRouteAuth("clients");
+  if (!auth.ok) return auth.response;
+  const user = auth.user as { activeOrgId?: string; orgId?: string; role?: string };
   if (["VIEWER", "viewer"].includes(user.role ?? "")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -77,7 +77,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    const userWithId = session.user as { id?: string };
+    const userWithId = user as { id?: string };
     const client = await prisma.client.create({
       data: {
         organizationId,

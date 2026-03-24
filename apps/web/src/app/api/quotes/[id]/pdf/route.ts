@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { QuotePdfDocument, type QuotePdfData } from "@/components/pdf/quote-pdf";
 import { getEffectiveOrganizationId } from "@/lib/tenant";
+import { requireModuleRouteAuth } from "@/lib/module-route-auth";
 import { LOCALE_COOKIE_NAME } from "@/lib/i18n/translations";
 import type { Locale } from "@/lib/i18n/translations";
 import { normalizeApiError } from "@/lib/api-error";
@@ -22,11 +21,9 @@ export async function GET(
   req: Request,
   { params }: { params: { id: string } }
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  const user = session.user as { activeOrgId?: string; orgId?: string; isPlatformSuperadmin?: boolean };
+  const auth = await requireModuleRouteAuth("quotes");
+  if (!auth.ok) return auth.response;
+  const user = auth.user as { activeOrgId?: string; orgId?: string; isPlatformSuperadmin?: boolean };
   const organizationId = getEffectiveOrganizationId(user);
   const isPlatformSuperadmin = !!user.isPlatformSuperadmin;
 

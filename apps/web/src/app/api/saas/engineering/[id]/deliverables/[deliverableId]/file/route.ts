@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getTenantContext, TenantError, tenantErrorStatus } from "@/lib/tenant";
+import { assertPartnerModuleEnabled } from "@/lib/module-access";
 import { getDownloadUrl, isR2StorageKey } from "@/lib/r2-client";
 
 /** GET: signed download for an engineering deliverable (partner or superadmin). */
@@ -11,6 +12,7 @@ export async function GET(
   try {
     const ctx = await getTenantContext();
     if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    await assertPartnerModuleEnabled("engineering", ctx);
 
     const request = await prisma.engineeringRequest.findUnique({
       where: { id: params.id },

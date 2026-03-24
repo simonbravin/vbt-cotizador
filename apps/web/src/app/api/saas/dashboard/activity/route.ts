@@ -32,4 +32,4 @@ async function getHandler(req: Request) {
   }
 }
 
-export const GET = withSaaSHandler({ cacheTtl: CACHE_TTL.dashboard }, getHandler);
+export const GET = withSaaSHandler({ cacheTtl: CACHE_TTL.dashboard, module: "dashboard" }, getHandler);

@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import type { SessionUser } from "@/lib/auth";
 import { getEffectiveActiveOrgId } from "@/lib/tenant";
 import { prisma } from "@/lib/db";
+import { requireModuleRouteAuth } from "@/lib/module-route-auth";
 import { buildProjectsReportEmailHtml } from "@/lib/email-bodies";
 import { getResendFrom, emailSubjectReport, parseEmailLocale } from "@/lib/email-config";
 import { Resend } from "resend";
-import type { SessionUser } from "@/lib/auth";
 import { z } from "zod";
 
 const bodySchema = z.object({
@@ -38,12 +37,9 @@ const STATUS_MAP: Record<string, string> = {
 };
 
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const user = session.user as SessionUser & { activeOrgId?: string | null; id?: string };
+  const auth = await requireModuleRouteAuth("reports");
+  if (!auth.ok) return auth.response;
+  const user = auth.user as SessionUser & { activeOrgId?: string | null; id?: string };
   const organizationId = await getEffectiveActiveOrgId(user);
   if (!organizationId) {
     return NextResponse.json({ error: "No organization context" }, { status: 403 });

@@ -54,4 +54,4 @@ async function postHandler(req: Request) {
   }
 }
 
-export const POST = withSaaSHandler({ rateLimitTier: "create_update" }, postHandler);
+export const POST = withSaaSHandler({ rateLimitTier: "create_update", module: "inventory" }, postHandler);

@@ -1,16 +1,15 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { requireModuleRouteAuth } from "@/lib/module-route-auth";
 import { getEffectiveOrganizationId } from "@/lib/tenant";
 
 export async function GET(
   _req: Request,
   { params }: { params: { id: string } }
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const user = session.user as any;
+  const auth = await requireModuleRouteAuth("quotes");
+  if (!auth.ok) return auth.response;
+  const user = auth.user as any;
 
   const orgId = getEffectiveOrganizationId(user);
   const quote = await prisma.quote.findFirst({

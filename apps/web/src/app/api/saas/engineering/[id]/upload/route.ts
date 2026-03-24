@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { prisma } from "@/lib/db";
 import { getTenantContext, TenantError, tenantErrorStatus } from "@/lib/tenant";
+import { assertPartnerModuleEnabled } from "@/lib/module-access";
 import { uploadToR2 } from "@/lib/r2-client";
 import { checkRateLimit, getRateLimitIdentifier, RateLimitExceededError } from "@/lib/rate-limit";
 
@@ -25,6 +26,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   try {
     const ctx = await getTenantContext();
     if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    await assertPartnerModuleEnabled("engineering", ctx);
 
     const request = await prisma.engineeringRequest.findUnique({
       where: { id: params.id },

@@ -3,10 +3,10 @@
  * Keep for PDF/email/audit and scripts until those surfaces call SaaS or shared handlers.
  */
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions, type SessionUser } from "@/lib/auth";
+import type { SessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { createActivityLog } from "@/lib/audit";
+import { requireModuleRouteAuth } from "@/lib/module-route-auth";
 import { canDeleteQuote, canManageQuotes, isPlatformSuperadmin } from "@/lib/permissions";
 import { quoteByIdWhere } from "@/lib/quote-scope";
 import { formatQuoteForSaaSApiWithSnapshot, normalizeQuoteStatus, QuoteMissingTaxSnapshotError } from "@vbt/core";
@@ -15,9 +15,9 @@ export async function GET(
   _req: Request,
   { params }: { params: { id: string } }
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const user = session.user as SessionUser;
+  const auth = await requireModuleRouteAuth("quotes");
+  if (!auth.ok) return auth.response;
+  const user = auth.user as SessionUser;
 
   const scoped = quoteByIdWhere(user, params.id);
   if (!scoped.ok) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -41,9 +41,9 @@ export async function PATCH(
   req: Request,
   { params }: { params: { id: string } }
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const user = session.user as SessionUser;
+  const auth = await requireModuleRouteAuth("quotes");
+  if (!auth.ok) return auth.response;
+  const user = auth.user as SessionUser;
   if (!canManageQuotes(user)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -125,9 +125,9 @@ export async function DELETE(
   _req: Request,
   { params }: { params: { id: string } }
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const user = session.user as SessionUser;
+  const auth = await requireModuleRouteAuth("quotes");
+  if (!auth.ok) return auth.response;
+  const user = auth.user as SessionUser;
   if (!canDeleteQuote(user)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getTenantContext } from "@/lib/tenant";
+import { assertPartnerModuleEnabled } from "@/lib/module-access";
 import { getDocumentById, canReadDocument } from "@vbt/core";
 import { getDownloadUrl, isR2StorageKey } from "@/lib/r2-client";
 import { resolveDocumentViewerCountryCode } from "@/lib/document-viewer-country";
@@ -14,6 +15,7 @@ export async function GET(
   if (!doc) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const ctx = await getTenantContext();
   if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  await assertPartnerModuleEnabled("documents", ctx);
   const viewerCountryCode = await resolveDocumentViewerCountryCode(prisma, ctx.activeOrgId);
   if (
     !canReadDocument(

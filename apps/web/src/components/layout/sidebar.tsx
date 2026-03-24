@@ -63,11 +63,39 @@ interface SidebarProps {
   role: string;
   /** Shown under the nav (name or email). */
   userDisplayName?: string | null;
-  /** When false, hides Capacitación (module visibility). Defaults true. */
-  showTrainingNav?: boolean;
+  /** Per-partner module visibility (global + override already resolved). */
+  moduleVisibility?: {
+    dashboard?: boolean;
+    clients?: boolean;
+    engineering?: boolean;
+    projects?: boolean;
+    quotes?: boolean;
+    sales?: boolean;
+    inventory?: boolean;
+    documents?: boolean;
+    training?: boolean;
+    reports?: boolean;
+    settings?: boolean;
+  };
 }
 
-export function Sidebar({ role, userDisplayName, showTrainingNav = true }: SidebarProps) {
+function isModuleVisible(moduleVisibility: SidebarProps["moduleVisibility"], href?: string) {
+  if (!href) return true;
+  if (href === "/dashboard") return moduleVisibility?.dashboard !== false;
+  if (href === "/clients") return moduleVisibility?.clients !== false;
+  if (href === "/engineering") return moduleVisibility?.engineering !== false;
+  if (href === "/projects") return moduleVisibility?.projects !== false;
+  if (href === "/quotes") return moduleVisibility?.quotes !== false;
+  if (href === "/sales") return moduleVisibility?.sales !== false;
+  if (href === "/inventory") return moduleVisibility?.inventory !== false;
+  if (href === "/documents") return moduleVisibility?.documents !== false;
+  if (href === "/training") return moduleVisibility?.training !== false;
+  if (href === "/reports") return moduleVisibility?.reports !== false;
+  if (href === "/settings") return moduleVisibility?.settings !== false;
+  return true;
+}
+
+export function Sidebar({ role, userDisplayName, moduleVisibility }: SidebarProps) {
   const pathname = usePathname();
   const t = useT();
   const [expanded, setExpanded] = useState<string[]>([]);
@@ -110,7 +138,7 @@ export function Sidebar({ role, userDisplayName, showTrainingNav = true }: Sideb
       <nav className="flex-1 px-3 py-4 overflow-y-auto space-y-0.5">
         {navigation
           .filter(canSee)
-          .filter((item) => showTrainingNav || item.href !== "/training")
+          .filter((item) => isModuleVisible(moduleVisibility, item.href))
           .map((item) => {
           if (item.children) {
             const isOpen = expanded.includes(item.labelKey);

@@ -2,10 +2,9 @@
  * @deprecated Legacy client-by-id API. CANONICAL: TBD (`/api/saas/clients/[id]`).
  */
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { getEffectiveOrganizationId } from "@/lib/tenant";
 import { prisma } from "@/lib/db";
+import { requireModuleRouteAuth } from "@/lib/module-route-auth";
 import { z } from "zod";
 
 const updateSchema = z.object({
@@ -22,9 +21,9 @@ export async function GET(
   _req: Request,
   { params }: { params: { id: string } }
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const user = session.user as { activeOrgId?: string; orgId?: string };
+  const auth = await requireModuleRouteAuth("clients");
+  if (!auth.ok) return auth.response;
+  const user = auth.user as { activeOrgId?: string; orgId?: string };
   const organizationId = getEffectiveOrganizationId(user);
   if (!organizationId) return NextResponse.json({ error: "No organization" }, { status: 400 });
 
@@ -43,9 +42,9 @@ export async function PATCH(
   req: Request,
   { params }: { params: { id: string } }
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const user = session.user as { activeOrgId?: string; orgId?: string; role?: string };
+  const auth = await requireModuleRouteAuth("clients");
+  if (!auth.ok) return auth.response;
+  const user = auth.user as { activeOrgId?: string; orgId?: string; role?: string };
   if (["VIEWER", "viewer"].includes(user.role ?? "")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -78,9 +77,9 @@ export async function DELETE(
   _req: Request,
   { params }: { params: { id: string } }
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const user = session.user as { activeOrgId?: string; orgId?: string; role?: string };
+  const auth = await requireModuleRouteAuth("clients");
+  if (!auth.ok) return auth.response;
+  const user = auth.user as { activeOrgId?: string; orgId?: string; role?: string };
   if (["VIEWER", "viewer"].includes(user.role ?? "")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }

@@ -5,6 +5,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getTenantContext, requireActiveOrg, requireOrgRole, TenantError, tenantErrorStatus } from "@/lib/tenant";
+import { assertPartnerModuleEnabled } from "@/lib/module-access";
 import { getProjectById, updateProject } from "@vbt/core";
 import { createActivityLog } from "@/lib/audit";
 import { z } from "zod";
@@ -33,6 +34,7 @@ export async function GET(
   try {
     const ctx = await getTenantContext();
     if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    await assertPartnerModuleEnabled("projects", ctx);
     const tenantCtx = {
       userId: ctx.userId,
       organizationId: ctx.activeOrgId,
@@ -56,6 +58,7 @@ export async function PATCH(
   try {
     await requireOrgRole(["org_admin", "sales_user", "technical_user"]);
     const user = await requireActiveOrg();
+    await assertPartnerModuleEnabled("projects", user);
     const body = await req.json();
     const parsed = updateSchema.safeParse(body);
     if (!parsed.success) {
@@ -99,6 +102,7 @@ export async function DELETE(
   try {
     await requireOrgRole(["org_admin"]);
     const user = await requireActiveOrg();
+    await assertPartnerModuleEnabled("projects", user);
     const tenantCtx = {
       userId: user.userId ?? user.id,
       organizationId: user.activeOrgId ?? null,

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions, type SessionUser } from "@/lib/auth";
+import type { SessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { requireModuleRouteAuth } from "@/lib/module-route-auth";
 import { saleOrganizationIdIfReadable, salesUserCanMutate } from "@/lib/sales-access";
 import { z } from "zod";
 import { refreshSaleComputedStatus } from "@/lib/partner-sales";
@@ -21,9 +21,9 @@ export async function PATCH(
     params,
   }: { params: Promise<{ id: string; invoiceId: string }> | { id: string; invoiceId: string } }
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const user = session.user as SessionUser;
+  const auth = await requireModuleRouteAuth("sales");
+  if (!auth.ok) return auth.response;
+  const user = auth.user as SessionUser;
 
   if (!salesUserCanMutate(user)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -85,9 +85,9 @@ export async function DELETE(
     params,
   }: { params: Promise<{ id: string; invoiceId: string }> | { id: string; invoiceId: string } }
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const user = session.user as SessionUser;
+  const auth = await requireModuleRouteAuth("sales");
+  if (!auth.ok) return auth.response;
+  const user = auth.user as SessionUser;
 
   if (!salesUserCanMutate(user)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });

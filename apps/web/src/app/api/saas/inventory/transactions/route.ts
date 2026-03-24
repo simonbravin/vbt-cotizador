@@ -79,5 +79,5 @@ async function postHandler(req: Request) {
   }
 }
 
-export const GET = withSaaSHandler({ rateLimitTier: "read" }, getHandler);
-export const POST = withSaaSHandler({ rateLimitTier: "create_update" }, postHandler);
+export const GET = withSaaSHandler({ rateLimitTier: "read", module: "inventory" }, getHandler);
+export const POST = withSaaSHandler({ rateLimitTier: "create_update", module: "inventory" }, postHandler);

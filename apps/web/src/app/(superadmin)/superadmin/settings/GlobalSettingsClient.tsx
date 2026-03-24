@@ -23,10 +23,17 @@ type Config = {
 };
 
 const MODULE_KEYS = [
+  { key: "dashboard", labelKey: "nav.dashboard" },
+  { key: "clients", labelKey: "nav.clients" },
   { key: "engineering", labelKey: "superadmin.settings.engineering" },
+  { key: "projects", labelKey: "nav.projects" },
+  { key: "quotes", labelKey: "nav.quotes" },
+  { key: "sales", labelKey: "nav.sales" },
+  { key: "inventory", labelKey: "nav.inventory" },
   { key: "documents", labelKey: "superadmin.settings.documents" },
   { key: "training", labelKey: "superadmin.settings.training" },
   { key: "reports", labelKey: "superadmin.settings.reports" },
+  { key: "settings", labelKey: "nav.settings" },
 ];
 
 export function GlobalSettingsClient() {

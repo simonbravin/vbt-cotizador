@@ -27,4 +27,4 @@ async function getHandler(req: Request) {
   return NextResponse.json(result);
 }
 
-export const GET = withSaaSHandler({ cacheTtl: CACHE_TTL.dashboard }, getHandler);
+export const GET = withSaaSHandler({ cacheTtl: CACHE_TTL.dashboard, module: "dashboard" }, getHandler);

@@ -1,14 +1,13 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getEffectiveActiveOrgId, getEffectiveOrganizationId } from "@/lib/tenant";
 import type { SessionUser } from "@/lib/auth";
+import { requireModuleRouteAuth } from "@/lib/module-route-auth";
 
 export async function GET(req: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const user = session.user as SessionUser & { activeOrgId?: string; orgId?: string };
+  const auth = await requireModuleRouteAuth("clients");
+  if (!auth.ok) return auth.response;
+  const user = auth.user as SessionUser & { activeOrgId?: string; orgId?: string };
   const effectiveOrgId = await getEffectiveActiveOrgId(user);
   const organizationId = effectiveOrgId ?? getEffectiveOrganizationId(user);
   if (!organizationId) return NextResponse.json({ topByProjects: [], topBySold: [] });

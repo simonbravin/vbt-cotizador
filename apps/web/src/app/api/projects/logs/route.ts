@@ -4,10 +4,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getTenantContext, TenantError, tenantErrorStatus } from "@/lib/tenant";
+import { assertPartnerModuleEnabled } from "@/lib/module-access";
 
 export async function GET(req: Request) {
   try {
     const ctx = await getTenantContext();
+    await assertPartnerModuleEnabled("projects", ctx ?? {});
     if (!ctx?.activeOrgId && !ctx?.isPlatformSuperadmin) {
       return NextResponse.json({ error: "No active organization" }, { status: 403 });
     }

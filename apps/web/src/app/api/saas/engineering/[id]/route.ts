@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getTenantContext, requireActiveOrg, TenantError, tenantErrorStatus } from "@/lib/tenant";
+import { assertPartnerModuleEnabled } from "@/lib/module-access";
 import { getEngineeringRequestById, updateEngineeringRequest } from "@vbt/core";
 import { createActivityLog } from "@/lib/audit";
 import { sendEngineeringAssigneeEmail, sendPartnerEngineeringEventEmail } from "@/lib/engineering-email";
@@ -26,6 +27,7 @@ export async function GET(
   try {
     const ctx = await getTenantContext();
     if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    await assertPartnerModuleEnabled("engineering", ctx);
     const tenantCtx = {
       userId: ctx.userId,
       organizationId: ctx.activeOrgId ?? null,
@@ -50,6 +52,7 @@ export async function PATCH(
 ) {
   try {
     const user = await requireActiveOrg();
+    await assertPartnerModuleEnabled("engineering", user);
     const body = await req.json();
     const parsed = patchSchema.safeParse(body);
     if (!parsed.success) {

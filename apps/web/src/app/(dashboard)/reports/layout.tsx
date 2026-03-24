@@ -1,21 +1,12 @@
-import { redirect } from "next/navigation";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { requireModuleLayoutAccess } from "@/lib/module-layout-access";
 
 export default async function ReportsLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    redirect("/login");
-  }
-  const user = session.user as { role?: string; isPlatformSuperadmin?: boolean };
-  const role = user.isPlatformSuperadmin ? "SUPERADMIN" : (user.role ?? "viewer");
-  const canAccessReports = role === "SUPERADMIN" || role === "org_admin" || role === "sales_user";
-  if (!canAccessReports) {
-    redirect("/dashboard");
-  }
+  await requireModuleLayoutAccess("reports", {
+    allowRoles: ["org_admin", "sales_user"],
+  });
   return <>{children}</>;
 }

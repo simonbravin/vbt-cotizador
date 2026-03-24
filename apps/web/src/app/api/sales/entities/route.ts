@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions, type SessionUser } from "@/lib/auth";
+import type { SessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getEffectiveOrganizationId } from "@/lib/tenant";
+import { requireModuleRouteAuth } from "@/lib/module-route-auth";
 import {
   canManageBillingEntities,
   requireSalesScopedOrganizationId,
@@ -22,9 +22,9 @@ const postBodySchema = z.object({
 });
 
 export async function GET(req: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const user = session.user as SessionUser;
+  const auth = await requireModuleRouteAuth("sales");
+  if (!auth.ok) return auth.response;
+  const user = auth.user as SessionUser;
   const url = new URL(req.url);
   const includeInactive = url.searchParams.get("includeInactive") === "1";
 
@@ -54,9 +54,9 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const user = session.user as SessionUser;
+  const auth = await requireModuleRouteAuth("sales");
+  if (!auth.ok) return auth.response;
+  const user = auth.user as SessionUser;
   if (!canManageBillingEntities(user)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }

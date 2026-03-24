@@ -13,6 +13,7 @@ import {
 import { getProjectById, updateProject } from "@vbt/core";
 import { updateProjectSchema } from "@vbt/core/validation";
 import { createActivityLog } from "@/lib/audit";
+import { assertPartnerModuleEnabled } from "@/lib/module-access";
 import type { z } from "zod";
 
 export async function GET(
@@ -22,6 +23,7 @@ export async function GET(
   try {
     const ctx = await getTenantContext();
     if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    await assertPartnerModuleEnabled("projects", ctx);
     const tenantCtx = {
       userId: ctx.userId,
       organizationId: ctx.activeOrgId,
@@ -57,6 +59,7 @@ export async function PATCH(
   try {
     await requireOrgRole(["org_admin", "sales_user", "technical_user"]);
     const user = await requireActiveOrg();
+    await assertPartnerModuleEnabled("projects", user);
     const body = await req.json();
     const parsed = updateProjectSchema.safeParse(body);
     if (!parsed.success) {
@@ -95,6 +98,7 @@ export async function DELETE(
   try {
     await requireOrgRole(["org_admin"]);
     const user = await requireActiveOrg();
+    await assertPartnerModuleEnabled("projects", user);
     const tenantCtx = {
       userId: user.userId ?? user.id,
       organizationId: user.activeOrgId ?? null,

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions, type SessionUser } from "@/lib/auth";
+import type { SessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { requireModuleRouteAuth } from "@/lib/module-route-auth";
 import { saleOrganizationIdIfReadable, salesUserCanMutate } from "@/lib/sales-access";
 import { SaleOrderStatus } from "@vbt/db";
 import { z } from "zod";
@@ -38,9 +38,9 @@ const patchSchema = z.object({
 });
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> | { id: string } }) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const user = session.user as SessionUser;
+  const auth = await requireModuleRouteAuth("sales");
+  if (!auth.ok) return auth.response;
+  const user = auth.user as SessionUser;
 
   const { id } = params instanceof Promise ? await params : params;
   const organizationId = await saleOrganizationIdIfReadable(user, id);
@@ -52,9 +52,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 }
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> | { id: string } }) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const user = session.user as SessionUser;
+  const auth = await requireModuleRouteAuth("sales");
+  if (!auth.ok) return auth.response;
+  const user = auth.user as SessionUser;
 
   if (!salesUserCanMutate(user)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -157,9 +157,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 }
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> | { id: string } }) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const user = session.user as SessionUser;
+  const auth = await requireModuleRouteAuth("sales");
+  if (!auth.ok) return auth.response;
+  const user = auth.user as SessionUser;
 
   if (!salesUserCanMutate(user)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });

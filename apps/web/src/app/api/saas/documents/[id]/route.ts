@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireActiveOrg, getTenantContext } from "@/lib/tenant";
+import { assertPartnerModuleEnabled } from "@/lib/module-access";
 import {
   getDocumentById,
   updateDocument,
@@ -34,6 +35,7 @@ export async function GET(
   if (!doc) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const ctx = await getTenantContext();
   if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  await assertPartnerModuleEnabled("documents", ctx);
   const viewerCountryCode = await resolveDocumentViewerCountryCode(prisma, ctx.activeOrgId);
   if (
     !canReadDocument(
@@ -60,7 +62,8 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    await requireActiveOrg();
+    const user = await requireActiveOrg();
+    await assertPartnerModuleEnabled("documents", user);
     const existing = await getDocumentById(prisma, params.id);
     if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
     const ctx = await getTenantContext();

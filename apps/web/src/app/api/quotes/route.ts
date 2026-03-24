@@ -4,16 +4,15 @@
  * POST remains 501 — create via SaaS.
  */
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { requireModuleRouteAuth } from "@/lib/module-route-auth";
 import { getEffectiveOrganizationId } from "@/lib/tenant";
 import { normalizeQuoteStatus, QuoteMissingTaxSnapshotError, toLegacySalesQuoteShape } from "@vbt/core";
 
 export async function GET(req: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const user = session.user as any;
+  const auth = await requireModuleRouteAuth("quotes");
+  if (!auth.ok) return auth.response;
+  const user = auth.user as any;
 
   const url = new URL(req.url);
   const statusRaw = url.searchParams.get("status") ?? "";
@@ -73,9 +72,9 @@ export async function GET(req: Request) {
 }
 
 export async function POST(_req: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const user = session.user as any;
+  const auth = await requireModuleRouteAuth("quotes");
+  if (!auth.ok) return auth.response;
+  const user = auth.user as any;
   if (["VIEWER", "viewer"].includes(user.role ?? "")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }

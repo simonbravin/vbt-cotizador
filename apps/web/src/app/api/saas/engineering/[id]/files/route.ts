@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireActiveOrg, TenantError, tenantErrorStatus } from "@/lib/tenant";
+import { assertPartnerModuleEnabled } from "@/lib/module-access";
 import {
   addEngineeringFile,
   addEngineeringReviewEvent,
@@ -26,6 +27,7 @@ export async function POST(
 ) {
   try {
     const user = await requireActiveOrg();
+    await assertPartnerModuleEnabled("engineering", user);
     const body = await req.json();
     const parsed = bodySchema.safeParse(body);
     if (!parsed.success) {

@@ -56,5 +56,5 @@ async function postHandler(req: Request) {
   return NextResponse.json(request, { status: 201 });
 }
 
-export const GET = withSaaSHandler({}, getHandler);
-export const POST = withSaaSHandler({}, postHandler);
+export const GET = withSaaSHandler({ module: "engineering" }, getHandler);
+export const POST = withSaaSHandler({ module: "engineering" }, postHandler);

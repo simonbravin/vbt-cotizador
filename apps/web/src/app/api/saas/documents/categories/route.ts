@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getTenantContext } from "@/lib/tenant";
+import { assertPartnerModuleEnabled } from "@/lib/module-access";
 import { listDocumentCategories } from "@vbt/core";
 
 export const dynamic = "force-dynamic";
@@ -10,6 +11,7 @@ export async function GET() {
   if (!ctx) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  await assertPartnerModuleEnabled("documents", ctx);
   try {
     const categories = await listDocumentCategories(prisma);
     return NextResponse.json(categories);

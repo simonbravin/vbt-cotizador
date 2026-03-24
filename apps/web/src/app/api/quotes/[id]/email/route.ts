@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
 import { Resend } from "resend";
 import { getEffectiveOrganizationId } from "@/lib/tenant";
 import { createActivityLog } from "@/lib/audit";
+import { requireModuleRouteAuth } from "@/lib/module-route-auth";
 import { canManageQuotes } from "@/lib/permissions";
 import { quoteByIdWhere } from "@/lib/quote-scope";
 import type { SessionUser } from "@/lib/auth";
@@ -23,9 +22,9 @@ export async function POST(
   req: Request,
   { params }: { params: { id: string } }
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const user = session.user as SessionUser;
+  const auth = await requireModuleRouteAuth("quotes");
+  if (!auth.ok) return auth.response;
+  const user = auth.user as SessionUser;
   if (!canManageQuotes(user)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }

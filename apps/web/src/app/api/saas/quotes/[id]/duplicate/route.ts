@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireActiveOrg, TenantError, tenantErrorStatus } from "@/lib/tenant";
+import { assertPartnerModuleEnabled } from "@/lib/module-access";
 import {
   duplicateQuote,
   formatQuoteForSaaSApiWithSnapshot,
@@ -15,6 +16,7 @@ export async function POST(
 ) {
   try {
     const user = await requireActiveOrg();
+    await assertPartnerModuleEnabled("quotes", user);
     const tenantCtx = {
       userId: user.userId ?? user.id,
       organizationId: user.activeOrgId ?? null,

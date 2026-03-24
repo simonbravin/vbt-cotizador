@@ -4,6 +4,7 @@ import { normalizeApiError } from "./api-error";
 import { checkRateLimit, getRateLimitTier, getRateLimitIdentifier } from "./rate-limit";
 import { getDefaultCacheStore, buildCacheKey } from "./cache";
 import { logApiRequest } from "./api-logger";
+import { assertPartnerModuleEnabled, type PartnerModuleKey } from "./module-access";
 
 export type SaaSHandlerOptions = {
   /** Rate limit tier; if not set, rate limit is applied from path + method */
@@ -12,6 +13,8 @@ export type SaaSHandlerOptions = {
   cacheTtl?: number;
   /** Skip rate limiting (e.g. internal health) */
   skipRateLimit?: boolean;
+  /** Enforce partner module visibility for this endpoint. */
+  module?: PartnerModuleKey;
 };
 
 type Handler = (req: Request, routeContext?: unknown) => Promise<NextResponse>;
@@ -40,6 +43,12 @@ export function withSaaSHandler(
       }
 
       ctx = await getTenantContext();
+      if (options.module) {
+        await assertPartnerModuleEnabled(options.module, {
+          activeOrgId: ctx?.activeOrgId ?? null,
+          isPlatformSuperadmin: !!ctx?.isPlatformSuperadmin,
+        });
+      }
 
       if (options.cacheTtl && method === "GET") {
         const cache = getDefaultCacheStore();
