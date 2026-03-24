@@ -57,7 +57,6 @@ const superadminNavigation: NavItem[] = [
       { labelKey: "nav.superadmin.trainingCertificates", href: "/superadmin/training/certificates", icon: Award },
       { labelKey: "nav.superadmin.certificateVerify", href: "/superadmin/training/certificates/verify", icon: Award },
       { labelKey: "nav.superadmin.quizzes", href: "/superadmin/quizzes", icon: Brain },
-      { labelKey: "nav.superadmin.emailPreviews", href: "/superadmin/emails/preview", icon: FileText },
     ],
   },
   { labelKey: "nav.superadmin.analytics", href: "/superadmin/analytics", icon: BarChart3 },
@@ -75,6 +74,7 @@ const superadminNavigation: NavItem[] = [
       { labelKey: "nav.countries", href: "/superadmin/admin/countries", icon: Globe },
       { labelKey: "nav.freight", href: "/superadmin/admin/freight", icon: Truck },
       { labelKey: "nav.taxes", href: "/superadmin/admin/taxes", icon: TrendingUp },
+      { labelKey: "nav.superadmin.emailPreviews", href: "/superadmin/emails/preview", icon: FileText },
     ],
   },
 ];
