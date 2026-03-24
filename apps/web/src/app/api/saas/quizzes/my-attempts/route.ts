@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getTenantContext } from "@/lib/tenant";
-import { listQuizAttemptsForUser } from "@vbt/core";
+import { listQuizAttemptsForUser } from "@vbt/core/quiz-attempts";
 
 export async function GET(req: Request) {
   const ctx = await getTenantContext();

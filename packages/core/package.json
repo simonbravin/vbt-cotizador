@@ -4,6 +4,7 @@
   "private": true,
   "exports": {
     ".": "./src/index.ts",
+    "./quiz-attempts": "./src/services/quiz-attempts.ts",
     "./pricing": "./src/pricing/index.ts",
     "./validation": "./src/validation/index.ts",
     "./csv": "./src/csv-parser.ts",

@@ -1,4 +1,4 @@
-import { randomBytes } from "node:crypto";
+import { randomBytes } from "crypto";
 import type { PrismaClient, QuizAttempt } from "@vbt/db";
 import { orgScopeWhere, type TenantContext } from "./tenant-context";
 import { resolveTrainingModuleVisible, quizDefinitionVisibleToPartnerWhere } from "./training-visibility";

@@ -9,7 +9,6 @@ export * from "./training-visibility";
 export * from "./training-sessions";
 export * from "./training-session-enrollments";
 export * from "./quizzes";
-export * from "./quiz-attempts";
 export * from "./training-certificates";
 export * from "./partners";
 export * from "./org-members";

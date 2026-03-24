@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requirePlatformSuperadmin } from "@/lib/tenant";
-import { listQuizAttemptsAdmin } from "@vbt/core";
+import { listQuizAttemptsAdmin } from "@vbt/core/quiz-attempts";
 
 export async function GET(req: Request) {
   await requirePlatformSuperadmin();

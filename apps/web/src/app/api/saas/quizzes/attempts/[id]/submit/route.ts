@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getTenantContext } from "@/lib/tenant";
-import { submitQuizAttempt, issueQuizCertificate } from "@vbt/core";
+import { issueQuizCertificate } from "@vbt/core";
+import { submitQuizAttempt } from "@vbt/core/quiz-attempts";
 import { submitQuizAttemptSchema } from "@vbt/core/validation";
 
 export async function POST(
