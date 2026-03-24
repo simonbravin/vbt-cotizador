@@ -20,7 +20,17 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   brandBlock: { flexDirection: "row", alignItems: "center" },
-  logo: { width: 48, height: 48, objectFit: "contain" },
+  /** Panel negro: el PNG oficial "just VISION" trae fondo negro; así queda deliberado en hoja blanca. */
+  logoPanel: {
+    backgroundColor: "#000000",
+    padding: 5,
+    width: 58,
+    height: 66,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  logo: { width: 48, height: 56, objectFit: "contain" },
+  logoPlaceholder: { width: 48, height: 56, borderWidth: 1, borderColor: "#0c4a6e" },
   brandText: { marginLeft: 10, maxWidth: 200 },
   brandSmall: { fontSize: 7, letterSpacing: 1.2, textTransform: "uppercase", color: "#475569" },
   brandName: { fontSize: 10, fontFamily: "Helvetica-Bold", marginTop: 2 },
@@ -125,9 +135,11 @@ function CertificateDoc(props: TrainingCertificatePdfInput) {
         <View style={styles.header}>
           <View style={styles.brandBlock}>
             {props.logoDataUrl ? (
-              <Image src={props.logoDataUrl} style={styles.logo} />
+              <View style={styles.logoPanel}>
+                <Image src={props.logoDataUrl} style={styles.logo} />
+              </View>
             ) : (
-              <View style={[styles.logo, { borderWidth: 1, borderColor: "#0c4a6e" }]} />
+              <View style={styles.logoPlaceholder} />
             )}
             <View style={styles.brandText}>
               <Text style={styles.brandSmall}>Vision Building Technologies</Text>

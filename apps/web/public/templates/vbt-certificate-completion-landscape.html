@@ -152,13 +152,16 @@
         flex-shrink: 0;
       }
 
+      /* PNG oficial con fondo negro: panel negro para que no “flote” un rectángulo sobre blanco */
       .brand-mark {
-        width: 14mm;
-        height: 14mm;
-        border: 1px solid var(--accent);
+        background: #000000;
+        padding: 1.2mm;
+        width: 19mm;
+        height: 22mm;
         display: flex;
         align-items: center;
         justify-content: center;
+        flex-shrink: 0;
       }
 
       .brand-mark svg {
@@ -395,9 +398,10 @@
       }
 
       .brand-logo-img {
-        height: 14mm;
+        max-height: 100%;
+        max-width: 100%;
         width: auto;
-        max-width: 36mm;
+        height: auto;
         object-fit: contain;
         display: block;
       }
