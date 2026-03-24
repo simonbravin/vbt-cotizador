@@ -149,7 +149,9 @@ export const translations = {
     "nav.superadmin.documents": "Document Library",
     "nav.superadmin.training": "Training",
     "nav.superadmin.trainingCertificates": "Certificates",
+    "nav.superadmin.certificateVerify": "Certificate verify tool",
     "nav.superadmin.quizzes": "Quizzes",
+    "nav.superadmin.emailPreviews": "Email previews",
     "nav.superadmin.settings": "Global Settings",
 
     // Sidebar
@@ -2256,7 +2258,9 @@ export const translations = {
     "nav.superadmin.documents": "Biblioteca de Documentos",
     "nav.superadmin.training": "Capacitación",
     "nav.superadmin.trainingCertificates": "Certificados",
+    "nav.superadmin.certificateVerify": "Herramienta de verificación",
     "nav.superadmin.quizzes": "Cuestionarios",
+    "nav.superadmin.emailPreviews": "Previews de emails",
     "nav.superadmin.settings": "Configuración Global",
 
     // Sidebar
