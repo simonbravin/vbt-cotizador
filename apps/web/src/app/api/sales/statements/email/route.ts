@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions, type SessionUser } from "@/lib/auth";
+import { prisma } from "@/lib/db";
 import { getEffectiveOrganizationId } from "@/lib/tenant";
 import { buildStatementsResponse } from "@/lib/partner-sales";
 import { renderToBuffer } from "@react-pdf/renderer";
 import React from "react";
 import { StatementPdfDocument, type StatementPdfData } from "@/components/pdf/statement-pdf";
 import { Resend } from "resend";
-import { getResendFrom } from "@/lib/email-config";
+import { emailSubjectStatements, getResendFrom, parseEmailLocale } from "@/lib/email-config";
+import { buildStatementsEmailHtml } from "@/lib/email-bodies";
 import { z } from "zod";
 
 const bodySchema = z.object({
@@ -17,6 +19,7 @@ const bodySchema = z.object({
   entityId: z.string().optional(),
   dateFrom: z.string().optional(),
   dateTo: z.string().optional(),
+  locale: z.enum(["en", "es"]).optional(),
   /** Required when sending as platform superadmin. */
   organizationId: z.string().optional(),
 });
@@ -94,14 +97,19 @@ export async function POST(req: Request) {
   );
   const resend = new Resend(apiKey);
   const from = getResendFrom();
+  const senderPrefs = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { emailLocale: true },
+  });
+  const locale = parseEmailLocale(data.locale ?? senderPrefs?.emailLocale);
 
   const { error } = await resend.emails.send({
     from,
     to: data.to,
-    subject: "Account statements — VBT Platform",
-    html: data.message
-      ? `<p>${escapeHtml(data.message)}</p><p>See attached PDF.</p>`
-      : "<p>Please find your account statements attached (PDF).</p>",
+    subject: emailSubjectStatements(locale),
+    html: buildStatementsEmailHtml(locale, {
+      customMessage: data.message,
+    }),
     attachments: [{ filename: "statements.pdf", content: Buffer.from(buf) }],
   });
 
@@ -111,12 +119,4 @@ export async function POST(req: Request) {
   }
 
   return NextResponse.json({ ok: true, message: `Sent to ${data.to}` });
-}
-
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
 }

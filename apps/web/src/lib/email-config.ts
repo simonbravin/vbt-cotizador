@@ -32,6 +32,18 @@ const SUBJECTS = {
     accountApproved: "You're approved — welcome to VBT Platform",
     accountRejected: "Update on your VBT Platform account request",
     report: "Your projects report is ready (CSV attached)",
+    statements: "Your account statements are ready (PDF attached)",
+    engineeringNeedsInfo: (orgName: string) =>
+      `[VBT Platform] Engineering needs information — ${orgName}`,
+    engineeringDelivered: (orgName: string) =>
+      `[VBT Platform] Engineering deliverable ready — ${orgName}`,
+    engineeringRevision: (orgName: string) =>
+      `[VBT Platform] New engineering revision — ${orgName}`,
+    engineeringNote: (orgName: string) =>
+      `[VBT Platform] Engineering update — ${orgName}`,
+    engineeringAssigned: "You have a new engineering request assigned",
+    salesDueReminder: (orgName: string, count: number) =>
+      `[VBT Platform] ${count} payment(s) due soon — ${orgName}`,
   },
   es: {
     partnerInviteExisting: (partnerName: string) =>
@@ -41,10 +53,22 @@ const SUBJECTS = {
     quote: (quoteNumber: string, projectName: string) =>
       `Cotización ${quoteNumber} · ${projectName}`,
     passwordReset: "Restablecé tu contraseña — enlace seguro dentro",
-    signupRequest: "Nueva cuenta pendiente de revision — Plataforma VBT",
+    signupRequest: "Nueva cuenta pendiente de revisión — Plataforma VBT",
     accountApproved: "Cuenta habilitada — bienvenido/a a Plataforma VBT",
     accountRejected: "Novedades sobre tu solicitud — Plataforma VBT",
     report: "Tu informe de proyectos está listo (CSV adjunto)",
+    statements: "Tus estados de cuenta están listos (PDF adjunto)",
+    engineeringNeedsInfo: (orgName: string) =>
+      `[Plataforma VBT] Ingeniería necesita información — ${orgName}`,
+    engineeringDelivered: (orgName: string) =>
+      `[Plataforma VBT] Entregable de ingeniería listo — ${orgName}`,
+    engineeringRevision: (orgName: string) =>
+      `[Plataforma VBT] Nueva revisión de ingeniería — ${orgName}`,
+    engineeringNote: (orgName: string) =>
+      `[Plataforma VBT] Actualización de ingeniería — ${orgName}`,
+    engineeringAssigned: "Tenés una solicitud de ingeniería asignada",
+    salesDueReminder: (orgName: string, count: number) =>
+      `[Plataforma VBT] ${count} pago(s) próximos a vencer — ${orgName}`,
   },
 } as const;
 
@@ -78,4 +102,36 @@ export function emailSubjectAccountRejected(locale: EmailLocale): string {
 
 export function emailSubjectReport(locale: EmailLocale): string {
   return SUBJECTS[locale].report;
+}
+
+export function emailSubjectStatements(locale: EmailLocale): string {
+  return SUBJECTS[locale].statements;
+}
+
+export function emailSubjectEngineeringNeedsInfo(locale: EmailLocale, orgName: string): string {
+  return SUBJECTS[locale].engineeringNeedsInfo(orgName);
+}
+
+export function emailSubjectEngineeringDelivered(locale: EmailLocale, orgName: string): string {
+  return SUBJECTS[locale].engineeringDelivered(orgName);
+}
+
+export function emailSubjectEngineeringRevision(locale: EmailLocale, orgName: string): string {
+  return SUBJECTS[locale].engineeringRevision(orgName);
+}
+
+export function emailSubjectEngineeringNote(locale: EmailLocale, orgName: string): string {
+  return SUBJECTS[locale].engineeringNote(orgName);
+}
+
+export function emailSubjectEngineeringAssigned(locale: EmailLocale): string {
+  return SUBJECTS[locale].engineeringAssigned;
+}
+
+export function emailSubjectSalesDueReminder(
+  locale: EmailLocale,
+  orgName: string,
+  count: number
+): string {
+  return SUBJECTS[locale].salesDueReminder(orgName, count);
 }

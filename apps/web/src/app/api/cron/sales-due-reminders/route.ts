@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { listDueInvoiceItems } from "@/lib/partner-sales";
 import { Resend } from "resend";
-import { getResendFrom } from "@/lib/email-config";
+import { emailSubjectSalesDueReminder, getResendFrom, parseEmailLocale } from "@/lib/email-config";
+import { buildSalesDueReminderEmailHtml } from "@/lib/email-bodies";
 
 /**
  * Vercel Cron or manual: GET with Authorization: Bearer CRON_SECRET
@@ -37,40 +38,44 @@ export async function GET(req: Request) {
 
     const admins = await prisma.orgMember.findMany({
       where: { organizationId: org.id, status: "active", role: "org_admin" },
-      include: { user: { select: { email: true, isActive: true } } },
+      include: { user: { select: { email: true, isActive: true, emailLocale: true } } },
     });
-    const toList = admins.map((m) => m.user.email).filter(Boolean) as string[];
-    if (toList.length === 0) continue;
+    const recipients = admins
+      .filter((m) => m.user.isActive && m.user.email)
+      .map((m) => ({
+        email: m.user.email as string,
+        locale: parseEmailLocale(m.user.emailLocale),
+      }));
+    if (recipients.length === 0) continue;
 
-    const rows = invoices
-      .map(
-        (inv) =>
-          `<tr><td>${escapeHtml(inv.clientName)}</td><td>${escapeHtml(inv.saleId.slice(0, 8))}</td><td>${inv.amountUsd.toFixed(2)}</td><td>${escapeHtml(inv.dueDate.slice(0, 10))}</td></tr>`
-      )
-      .join("");
+    const baseUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "https://app.visionlatam.com").replace(/\/$/, "");
+    const statementsUrl = `${baseUrl}/sales/statements`;
 
-    const html = `<p>Upcoming or due invoice installments (${count}) for <strong>${escapeHtml(org.name)}</strong>:</p>
-<table border="1" cellpadding="6" cellspacing="0"><thead><tr><th>Client</th><th>Sale</th><th>Amount USD</th><th>Due</th></tr></thead><tbody>${rows}</tbody></table>
-<p><a href="${process.env.NEXT_PUBLIC_APP_URL ?? ""}/sales/statements">Open statements</a></p>`;
+    const byLocale = new Map<"en" | "es", string[]>();
+    for (const r of recipients) {
+      const list = byLocale.get(r.locale) ?? [];
+      list.push(r.email);
+      byLocale.set(r.locale, list);
+    }
 
-    const { error } = await resend.emails.send({
-      from,
-      to: toList[0],
-      bcc: toList.length > 1 ? toList.slice(1) : undefined,
-      subject: `[VBT Platform] ${count} payment(s) due soon — ${org.name}`,
-      html,
-    });
-    if (!error) emailsSent += 1;
-    else console.error("[cron/sales-due-reminders]", org.id, error);
+    for (const [locale, emails] of byLocale.entries()) {
+      const html = buildSalesDueReminderEmailHtml(locale, {
+        orgName: org.name,
+        count,
+        invoices,
+        statementsUrl,
+      });
+      const { error } = await resend.emails.send({
+        from,
+        to: emails[0],
+        bcc: emails.length > 1 ? emails.slice(1) : undefined,
+        subject: emailSubjectSalesDueReminder(locale, org.name, count),
+        html,
+      });
+      if (!error) emailsSent += 1;
+      else console.error("[cron/sales-due-reminders]", org.id, locale, error);
+    }
   }
 
   return NextResponse.json({ ok: true, orgsChecked: orgs.length, emailsSent });
-}
-
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
 }

@@ -368,3 +368,201 @@ export function buildSignupRequestAdminEmailHtml(
     footerText: "This notification was sent by the VBT Platform signup flow.",
   });
 }
+
+export function buildEngineeringEventEmailHtml(
+  locale: EmailLocale,
+  opts: {
+    event: "needs_info" | "delivered" | "revision" | "partner_note";
+    orgName: string;
+    requestUrl: string;
+    revisionLabel?: string;
+  }
+): string {
+  const { event, orgName, requestUrl, revisionLabel } = opts;
+  if (locale === "es") {
+    const copy =
+      event === "needs_info"
+        ? {
+            title: "Tu solicitud requiere información",
+            body: `Tu solicitud de ingeniería para <strong>${escapeHtml(orgName)}</strong> necesita información adicional para continuar.`,
+            cta: "Completar información",
+          }
+        : event === "delivered"
+          ? {
+              title: "Entregable de ingeniería listo",
+              body: `Hay un nuevo entregable listo para <strong>${escapeHtml(orgName)}</strong>.`,
+              cta: "Ver entregable",
+            }
+          : event === "revision"
+            ? {
+                title: "Nueva revisión disponible",
+                body: `Se cargó una nueva revisión para <strong>${escapeHtml(orgName)}</strong>${revisionLabel ? `: <strong>${escapeHtml(revisionLabel)}</strong>` : ""}.`,
+                cta: "Ver revisión",
+              }
+            : {
+                title: "Nueva actualización de ingeniería",
+                body: `Hay una actualización en tu solicitud de ingeniería de <strong>${escapeHtml(orgName)}</strong>.`,
+                cta: "Abrir solicitud",
+              };
+    return buildVbtEmailHtml({
+      locale,
+      title: copy.title,
+      subtitle: BRAND_SUBTITLE,
+      preheader: `${copy.title} · ${orgName}`,
+      bodyHtml: `<p style="margin:0;">${copy.body}</p>`,
+      ctaHtml: emailPrimaryButton(requestUrl, copy.cta),
+      footerText: "Este aviso fue enviado por la Plataforma VBT.",
+    });
+  }
+
+  const copy =
+    event === "needs_info"
+      ? {
+          title: "Engineering request needs information",
+          body: `Your engineering request for <strong>${escapeHtml(orgName)}</strong> needs additional information to continue.`,
+          cta: "Provide details",
+        }
+      : event === "delivered"
+        ? {
+            title: "Engineering deliverable is ready",
+            body: `A new engineering deliverable is ready for <strong>${escapeHtml(orgName)}</strong>.`,
+            cta: "View deliverable",
+          }
+        : event === "revision"
+          ? {
+              title: "New engineering revision available",
+              body: `A new revision was uploaded for <strong>${escapeHtml(orgName)}</strong>${revisionLabel ? `: <strong>${escapeHtml(revisionLabel)}</strong>` : ""}.`,
+              cta: "Open revision",
+            }
+          : {
+              title: "Engineering request updated",
+              body: `There is an update on your engineering request for <strong>${escapeHtml(orgName)}</strong>.`,
+              cta: "Open request",
+            };
+  return buildVbtEmailHtml({
+    locale,
+    title: copy.title,
+    subtitle: BRAND_SUBTITLE,
+    preheader: `${copy.title} · ${orgName}`,
+    bodyHtml: `<p style="margin:0;">${copy.body}</p>`,
+    ctaHtml: emailPrimaryButton(requestUrl, copy.cta),
+    footerText: "This notification was sent by the VBT Platform.",
+  });
+}
+
+export function buildEngineeringAssignedEmailHtml(
+  locale: EmailLocale,
+  opts: { greeting: string; requestUrl: string }
+): string {
+  const { greeting, requestUrl } = opts;
+  if (locale === "es") {
+    return buildVbtEmailHtml({
+      locale,
+      title: "Nueva solicitud asignada",
+      subtitle: BRAND_SUBTITLE,
+      preheader: "Tenés una solicitud de ingeniería pendiente",
+      bodyHtml: `<p style="margin:0 0 12px 0;">Hola ${escapeHtml(greeting)},</p><p style="margin:0;">Se te asignó una nueva solicitud de ingeniería para gestionar.</p>`,
+      ctaHtml: emailPrimaryButton(requestUrl, "Abrir en superadmin"),
+      footerText: "Aviso automático de asignación · Plataforma VBT.",
+    });
+  }
+  return buildVbtEmailHtml({
+    locale,
+    title: "New request assigned",
+    subtitle: BRAND_SUBTITLE,
+    preheader: "You have a pending engineering request",
+    bodyHtml: `<p style="margin:0 0 12px 0;">Hi ${escapeHtml(greeting)},</p><p style="margin:0;">A new engineering request has been assigned to you.</p>`,
+    ctaHtml: emailPrimaryButton(requestUrl, "Open in superadmin"),
+    footerText: "Automatic assignment notice · VBT Platform.",
+  });
+}
+
+export function buildStatementsEmailHtml(
+  locale: EmailLocale,
+  opts: { customMessage?: string }
+): string {
+  if (locale === "es") {
+    return buildVbtEmailHtml({
+      locale,
+      title: "Estados de cuenta",
+      subtitle: BRAND_SUBTITLE,
+      preheader: "Archivo PDF adjunto",
+      bodyHtml: opts.customMessage?.trim()
+        ? `<p style="margin:0 0 14px 0;">${escapeHtml(opts.customMessage.trim())}</p><p style="margin:0;color:#6b7280;">Adjuntamos el PDF con los estados de cuenta solicitados.</p>`
+        : `<p style="margin:0;">Adjuntamos el PDF con los estados de cuenta solicitados.</p>`,
+      footerText: "Documento generado por la Plataforma VBT.",
+    });
+  }
+  return buildVbtEmailHtml({
+    locale,
+    title: "Account statements",
+    subtitle: BRAND_SUBTITLE,
+    preheader: "PDF file attached",
+    bodyHtml: opts.customMessage?.trim()
+      ? `<p style="margin:0 0 14px 0;">${escapeHtml(opts.customMessage.trim())}</p><p style="margin:0;color:#6b7280;">The requested account statements are attached as a PDF file.</p>`
+      : `<p style="margin:0;">The requested account statements are attached as a PDF file.</p>`,
+    footerText: "Document generated by the VBT Platform.",
+  });
+}
+
+export function buildSalesDueReminderEmailHtml(
+  locale: EmailLocale,
+  opts: {
+    orgName: string;
+    count: number;
+    invoices: Array<{ clientName: string; saleId: string; amountUsd: number; dueDate: string }>;
+    statementsUrl: string;
+  }
+): string {
+  const money = new Intl.NumberFormat(locale === "es" ? "es-AR" : "en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+  });
+  const rows = opts.invoices
+    .slice(0, 10)
+    .map((inv) => {
+      const due = escapeHtml(inv.dueDate.slice(0, 10));
+      return `<tr>
+        <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;">${escapeHtml(inv.clientName)}</td>
+        <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;">${escapeHtml(inv.saleId.slice(0, 8))}</td>
+        <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;">${escapeHtml(money.format(inv.amountUsd))}</td>
+        <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;">${due}</td>
+      </tr>`;
+    })
+    .join("");
+
+  if (locale === "es") {
+    return buildVbtEmailHtml({
+      locale,
+      title: "Recordatorio de cobranzas",
+      subtitle: BRAND_SUBTITLE,
+      preheader: `${opts.count} pago(s) próximos a vencer · ${opts.orgName}`,
+      bodyHtml: `
+        <p style="margin:0 0 14px 0;">Detectamos <strong>${opts.count}</strong> pago(s) próximo(s) a vencer para <strong>${escapeHtml(opts.orgName)}</strong>.</p>
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;font-size:14px;">
+          <tr><td style="padding:10px 12px;background:#f9fafb;color:#6b7280;">Cliente</td><td style="padding:10px 12px;background:#f9fafb;color:#6b7280;">Venta</td><td style="padding:10px 12px;background:#f9fafb;color:#6b7280;">Monto</td><td style="padding:10px 12px;background:#f9fafb;color:#6b7280;">Vence</td></tr>
+          ${rows}
+        </table>
+      `.trim(),
+      ctaHtml: emailPrimaryButton(opts.statementsUrl, "Abrir estados de cuenta"),
+      footerText: "Aviso automático programado por la Plataforma VBT.",
+    });
+  }
+
+  return buildVbtEmailHtml({
+    locale,
+    title: "Receivables reminder",
+    subtitle: BRAND_SUBTITLE,
+    preheader: `${opts.count} payment(s) due soon · ${opts.orgName}`,
+    bodyHtml: `
+      <p style="margin:0 0 14px 0;">We detected <strong>${opts.count}</strong> payment(s) due soon for <strong>${escapeHtml(opts.orgName)}</strong>.</p>
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;font-size:14px;">
+        <tr><td style="padding:10px 12px;background:#f9fafb;color:#6b7280;">Client</td><td style="padding:10px 12px;background:#f9fafb;color:#6b7280;">Sale</td><td style="padding:10px 12px;background:#f9fafb;color:#6b7280;">Amount</td><td style="padding:10px 12px;background:#f9fafb;color:#6b7280;">Due</td></tr>
+        ${rows}
+      </table>
+    `.trim(),
+    ctaHtml: emailPrimaryButton(opts.statementsUrl, "Open statements"),
+    footerText: "Scheduled automatic notice from the VBT Platform.",
+  });
+}

@@ -1,71 +1,25 @@
 import { Resend } from "resend";
 import { prisma } from "@/lib/db";
-import { getResendFrom, parseEmailLocale, type EmailLocale } from "@/lib/email-config";
+import {
+  emailSubjectEngineeringAssigned,
+  emailSubjectEngineeringDelivered,
+  emailSubjectEngineeringNeedsInfo,
+  emailSubjectEngineeringNote,
+  emailSubjectEngineeringRevision,
+  getResendFrom,
+  parseEmailLocale,
+  type EmailLocale,
+} from "@/lib/email-config";
+import {
+  buildEngineeringAssignedEmailHtml,
+  buildEngineeringEventEmailHtml,
+} from "@/lib/email-bodies";
 
 /** When true and RESEND_API_KEY is set, sends transactional emails for critical engineering events. */
 export function isEngineeringEventEmailEnabled(): boolean {
   const v = process.env.SEND_ENGINEERING_EVENT_EMAILS?.trim().toLowerCase();
   return v === "1" || v === "true" || v === "yes";
 }
-
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
-const COPY: Record<
-  EmailLocale,
-  {
-    needsInfoSubject: (orgName: string) => string;
-    needsInfoBody: (link: string, orgName: string) => string;
-    deliveredSubject: (orgName: string) => string;
-    deliveredBody: (link: string, orgName: string) => string;
-    revisionSubject: (orgName: string) => string;
-    revisionBody: (link: string, orgName: string, label: string) => string;
-    noteSubject: (orgName: string) => string;
-    noteBody: (link: string, orgName: string) => string;
-    assignedSubject: string;
-    assignedBody: (link: string, greeting: string) => string;
-  }
-> = {
-  en: {
-    needsInfoSubject: (org) => `[VBT Platform] Engineering needs information — ${org}`,
-    needsInfoBody: (link, org) =>
-      `<p>Your engineering request for <strong>${escapeHtml(org)}</strong> needs more information.</p><p><a href="${escapeHtml(link)}">Open request</a></p>`,
-    deliveredSubject: (org) => `[VBT Platform] Engineering deliverable ready — ${org}`,
-    deliveredBody: (link, org) =>
-      `<p>A deliverable is ready for <strong>${escapeHtml(org)}</strong>.</p><p><a href="${escapeHtml(link)}">Open request</a></p>`,
-    revisionSubject: (org) => `[VBT Platform] New engineering revision — ${org}`,
-    revisionBody: (link, org, label) =>
-      `<p>A new revision was uploaded for <strong>${escapeHtml(org)}</strong>: ${escapeHtml(label)}</p><p><a href="${escapeHtml(link)}">Open request</a></p>`,
-    noteSubject: (org) => `[VBT Platform] Engineering update — ${org}`,
-    noteBody: (link, org) =>
-      `<p>There is a new note on your engineering request (<strong>${escapeHtml(org)}</strong>).</p><p><a href="${escapeHtml(link)}">Open request</a></p>`,
-    assignedSubject: "[VBT Platform] Engineering request assigned to you",
-    assignedBody: (link, greeting) =>
-      `<p>Hi ${escapeHtml(greeting)},</p><p>An engineering request was assigned to you.</p><p><a href="${escapeHtml(link)}">Open in superadmin</a></p>`,
-  },
-  es: {
-    needsInfoSubject: (org) => `[Plataforma VBT] Ingeniería necesita información — ${org}`,
-    needsInfoBody: (link, org) =>
-      `<p>Tu solicitud de ingeniería de <strong>${escapeHtml(org)}</strong> necesita más información.</p><p><a href="${escapeHtml(link)}">Abrir solicitud</a></p>`,
-    deliveredSubject: (org) => `[Plataforma VBT] Entregable de ingeniería listo — ${org}`,
-    deliveredBody: (link, org) =>
-      `<p>Hay un entregable listo para <strong>${escapeHtml(org)}</strong>.</p><p><a href="${escapeHtml(link)}">Abrir solicitud</a></p>`,
-    revisionSubject: (org) => `[Plataforma VBT] Nueva revisión de ingeniería — ${org}`,
-    revisionBody: (link, org, label) =>
-      `<p>Se subió una nueva revisión para <strong>${escapeHtml(org)}</strong>: ${escapeHtml(label)}</p><p><a href="${escapeHtml(link)}">Abrir solicitud</a></p>`,
-    noteSubject: (org) => `[Plataforma VBT] Actualización de ingeniería — ${org}`,
-    noteBody: (link, org) =>
-      `<p>Hay una nota nueva en tu solicitud de ingeniería (<strong>${escapeHtml(org)}</strong>).</p><p><a href="${escapeHtml(link)}">Abrir solicitud</a></p>`,
-    assignedSubject: "[Plataforma VBT] Solicitud de ingeniería asignada",
-    assignedBody: (link, greeting) =>
-      `<p>Hola ${escapeHtml(greeting)},</p><p>Se te asignó una solicitud de ingeniería.</p><p><a href="${escapeHtml(link)}">Abrir en superadmin</a></p>`,
-  },
-};
 
 async function activePartnerRecipientEmails(organizationId: string): Promise<
   Array<{ email: string; locale: EmailLocale }>
@@ -119,25 +73,41 @@ export async function sendPartnerEngineeringEventEmail(input: {
   }
 
   for (const [locale, emails] of byLocale) {
-    const c = COPY[locale];
     let subject: string;
     let html: string;
     switch (input.event) {
       case "needs_info":
-        subject = c.needsInfoSubject(orgName);
-        html = c.needsInfoBody(partnerLink, orgName);
+        subject = emailSubjectEngineeringNeedsInfo(locale, orgName);
+        html = buildEngineeringEventEmailHtml(locale, {
+          event: "needs_info",
+          orgName,
+          requestUrl: partnerLink,
+        });
         break;
       case "delivered":
-        subject = c.deliveredSubject(orgName);
-        html = c.deliveredBody(partnerLink, orgName);
+        subject = emailSubjectEngineeringDelivered(locale, orgName);
+        html = buildEngineeringEventEmailHtml(locale, {
+          event: "delivered",
+          orgName,
+          requestUrl: partnerLink,
+        });
         break;
       case "revision":
-        subject = c.revisionSubject(orgName);
-        html = c.revisionBody(partnerLink, orgName, input.revisionLabel?.trim() || "revision");
+        subject = emailSubjectEngineeringRevision(locale, orgName);
+        html = buildEngineeringEventEmailHtml(locale, {
+          event: "revision",
+          orgName,
+          requestUrl: partnerLink,
+          revisionLabel: input.revisionLabel?.trim() || undefined,
+        });
         break;
       case "partner_note":
-        subject = c.noteSubject(orgName);
-        html = c.noteBody(partnerLink, orgName);
+        subject = emailSubjectEngineeringNote(locale, orgName);
+        html = buildEngineeringEventEmailHtml(locale, {
+          event: "partner_note",
+          orgName,
+          requestUrl: partnerLink,
+        });
         break;
       default:
         return;
@@ -162,14 +132,13 @@ export async function sendEngineeringAssigneeEmail(input: {
   if (!user?.isActive || !user.email) return;
 
   const locale = parseEmailLocale(user.emailLocale);
-  const c = COPY[locale];
   const link = `${appBaseUrl()}/superadmin/engineering/${input.requestId}`;
   const greeting = user.fullName?.trim() || user.email;
   const resend = new Resend(process.env.RESEND_API_KEY);
   await resend.emails.send({
     from: getResendFrom(),
     to: user.email,
-    subject: c.assignedSubject,
-    html: c.assignedBody(link, greeting),
+    subject: emailSubjectEngineeringAssigned(locale),
+    html: buildEngineeringAssignedEmailHtml(locale, { requestUrl: link, greeting }),
   });
 }
