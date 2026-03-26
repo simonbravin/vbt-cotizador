@@ -17,6 +17,20 @@ export const ORG_ROLE_TO_API: Record<OrgMemberRole, string> = {
   viewer: "viewer",
 };
 
+/** User fields exposed on org-member APIs (team lists, invites). */
+export const ORG_MEMBER_USER_SELECT = {
+  id: true,
+  fullName: true,
+  email: true,
+  phone: true,
+  image: true,
+  emailLocale: true,
+  emailVerified: true,
+  createdAt: true,
+  lastLoginAt: true,
+  isActive: true,
+} as const;
+
 export type ListOrgMembersOptions = {
   limit?: number;
   offset?: number;
@@ -45,8 +59,8 @@ export async function listOrgMembers(
     prisma.orgMember.findMany({
       where,
       include: {
-        user: { select: { id: true, fullName: true, email: true } },
-        invitedBy: { select: { id: true, fullName: true } },
+        user: { select: ORG_MEMBER_USER_SELECT },
+        invitedBy: { select: { id: true, fullName: true, email: true } },
       },
       orderBy: { createdAt: "desc" },
       take: options.limit ?? 50,
@@ -87,7 +101,7 @@ export async function inviteOrgMember(
     return prisma.orgMember.update({
       where: { id: existing.id },
       data: { role, status: "invited", invitedByUserId: ctx.userId },
-      include: { user: { select: { id: true, fullName: true, email: true } } },
+      include: { user: { select: ORG_MEMBER_USER_SELECT } },
     });
   }
   return prisma.orgMember.create({
@@ -98,7 +112,7 @@ export async function inviteOrgMember(
       status: "invited",
       invitedByUserId: ctx.userId,
     },
-    include: { user: { select: { id: true, fullName: true, email: true } } },
+    include: { user: { select: ORG_MEMBER_USER_SELECT } },
   });
 }
 
@@ -125,7 +139,7 @@ export async function updateOrgMember(
   return prisma.orgMember.update({
     where: { id: memberId },
     data: updateData,
-    include: { user: { select: { id: true, fullName: true, email: true } } },
+    include: { user: { select: ORG_MEMBER_USER_SELECT } },
   });
 }
 

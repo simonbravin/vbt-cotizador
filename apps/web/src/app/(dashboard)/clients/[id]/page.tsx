@@ -46,6 +46,9 @@ export default async function ClientDetailPage({
 
     if (!client) notFound();
 
+    const countryName =
+      client.countryCode && countryRows.find((r) => r.code === client.countryCode)?.name;
+
     return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center justify-between gap-3">
@@ -69,10 +72,28 @@ export default async function ClientDetailPage({
       <div className="rounded-sm border border-border/60 bg-card p-5">
         <h2 className="mb-4 font-semibold text-foreground">Client details</h2>
         <dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+          {client.legalName && (
+            <>
+              <dt className="text-muted-foreground">Legal name</dt>
+              <dd className="text-foreground">{client.legalName}</dd>
+            </>
+          )}
+          {client.taxId && (
+            <>
+              <dt className="text-muted-foreground">Tax ID</dt>
+              <dd className="text-foreground">{client.taxId}</dd>
+            </>
+          )}
           {client.countryCode && (
             <>
               <dt className="text-muted-foreground">Country</dt>
-              <dd className="text-foreground">{client.countryCode}</dd>
+              <dd className="text-foreground">{countryName ?? client.countryCode}</dd>
+            </>
+          )}
+          {client.address && (
+            <>
+              <dt className="text-muted-foreground">Address</dt>
+              <dd className="text-foreground">{client.address}</dd>
             </>
           )}
           {client.city && (

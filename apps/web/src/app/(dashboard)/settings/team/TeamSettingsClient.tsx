@@ -1,20 +1,43 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, User, Mail } from "lucide-react";
-import { useT } from "@/lib/i18n/context";
+import { Plus, User, Mail, Phone } from "lucide-react";
+import { useLanguage } from "@/lib/i18n/context";
 
 type Member = {
   id: string;
   role: string;
   status: string;
-  user?: { id: string; fullName: string | null; email: string | null };
+  createdAt?: string;
+  joinedAt?: string | null;
+  user?: {
+    id: string;
+    fullName: string | null;
+    email: string | null;
+    phone?: string | null;
+    lastLoginAt?: string | null;
+    emailLocale?: string;
+  };
 };
+
+function formatShortDate(iso: string | undefined | null, loc: string) {
+  if (!iso) return "—";
+  try {
+    return new Date(iso).toLocaleDateString(loc === "es" ? "es" : "en", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  } catch {
+    return "—";
+  }
+}
 
 const ROLES = ["owner", "admin", "sales", "engineer", "viewer"];
 
 export function TeamSettingsClient() {
-  const t = useT();
+  const { t, locale } = useLanguage();
+  const loc = locale === "es" ? "es" : "en";
   const [members, setMembers] = useState<Member[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -130,28 +153,70 @@ export function TeamSettingsClient() {
             <p className="text-sm text-muted-foreground mt-1">{t("partner.team.inviteSomeoneAbove")}</p>
           </div>
         ) : (
-          <ul className="divide-y divide-border/60">
-            {members.map((m) => (
-              <li key={m.id} className="px-5 py-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-foreground">{m.user?.fullName ?? m.user?.email ?? "—"}</p>
-                    {m.user?.email && <p className="text-sm text-muted-foreground flex items-center gap-1"><Mail className="h-3.5 w-3.5" /> {m.user.email}</p>}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-muted text-foreground">{m.role}</span>
-                  <span className="text-xs text-muted-foreground">{m.status}</span>
-                </div>
-              </li>
-            ))}
-          </ul>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px] text-sm">
+              <thead className="border-b border-border/60 bg-muted/30">
+                <tr>
+                  <th className="px-5 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">{t("common.name")}</th>
+                  <th className="px-5 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">{t("auth.email")}</th>
+                  <th className="px-5 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">{t("partner.team.colPhone")}</th>
+                  <th className="px-5 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">{t("admin.users.role")}</th>
+                  <th className="px-5 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">{t("partner.engineering.status")}</th>
+                  <th className="px-5 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">{t("partner.team.colMemberSince")}</th>
+                  <th className="px-5 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">{t("partner.team.colLastLogin")}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/60">
+                {members.map((m) => (
+                  <tr key={m.id} className="hover:bg-muted/20">
+                    <td className="px-5 py-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0">
+                          <User className="h-3.5 w-3.5 text-muted-foreground" />
+                        </div>
+                        <span className="font-medium text-foreground">{m.user?.fullName ?? "—"}</span>
+                      </div>
+                    </td>
+                    <td className="px-5 py-3 text-muted-foreground">
+                      {m.user?.email ? (
+                        <span className="inline-flex items-center gap-1">
+                          <Mail className="h-3.5 w-3.5 shrink-0" />
+                          {m.user.email}
+                        </span>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td className="px-5 py-3 text-muted-foreground">
+                      {m.user?.phone?.trim() ? (
+                        <span className="inline-flex items-center gap-1">
+                          <Phone className="h-3.5 w-3.5 shrink-0" />
+                          {m.user.phone}
+                        </span>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td className="px-5 py-3">
+                      <span className="inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-muted text-foreground">{m.role}</span>
+                    </td>
+                    <td className="px-5 py-3 text-muted-foreground">{m.status}</td>
+                    <td className="px-5 py-3 text-muted-foreground">
+                      {formatShortDate(m.joinedAt ?? m.createdAt, loc)}
+                    </td>
+                    <td className="px-5 py-3 text-muted-foreground">
+                      {formatShortDate(m.user?.lastLoginAt, loc)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
         {!loading && members.length > 0 && (
-          <p className="px-5 py-2 text-xs text-muted-foreground border-t border-border/60">{total} member(s)</p>
+          <p className="px-5 py-2 text-xs text-muted-foreground border-t border-border/60">
+            {t("partner.team.membersCount", { count: total })}
+          </p>
         )}
       </div>
     </div>

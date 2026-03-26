@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { LogOut, User, Bell, Building2, ChevronDown, Sun, Moon } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/i18n/context";
 import { useTheme } from "@/lib/theme";
 
@@ -28,6 +29,8 @@ interface TopBarProps {
   showContextSwitcher?: boolean;
   /** Current organization name (partner context). Shown next to title when set. */
   activeOrgName?: string | null;
+  /** Link target for the user block (profile). */
+  profileHref?: string;
 }
 
 const ROLE_COLORS: Record<string, string> = {
@@ -56,7 +59,7 @@ function setLastReadAt() {
 
 type PartnerOption = { id: string; name: string };
 
-export function TopBar({ user, showContextSwitcher, activeOrgName }: TopBarProps) {
+export function TopBar({ user, showContextSwitcher, activeOrgName, profileHref }: TopBarProps) {
   const { locale, setLocale, t } = useLanguage();
   const { theme, toggleTheme } = useTheme();
   const router = useRouter();
@@ -286,21 +289,47 @@ export function TopBar({ user, showContextSwitcher, activeOrgName }: TopBarProps
           )}
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-header-foreground/20 flex items-center justify-center">
-            <User className="w-4 h-4 text-header-foreground" />
+        {profileHref ? (
+          <Link
+            href={profileHref}
+            className={cn(
+              "flex items-center gap-3 rounded-sm px-1 py-0.5 -mx-0.5",
+              "hover:bg-header-foreground/10 transition-colors",
+              "outline-none focus-visible:ring-2 focus-visible:ring-header-foreground/35 focus-visible:ring-offset-2 focus-visible:ring-offset-header"
+            )}
+            title={t("partner.profile.title")}
+          >
+            <div className="w-8 h-8 rounded-full bg-header-foreground/20 flex items-center justify-center">
+              <User className="w-4 h-4 text-header-foreground" />
+            </div>
+            <div className="hidden sm:block text-left">
+              <p className="text-sm font-medium text-header-foreground leading-tight">
+                {user.name ?? user.email}
+              </p>
+              <span
+                className={`text-xs px-1.5 py-0.5 rounded-sm font-medium ${ROLE_COLORS[user.role] ?? "bg-header-foreground/20 text-header-foreground"}`}
+              >
+                {user.role}
+              </span>
+            </div>
+          </Link>
+        ) : (
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-header-foreground/20 flex items-center justify-center">
+              <User className="w-4 h-4 text-header-foreground" />
+            </div>
+            <div className="hidden sm:block">
+              <p className="text-sm font-medium text-header-foreground leading-tight">
+                {user.name ?? user.email}
+              </p>
+              <span
+                className={`text-xs px-1.5 py-0.5 rounded-sm font-medium ${ROLE_COLORS[user.role] ?? "bg-header-foreground/20 text-header-foreground"}`}
+              >
+                {user.role}
+              </span>
+            </div>
           </div>
-          <div className="hidden sm:block">
-            <p className="text-sm font-medium text-header-foreground leading-tight">
-              {user.name ?? user.email}
-            </p>
-            <span
-              className={`text-xs px-1.5 py-0.5 rounded-sm font-medium ${ROLE_COLORS[user.role] ?? "bg-header-foreground/20 text-header-foreground"}`}
-            >
-              {user.role}
-            </span>
-          </div>
-        </div>
+        )}
 
         <button
           onClick={() => signOut({ callbackUrl: "/login" })}

@@ -53,12 +53,14 @@ export default async function ClientsPage() {
     code: co.code,
   }));
 
+  const countryByCode = new Map(countries.map((co) => [co.code, co]));
+
   const clients = clientsRows.map((c) => {
     const row = c as typeof c & { _count?: { projects: number } };
+    const co = row.countryCode ? countryByCode.get(row.countryCode) : undefined;
     return {
       ...row,
-      legalName: null as string | null,
-      country: row.countryCode ? { id: row.countryCode, name: row.countryCode, code: row.countryCode } : null,
+      country: co ?? (row.countryCode ? { id: row.countryCode, name: row.countryCode, code: row.countryCode } : null),
       _count: row._count ?? { projects: 0 },
     };
   });

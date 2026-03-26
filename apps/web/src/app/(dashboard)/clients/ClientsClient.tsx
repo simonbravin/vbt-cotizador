@@ -16,6 +16,10 @@ type Client = {
   id: string;
   name: string;
   legalName: string | null;
+  taxId?: string | null;
+  address?: string | null;
+  city?: string | null;
+  notes?: string | null;
   email: string | null;
   phone: string | null;
   website: string | null;
@@ -164,14 +168,14 @@ export function ClientsClient({
     setForm({
       name: c.name,
       legalName: c.legalName ?? "",
-      taxId: (c as any).taxId ?? "",
-      address: (c as any).address ?? "",
-      city: (c as any).city ?? "",
+      taxId: c.taxId ?? "",
+      address: c.address ?? "",
+      city: c.city ?? "",
       countryId: c.country?.id ?? "",
       phone: c.phone ?? "",
       email: c.email ?? "",
       website: c.website ?? "",
-      notes: (c as any).notes ?? "",
+      notes: c.notes ?? "",
     });
     setEditId(c.id);
     setError("");

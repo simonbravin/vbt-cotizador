@@ -35,9 +35,12 @@ export default async function SuperadminLayout({
 
   return (
     <div className="flex h-screen bg-muted overflow-hidden">
-      <SuperadminSidebar userDisplayName={safeUser.name?.trim() || safeUser.email?.trim() || null} />
+      <SuperadminSidebar
+        userDisplayName={safeUser.name?.trim() || safeUser.email?.trim() || null}
+        profileHref="/superadmin/settings/profile"
+      />
       <div className="flex-1 flex flex-col overflow-hidden min-w-0 border-l border-border/60">
-        <TopBar user={safeUser} showContextSwitcher />
+        <TopBar user={safeUser} showContextSwitcher profileHref="/superadmin/settings/profile" />
         <main className="app-main-scroll flex-1 overflow-y-auto bg-background">{children}</main>
       </div>
     </div>

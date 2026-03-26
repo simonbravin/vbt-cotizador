@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { QuotesClient } from "./QuotesClient";
 import type { SessionUser } from "@/lib/auth";
 import { getT, LOCALE_COOKIE_NAME } from "@/lib/i18n/translations";
@@ -82,12 +83,11 @@ export default async function QuotesPage({ searchParams }: { searchParams: { sta
             {t("quotes.quotesCount", { count: quotes.length })}
           </p>
         </div>
-        <Link
-          href="/quotes/create"
-          className="inline-flex shrink-0 items-center justify-center gap-2 self-start rounded-sm border border-vbt-orange/30 bg-vbt-orange px-4 py-2.5 text-sm font-semibold text-white hover:opacity-90 sm:self-auto"
-        >
-          <Plus className="h-4 w-4 shrink-0" /> {t("quotes.newQuote")}
-        </Link>
+        <Button asChild className="shrink-0 gap-2 self-start border border-primary/20 sm:self-auto">
+          <Link href="/quotes/create">
+            <Plus className="h-4 w-4 shrink-0" /> {t("quotes.newQuote")}
+          </Link>
+        </Button>
       </div>
 
       {/* Filter tabs */}

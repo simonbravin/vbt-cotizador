@@ -9,10 +9,12 @@ import { getEffectiveOrganizationId } from "@/lib/tenant";
 import { createActivityLog } from "@/lib/audit";
 import { z } from "zod";
 
-// Client model has: name, clientType, countryCode, city, website, email, phone, notes. legalName, taxId, address are not in the model and are ignored if sent.
 const createSchema = z.object({
   name: z.string().min(1, "Name is required"),
+  legalName: z.string().max(500).optional(),
+  taxId: z.string().max(64).optional(),
   city: z.string().optional(),
+  address: z.string().max(2000).optional(),
   countryCode: z.string().optional(),
   phone: z.string().optional(),
   email: z.string().optional(),
@@ -38,9 +40,12 @@ export async function GET(req: Request) {
   const where: Record<string, unknown> = { organizationId };
   if (countryCode) (where as any).countryCode = countryCode;
   if (search.trim()) {
+    const q = search.trim();
     (where as any).OR = [
-      { name: { contains: search.trim(), mode: "insensitive" } },
-      { email: { contains: search.trim(), mode: "insensitive" } },
+      { name: { contains: q, mode: "insensitive" } },
+      { legalName: { contains: q, mode: "insensitive" } },
+      { taxId: { contains: q, mode: "insensitive" } },
+      { email: { contains: q, mode: "insensitive" } },
     ];
   }
 
@@ -82,13 +87,16 @@ export async function POST(req: Request) {
       data: {
         organizationId,
         name: parsed.data.name,
+        legalName: parsed.data.legalName?.trim() || null,
         clientType: "developer",
+        taxId: parsed.data.taxId?.trim() || null,
         city: parsed.data.city ?? null,
+        address: parsed.data.address?.trim() || null,
         countryCode: parsed.data.countryCode ?? null,
         phone: parsed.data.phone ?? null,
         email: parsed.data.email ?? null,
-        website: parsed.data.website ?? null,
-        notes: parsed.data.notes ?? null,
+        website: parsed.data.website?.trim() || null,
+        notes: parsed.data.notes?.trim() || null,
       },
     });
     await createActivityLog({

@@ -4,8 +4,11 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
 import { getInvoicedAmount } from "@/lib/sales";
-import { Plus, ShoppingCart, Bell, Download } from "lucide-react";
+import { Plus, ShoppingCart, Bell, Download, Search } from "lucide-react";
 import { useT } from "@/lib/i18n/context";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { DATE_INPUT_FILTER, NATIVE_SELECT_FILTER } from "@/lib/ui-filter-classes";
 
 type Sale = {
   id: string;
@@ -131,51 +134,50 @@ export function SalesClient() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <Link
-            href="/sales/new"
-            className="inline-flex items-center gap-2 rounded-sm border border-vbt-orange/30 bg-vbt-orange px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
-          >
+      <div className="flex flex-wrap items-center gap-2">
+        <Button asChild className="gap-2 border border-primary/20">
+          <Link href="/sales/new">
             <Plus className="w-4 h-4" /> {t("partner.sales.newSaleButton")}
           </Link>
-          <Link
-            href="/sales/statements"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-card border border-border text-foreground rounded-sm text-sm font-medium hover:bg-muted"
-          >
-            {t("partner.sales.statementsLink")}
-          </Link>
+        </Button>
+        <Button variant="outline" asChild className="border-border/60">
+          <Link href="/sales/statements">{t("partner.sales.statementsLink")}</Link>
+        </Button>
+        <Button variant="outline" asChild className="gap-2 border-border/60">
           <a
             href={`/api/sales/export?${new URLSearchParams({ ...(from && { from }), ...(to && { to }), ...(status && { status }), ...(clientId && { clientId }), ...(projectId && { projectId }) }).toString()}`}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-card border border-border text-foreground rounded-sm text-sm font-medium hover:bg-muted"
             target="_blank"
             rel="noopener noreferrer"
           >
             <Download className="w-4 h-4" /> {t("partner.sales.exportCsv")}
           </a>
-          {dueCount > 0 && (
-            <Link
-              href="/sales/statements"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500/15 text-amber-900 dark:text-amber-200 rounded-sm text-sm font-medium"
-            >
+        </Button>
+        {dueCount > 0 && (
+          <Button variant="outline" asChild className="border-amber-500/40 bg-amber-500/10 text-amber-950 hover:bg-amber-500/15 dark:text-amber-200 gap-2">
+            <Link href="/sales/statements">
               <Bell className="w-4 h-4" /> {t("partner.sales.paymentsDue", { count: dueCount })}
             </Link>
-          )}
-        </div>
+          </Button>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-2 items-center">
-        <input
-          type="text"
-          placeholder={t("partner.sales.searchPlaceholder")}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="px-3 py-1.5 border border-border rounded-sm text-sm w-56"
-        />
+        <div className="relative w-full min-w-[200px] max-w-xs sm:w-auto sm:flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder={t("partner.sales.searchPlaceholder")}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+            aria-label={t("partner.sales.searchPlaceholder")}
+          />
+        </div>
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value)}
-          className="px-3 py-1.5 border border-border rounded-sm text-sm"
+          className={NATIVE_SELECT_FILTER}
+          aria-label={t("partner.sales.allStatuses")}
         >
           <option value="">{t("partner.sales.allStatuses")}</option>
           {statusOptions.map(({ value: v, label: l }) => (
@@ -185,7 +187,8 @@ export function SalesClient() {
         <select
           value={clientId}
           onChange={(e) => setClientId(e.target.value)}
-          className="px-3 py-1.5 border border-border rounded-sm text-sm min-w-[140px]"
+          className={NATIVE_SELECT_FILTER}
+          aria-label={t("partner.sales.allClients")}
         >
           <option value="">{t("partner.sales.allClients")}</option>
           {clients.map((c) => (
@@ -195,7 +198,8 @@ export function SalesClient() {
         <select
           value={projectId}
           onChange={(e) => setProjectId(e.target.value)}
-          className="px-3 py-1.5 border border-border rounded-sm text-sm min-w-[140px]"
+          className={NATIVE_SELECT_FILTER}
+          aria-label={t("partner.sales.allProjects")}
         >
           <option value="">{t("partner.sales.allProjects")}</option>
           {projects.map((p) => (
@@ -204,8 +208,22 @@ export function SalesClient() {
             </option>
           ))}
         </select>
-        <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="px-3 py-1.5 border border-border rounded-sm text-sm" aria-label={t("partner.sales.dateFrom")} title={t("partner.sales.dateFrom")} />
-        <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="px-3 py-1.5 border border-border rounded-sm text-sm" aria-label={t("partner.sales.dateTo")} title={t("partner.sales.dateTo")} />
+        <input
+          type="date"
+          value={from}
+          onChange={(e) => setFrom(e.target.value)}
+          className={DATE_INPUT_FILTER}
+          aria-label={t("partner.sales.dateFrom")}
+          title={t("partner.sales.dateFrom")}
+        />
+        <input
+          type="date"
+          value={to}
+          onChange={(e) => setTo(e.target.value)}
+          className={DATE_INPUT_FILTER}
+          aria-label={t("partner.sales.dateTo")}
+          title={t("partner.sales.dateTo")}
+        />
       </div>
 
       <div className="surface-card overflow-x-auto">
@@ -278,26 +296,30 @@ export function SalesClient() {
       </div>
 
       {total > limit && (
-        <div className="flex justify-center gap-2">
-          <button
+        <div className="flex justify-center items-center gap-2">
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
             disabled={page <= 1}
             onClick={() => setPage((p) => p - 1)}
-            className="px-3 py-1.5 border border-border rounded-sm text-sm disabled:opacity-50"
+            className="border-border/60"
           >
             {t("partner.sales.previous")}
-          </button>
+          </Button>
           <span className="py-1.5 text-sm text-muted-foreground">
             {t("partner.sales.pageOf", { page, totalPages: Math.ceil(total / limit) || 1 })}
           </span>
-          <button
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
             disabled={page >= Math.ceil(total / limit)}
             onClick={() => setPage((p) => p + 1)}
-            className="px-3 py-1.5 border border-border rounded-sm text-sm disabled:opacity-50"
+            className="border-border/60"
           >
             {t("partner.sales.next")}
-          </button>
+          </Button>
         </div>
       )}
     </div>

@@ -5,6 +5,8 @@ import Link from "next/link";
 import { FolderOpen, MapPin, User, Search } from "lucide-react";
 import { useT } from "@/lib/i18n/context";
 import { ViewLayoutToggle } from "@/components/ui/view-layout-toggle";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 const SEARCH_DEBOUNCE_MS = 350;
 const VIEW_STORAGE_KEY = "vbt-partner-projects-view";
@@ -108,26 +110,22 @@ export function ProjectsClient({ projects: initialProjects, total: initialTotal 
 
   return (
     <div>
-      <div className="flex flex-col sm:flex-row gap-3 mb-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input
+      <div className="flex flex-col sm:flex-row gap-3 mb-4 sm:items-center">
+        <div className="relative flex-1 min-w-0">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
             type="text"
             placeholder={t("projects.searchPlaceholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && runSearch()}
-            className="w-full pl-9 pr-3 py-2 border border-border rounded-sm text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+            className="pl-9"
+            aria-label={t("projects.searchPlaceholder")}
           />
         </div>
-        <button
-          type="button"
-          onClick={runSearch}
-          disabled={searching}
-          className="px-4 py-2 bg-primary text-primary-foreground rounded-sm text-sm font-medium hover:bg-primary/90 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-        >
+        <Button type="button" onClick={runSearch} disabled={searching} className="border border-primary/20 shrink-0">
           {searching ? t("projects.searching") : t("projects.search")}
-        </button>
+        </Button>
         <ViewLayoutToggle view={view} onViewChange={setView} />
       </div>
 

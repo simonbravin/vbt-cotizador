@@ -5,6 +5,9 @@ import Link from "next/link";
 import { Plus, Wrench, FolderOpen, Search } from "lucide-react";
 import { useT } from "@/lib/i18n/context";
 import { ViewLayoutToggle } from "@/components/ui/view-layout-toggle";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { NATIVE_SELECT_FILTER } from "@/lib/ui-filter-classes";
 
 type RequestRow = {
   id: string;
@@ -99,7 +102,8 @@ export function EngineeringListClient() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="rounded-sm border border-input px-3 py-2 text-sm min-w-[140px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus:border-transparent"
+            className={NATIVE_SELECT_FILTER}
+            aria-label={t("partner.engineering.status")}
           >
             <option value="">{t("partner.engineering.allStatuses")}</option>
             {STATUS_OPTIONS.map((s) => (
@@ -109,33 +113,28 @@ export function EngineeringListClient() {
             ))}
           </select>
           <div className="relative flex-1 min-w-[200px] max-w-xl">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
               type="search"
               placeholder={t("partner.engineering.searchPlaceholder")}
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && runSearchNow()}
-              className="w-full rounded-sm border border-border py-2 pl-9 pr-3 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-primary"
+              className="pl-9"
+              aria-label={t("partner.engineering.searchPlaceholder")}
             />
           </div>
-          <button
-            type="button"
-            onClick={runSearchNow}
-            disabled={searching}
-            className="rounded-sm bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-          >
+          <Button type="button" onClick={runSearchNow} disabled={searching} className="border border-primary/20 shrink-0">
             {searching ? t("partner.engineering.searching") : t("partner.engineering.search")}
-          </button>
+          </Button>
           <ViewLayoutToggle view={view} onViewChange={setView} />
         </div>
-        <Link
-          href="/engineering/new"
-          className="inline-flex items-center justify-center gap-2 rounded-sm bg-primary px-4 py-2 text-sm font-medium text-white hover:opacity-90"
-        >
-          <Plus className="h-4 w-4" />
-          {t("partner.engineering.newRequest")}
-        </Link>
+        <Button asChild className="gap-2 border border-primary/20">
+          <Link href="/engineering/new">
+            <Plus className="h-4 w-4" />
+            {t("partner.engineering.newRequest")}
+          </Link>
+        </Button>
       </div>
 
       <div className="surface-card-overflow">

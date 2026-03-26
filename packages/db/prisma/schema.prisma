@@ -471,9 +471,12 @@ model Client {
   id             String     @id @default(cuid())
   organizationId String     @map("organization_id")
   name           String
+  legalName      String?    @map("legal_name")
   clientType     ClientType @map("client_type")
+  taxId          String?    @map("tax_id")
   countryCode    String?    @map("country_code")
   city           String?
+  address        String?
   website        String?
   email          String?
   phone          String?
@@ -1267,6 +1270,8 @@ model FreightProfile {
   id                  String    @id @default(cuid())
   organizationId      String?   @map("organization_id") // null = Vision Latam base; set = partner override
   name                String
+  /// Carrier / forwarder (free text, e.g. Transcargo Argentina).
+  provider            String?
   countryId           String    @map("country_id")
   freightPerContainer Float     @map("freight_per_container") // USD
   isDefault           Boolean   @default(false) @map("is_default")

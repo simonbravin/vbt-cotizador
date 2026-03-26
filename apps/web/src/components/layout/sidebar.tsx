@@ -19,8 +19,10 @@ import {
   Wrench,
   FileStack,
   GraduationCap,
+  Receipt,
+  User,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useT } from "@/lib/i18n/context";
 
 interface NavItem {
@@ -40,9 +42,12 @@ const navigation: NavItem[] = [
   { labelKey: "nav.quotes", href: "/quotes", icon: FileText },
   {
     labelKey: "nav.sales",
-    href: "/sales",
     icon: ShoppingCart,
     roles: ["org_admin", "sales_user", "technical_user", "viewer"],
+    children: [
+      { labelKey: "nav.sales.list", href: "/sales", icon: ShoppingCart },
+      { labelKey: "nav.sales.statements", href: "/sales/statements", icon: Receipt },
+    ],
   },
   { labelKey: "nav.inventory", href: "/inventory", icon: Package },
   { labelKey: "nav.documents", href: "/documents", icon: FileStack },
@@ -54,6 +59,7 @@ const navigation: NavItem[] = [
     roles: ["SUPERADMIN", "org_admin"],
     children: [
       { labelKey: "nav.settings.overview", href: "/settings", icon: Settings },
+      { labelKey: "nav.settings.profile", href: "/profile", icon: User },
       { labelKey: "nav.team", href: "/settings/team", icon: Users },
     ],
   },
@@ -63,6 +69,8 @@ interface SidebarProps {
   role: string;
   /** Shown under the nav (name or email). */
   userDisplayName?: string | null;
+  /** Profile page for footer name link. */
+  profileHref?: string;
   /** Per-partner module visibility (global + override already resolved). */
   moduleVisibility?: {
     dashboard?: boolean;
@@ -86,19 +94,35 @@ function isModuleVisible(moduleVisibility: SidebarProps["moduleVisibility"], hre
   if (href === "/engineering") return moduleVisibility?.engineering !== false;
   if (href === "/projects") return moduleVisibility?.projects !== false;
   if (href === "/quotes") return moduleVisibility?.quotes !== false;
-  if (href === "/sales") return moduleVisibility?.sales !== false;
+  if (href === "/sales" || href.startsWith("/sales/")) return moduleVisibility?.sales !== false;
   if (href === "/inventory") return moduleVisibility?.inventory !== false;
   if (href === "/documents") return moduleVisibility?.documents !== false;
   if (href === "/training") return moduleVisibility?.training !== false;
   if (href === "/reports") return moduleVisibility?.reports !== false;
-  if (href === "/settings") return moduleVisibility?.settings !== false;
+  if (href === "/settings" || href.startsWith("/settings/")) return moduleVisibility?.settings !== false;
   return true;
 }
 
-export function Sidebar({ role, userDisplayName, moduleVisibility }: SidebarProps) {
+/** Avoid marking "Ventas" active on account-statements routes; sale detail URLs stay under Ventas. */
+function isNavLinkActive(pathname: string, href: string) {
+  if (pathname === href) return true;
+  if (href === "/sales") {
+    if (pathname.startsWith("/sales/statements")) return false;
+    return pathname.startsWith("/sales/");
+  }
+  return pathname.startsWith(`${href}/`);
+}
+
+export function Sidebar({ role, userDisplayName, profileHref, moduleVisibility }: SidebarProps) {
   const pathname = usePathname();
   const t = useT();
   const [expanded, setExpanded] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (pathname.startsWith("/sales")) {
+      setExpanded((prev) => (prev.includes("nav.sales") ? prev : [...prev, "nav.sales"]));
+    }
+  }, [pathname]);
 
   const toggle = (key: string) => {
     setExpanded((prev) =>
@@ -110,8 +134,6 @@ export function Sidebar({ role, userDisplayName, moduleVisibility }: SidebarProp
     if (!item.roles) return true;
     return item.roles.includes(role);
   };
-
-  const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
 
   return (
     <div className="w-64 bg-header flex flex-col h-full flex-shrink-0 border-r border-header-foreground/15">
@@ -138,12 +160,17 @@ export function Sidebar({ role, userDisplayName, moduleVisibility }: SidebarProp
       <nav className="flex-1 px-3 py-4 overflow-y-auto space-y-0.5">
         {navigation
           .filter(canSee)
-          .filter((item) => isModuleVisible(moduleVisibility, item.href))
+          .filter((item) => {
+            if (item.children?.length) {
+              return item.children.some((c) => c.href && isModuleVisible(moduleVisibility, c.href));
+            }
+            return isModuleVisible(moduleVisibility, item.href);
+          })
           .map((item) => {
           if (item.children) {
             const isOpen = expanded.includes(item.labelKey);
             const hasActiveChild = item.children.some(
-              (child) => child.href && isActive(child.href)
+              (child) => child.href && isNavLinkActive(pathname, child.href)
             );
 
             return (
@@ -168,13 +195,16 @@ export function Sidebar({ role, userDisplayName, moduleVisibility }: SidebarProp
 
                 {isOpen && (
                   <div className="ml-4 mt-0.5 space-y-0.5 border-l border-header-foreground/20 pl-3">
-                    {item.children.filter(canSee).map((child) => (
+                    {item.children
+                      .filter(canSee)
+                      .filter((child) => isModuleVisible(moduleVisibility, child.href))
+                      .map((child) => (
                       <Link
                         key={child.href}
                         href={child.href!}
                         className={cn(
                           "flex items-center gap-2.5 px-3 py-2 rounded-sm text-sm transition-colors",
-                          child.href && isActive(child.href)
+                          child.href && isNavLinkActive(pathname, child.href)
                             ? "text-header-foreground bg-header-foreground/10 border border-header-foreground/10"
                             : "text-header-foreground/60 hover:text-header-foreground hover:bg-header-foreground/5"
                         )}
@@ -195,7 +225,7 @@ export function Sidebar({ role, userDisplayName, moduleVisibility }: SidebarProp
               href={item.href!}
               className={cn(
                 "flex items-center gap-2.5 px-3 py-2 rounded-sm text-sm tracking-wide transition-colors border border-transparent",
-                isActive(item.href!)
+                isNavLinkActive(pathname, item.href!)
                   ? "text-header-foreground bg-header-foreground/12 font-medium border-header-foreground/15"
                   : "text-header-foreground/70 hover:text-header-foreground hover:bg-header-foreground/5"
               )}
@@ -209,9 +239,19 @@ export function Sidebar({ role, userDisplayName, moduleVisibility }: SidebarProp
 
       {userDisplayName?.trim() ? (
         <div className="px-4 py-2.5 border-t border-header-foreground/10">
-          <p className="text-header-foreground/90 text-sm text-center font-medium truncate" title={userDisplayName.trim()}>
-            {userDisplayName.trim()}
-          </p>
+          {profileHref ? (
+            <Link
+              href={profileHref}
+              className="block text-header-foreground/90 text-sm text-center font-medium truncate hover:underline hover:text-header-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-header-foreground/35 rounded-sm"
+              title={userDisplayName.trim()}
+            >
+              {userDisplayName.trim()}
+            </Link>
+          ) : (
+            <p className="text-header-foreground/90 text-sm text-center font-medium truncate" title={userDisplayName.trim()}>
+              {userDisplayName.trim()}
+            </p>
+          )}
         </div>
       ) : null}
 

@@ -9,7 +9,10 @@ import { z } from "zod";
 
 const updateSchema = z.object({
   name: z.string().min(1).optional(),
+  legalName: z.string().max(500).nullable().optional(),
+  taxId: z.string().max(64).nullable().optional(),
   city: z.string().optional(),
+  address: z.string().max(2000).nullable().optional(),
   countryCode: z.string().nullable().optional(),
   phone: z.string().optional(),
   email: z.string().optional(),
@@ -64,6 +67,9 @@ export async function PATCH(
 
   const data = { ...parsed.data } as Record<string, unknown>;
   if (data.countryCode === "" || data.countryCode === null) data.countryCode = null;
+  for (const key of ["legalName", "taxId", "address"] as const) {
+    if (data[key] === "") data[key] = null;
+  }
 
   const client = await prisma.client.update({
     where: { id: params.id },

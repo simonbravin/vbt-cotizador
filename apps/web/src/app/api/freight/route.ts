@@ -57,6 +57,9 @@ export async function POST(req: Request) {
     const isDefault = !!body?.isDefault;
     const expiryDate = body?.expiryDate ? new Date(body.expiryDate) : null;
     const notes = body?.notes != null ? String(body.notes).trim() : null;
+    const providerRaw = body?.provider;
+    const provider =
+      providerRaw != null && String(providerRaw).trim() !== "" ? String(providerRaw).trim() : null;
 
     if (!name || !countryId) {
       return NextResponse.json({ error: "name and countryId are required" }, { status: 400 });
@@ -78,6 +81,7 @@ export async function POST(req: Request) {
       data: {
         organizationId,
         name,
+        provider,
         countryId,
         freightPerContainer,
         isDefault,

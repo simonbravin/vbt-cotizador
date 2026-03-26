@@ -175,12 +175,12 @@ export function InventoryClient() {
         </div>
       )}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-muted-foreground">
-          {t("partner.settings.warehouses")} — {t("common.readOnly")}
+        <p className="text-sm text-muted-foreground max-w-prose">
+          {t("partner.inventory.warehousesSectionHint")}
         </p>
         <Link
           href="/settings/warehouses"
-          className="inline-flex items-center gap-2 px-4 py-2 border border-input rounded-sm text-sm font-medium text-foreground hover:bg-muted"
+          className="inline-flex items-center gap-2 rounded-sm border border-input px-4 py-2 text-sm font-medium text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
           <Settings className="w-4 h-4" /> {t("partner.settings.configureWarehouses")}
         </Link>

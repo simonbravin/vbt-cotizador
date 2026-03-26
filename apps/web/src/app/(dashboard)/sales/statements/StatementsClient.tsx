@@ -7,6 +7,8 @@ import { formatCurrency } from "@/lib/utils";
 import { getInvoicedAmount } from "@/lib/sales";
 import { ArrowLeft, Download, FileText, Mail } from "lucide-react";
 import { useT } from "@/lib/i18n/context";
+import { Button } from "@/components/ui/button";
+import { DATE_INPUT_FILTER, NATIVE_SELECT_FILTER } from "@/lib/ui-filter-classes";
 
 type Statement = {
   client: { id: string; name: string };
@@ -181,32 +183,56 @@ export function StatementsClient({
       ) : null}
 
       <div className="flex flex-wrap gap-2 items-center">
-        <select value={clientId} onChange={(e) => setClientId(e.target.value)} className="px-3 py-1.5 border border-input rounded-sm text-sm min-w-[160px]">
+        <select
+          value={clientId}
+          onChange={(e) => setClientId(e.target.value)}
+          className={`${NATIVE_SELECT_FILTER} min-w-[160px]`}
+          aria-label={t("partner.sales.allClients")}
+        >
           <option value="">{t("partner.sales.allClients")}</option>
           {clients.map((c) => (
             <option key={c.id} value={c.id}>{c.name}</option>
           ))}
         </select>
-        <select value={entityId} onChange={(e) => setEntityId(e.target.value)} className="px-3 py-1.5 border border-input rounded-sm text-sm min-w-[160px]">
+        <select
+          value={entityId}
+          onChange={(e) => setEntityId(e.target.value)}
+          className={`${NATIVE_SELECT_FILTER} min-w-[160px]`}
+          aria-label={t("partner.sales.allEntities")}
+        >
           <option value="">{t("partner.sales.allEntities")}</option>
           {data?.entities?.map((e) => (
             <option key={e.id} value={e.id}>{e.name}</option>
           ))}
         </select>
-        <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="px-3 py-1.5 border border-input rounded-sm text-sm" />
-        <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="px-3 py-1.5 border border-input rounded-sm text-sm" />
-        <button type="button" onClick={fetchData} className="px-3 py-1.5 bg-primary text-white rounded-sm text-sm font-medium">
+        <input
+          type="date"
+          value={from}
+          onChange={(e) => setFrom(e.target.value)}
+          className={DATE_INPUT_FILTER}
+          aria-label={t("partner.sales.dateFrom")}
+          title={t("partner.sales.dateFrom")}
+        />
+        <input
+          type="date"
+          value={to}
+          onChange={(e) => setTo(e.target.value)}
+          className={DATE_INPUT_FILTER}
+          aria-label={t("partner.sales.dateTo")}
+          title={t("partner.sales.dateTo")}
+        />
+        <Button type="button" onClick={fetchData} className="border border-primary/20">
           {t("partner.sales.apply")}
-        </button>
-        <button type="button" onClick={handleExportCsv} className="inline-flex items-center gap-1 px-3 py-1.5 border border-border/60 rounded-sm text-sm font-medium hover:bg-muted/40">
+        </Button>
+        <Button type="button" variant="outline" onClick={handleExportCsv} className="gap-1 border-border/60">
           <Download className="w-4 h-4" /> {t("partner.sales.exportCsv")}
-        </button>
-        <button type="button" onClick={handleExportPdf} className="inline-flex items-center gap-1 px-3 py-1.5 border border-border/60 rounded-sm text-sm font-medium hover:bg-muted/40">
+        </Button>
+        <Button type="button" variant="outline" onClick={handleExportPdf} className="gap-1 border-border/60">
           <FileText className="w-4 h-4" /> {t("partner.sales.exportPdf")}
-        </button>
-        <button type="button" onClick={() => { setEmailOpen(true); setEmailResult(null); }} className="inline-flex items-center gap-1 px-3 py-1.5 bg-primary text-white rounded-sm text-sm font-medium hover:opacity-90">
+        </Button>
+        <Button type="button" className="gap-1 border border-primary/20" onClick={() => { setEmailOpen(true); setEmailResult(null); }}>
           <Mail className="w-4 h-4" /> {t("partner.sales.sendByEmail")}
-        </button>
+        </Button>
       </div>
 
       {emailOpen && createPortal(

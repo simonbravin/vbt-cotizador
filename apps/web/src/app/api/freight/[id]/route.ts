@@ -61,6 +61,7 @@ export async function PATCH(
   const body = await req.json();
   const data: {
     name?: string;
+    provider?: string | null;
     countryId?: string;
     freightPerContainer?: number;
     isDefault?: boolean;
@@ -68,6 +69,10 @@ export async function PATCH(
     notes?: string | null;
   } = {};
   if (typeof body?.name === "string" && body.name.trim()) data.name = body.name.trim();
+  if (body?.provider !== undefined) {
+    data.provider =
+      body.provider != null && String(body.provider).trim() !== "" ? String(body.provider).trim() : null;
+  }
   if (typeof body?.countryId === "string" && body.countryId.trim()) data.countryId = body.countryId.trim();
   if (typeof body?.freightPerContainer === "number" && body.freightPerContainer >= 0) data.freightPerContainer = body.freightPerContainer;
   if (typeof body?.isDefault === "boolean") data.isDefault = body.isDefault;

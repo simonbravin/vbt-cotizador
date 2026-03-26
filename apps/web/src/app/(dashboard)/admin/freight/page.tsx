@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Plus, Pencil, Ship } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Plus, Pencil, Ship, Search } from "lucide-react";
 import { useT } from "@/lib/i18n/context";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 export default function FreightPage() {
   const t = useT();
@@ -12,12 +14,14 @@ export default function FreightPage() {
   const [editItem, setEditItem] = useState<any>(null);
   const [form, setForm] = useState({
     name: "",
+    provider: "",
     countryId: "",
     freightPerContainer: 0,
     isDefault: false,
     expiryDate: "",
     notes: "",
   });
+  const [profileSearch, setProfileSearch] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -32,7 +36,7 @@ export default function FreightPage() {
 
   const openAdd = () => {
     setSaveError(null);
-    setForm({ name: "", countryId: "", freightPerContainer: 0, isDefault: false, expiryDate: "", notes: "" });
+    setForm({ name: "", provider: "", countryId: "", freightPerContainer: 0, isDefault: false, expiryDate: "", notes: "" });
     setEditItem(null);
     setShowAdd(true);
   };
@@ -41,6 +45,7 @@ export default function FreightPage() {
     setSaveError(null);
     setForm({
       name: p.name,
+      provider: p.provider ?? "",
       countryId: p.countryId ?? "",
       freightPerContainer: p.freightPerContainer ?? 0,
       isDefault: p.isDefault ?? false,
@@ -64,7 +69,11 @@ export default function FreightPage() {
     if (!form.name || !form.countryId) return;
     setSaving(true);
     setSaveError(null);
-    const payload = { ...form, expiryDate: form.expiryDate ? form.expiryDate : (editItem ? null : undefined) };
+    const payload = {
+      ...form,
+      provider: form.provider.trim() || null,
+      expiryDate: form.expiryDate ? form.expiryDate : (editItem ? null : undefined),
+    };
     try {
       const res = editItem
         ? await fetch(`/api/freight/${editItem.id}`, {
@@ -92,20 +101,52 @@ export default function FreightPage() {
   const fmt = (n: number) =>
     n.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 });
 
-  const tableHeaders = [t("admin.freight.profile"), t("admin.freight.country"), t("admin.freight.costPerContainer"), t("admin.freight.expiryDate"), t("admin.freight.status"), t("admin.freight.default"), t("admin.freight.actions")];
+  const filteredProfiles = useMemo(() => {
+    const q = profileSearch.trim().toLowerCase();
+    if (!q) return profiles;
+    return profiles.filter((p: { name?: string; provider?: string | null; notes?: string | null; country?: { name?: string }; organization?: { name?: string } }) => {
+      const hay = [p.name, p.provider, p.notes, p.country?.name, p.organization?.name]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return hay.includes(q);
+    });
+  }, [profiles, profileSearch]);
+
+  const tableHeaders = [
+    t("admin.freight.profile"),
+    t("admin.freight.provider"),
+    t("admin.freight.country"),
+    t("admin.freight.costPerContainer"),
+    t("admin.freight.expiryDate"),
+    t("admin.freight.status"),
+    t("admin.freight.default"),
+    t("admin.freight.actions"),
+  ];
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">{t("admin.freight.title")}</h1>
           <p className="text-muted-foreground text-sm mt-0.5">{t("admin.freight.subtitle")}</p>
         </div>
-        <button
-          onClick={openAdd}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-sm text-sm font-medium hover:opacity-90"
-        >
+        <Button type="button" onClick={openAdd} className="gap-2 border border-primary/20 w-fit">
           <Plus className="w-4 h-4" /> {t("admin.freight.add")}
-        </button>
+        </Button>
+      </div>
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative flex-1 min-w-[200px] max-w-md">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            type="search"
+            value={profileSearch}
+            onChange={(e) => setProfileSearch(e.target.value)}
+            placeholder={t("admin.freight.searchPlaceholder")}
+            className="pl-9"
+            aria-label={t("admin.freight.searchPlaceholder")}
+          />
+        </div>
       </div>
 
       <div className="surface-card-overflow">
@@ -119,8 +160,10 @@ export default function FreightPage() {
           </thead>
           <tbody className="divide-y divide-border/40">
             {profiles.length === 0 ? (
-              <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground/70">{t("admin.freight.noProfiles")}</td></tr>
-            ) : profiles.map((p) => {
+              <tr><td colSpan={8} className="px-4 py-8 text-center text-muted-foreground/70">{t("admin.freight.noProfiles")}</td></tr>
+            ) : filteredProfiles.length === 0 ? (
+              <tr><td colSpan={8} className="px-4 py-8 text-center text-muted-foreground/70">{t("admin.freight.noSearchResults")}</td></tr>
+            ) : filteredProfiles.map((p) => {
               const status = getStatus(p);
               return (
               <tr key={p.id} className="hover:bg-muted/40">
@@ -133,6 +176,7 @@ export default function FreightPage() {
                     </div>
                   </div>
                 </td>
+                <td className="px-4 py-3 text-muted-foreground">{p.provider?.trim() ? p.provider : "—"}</td>
                 <td className="px-4 py-3 text-muted-foreground">{p.country?.name ?? "—"}</td>
                 <td className="px-4 py-3 font-medium">
                   {p.freightPerContainer != null ? fmt(p.freightPerContainer) : "—"}
@@ -175,12 +219,20 @@ export default function FreightPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2">
                   <label className="mb-1 block text-xs font-medium text-muted-foreground">{t("admin.taxes.nameLabel")}</label>
-                  <input
+                  <Input
                     type="text"
                     value={form.name}
-                    onChange={(e) => setForm(p => ({ ...p, name: e.target.value }))}
+                    onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
                     placeholder={t("admin.freight.namePlaceholder")}
-                    className="w-full rounded-sm border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">{t("admin.freight.provider")}</label>
+                  <Input
+                    type="text"
+                    value={form.provider}
+                    onChange={(e) => setForm((p) => ({ ...p, provider: e.target.value }))}
+                    placeholder={t("admin.freight.providerPlaceholder")}
                   />
                 </div>
                 <div>

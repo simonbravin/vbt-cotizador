@@ -27,6 +27,7 @@ async function loginRawFallback(
 ): Promise<{
   id: string;
   email: string;
+  fullName: string;
   passwordHash: string;
   isActive: boolean;
   isPlatformSuperadmin: boolean;
@@ -35,8 +36,10 @@ async function loginRawFallback(
   let row: RawUserRow | null = null;
 
   try {
-    const rows = await prisma.$queryRaw<(RawUserRow & { is_active?: boolean; is_platform_superadmin?: boolean })[]>`
-      SELECT id, email, password_hash AS "passwordHash", is_active, is_platform_superadmin
+    const rows = await prisma.$queryRaw<
+      (RawUserRow & { is_active?: boolean; is_platform_superadmin?: boolean; full_name?: string })[]
+    >`
+      SELECT id, email, full_name AS "full_name", password_hash AS "passwordHash", is_active, is_platform_superadmin
       FROM users
       WHERE LOWER(email) = LOWER(${emailNorm})
       LIMIT 1
@@ -46,7 +49,11 @@ async function loginRawFallback(
       const fromDb = r.is_active !== false; // treat undefined/null as true
       const superadminFromDb = r.is_platform_superadmin === true;
       const superadminFromEmail = r.email?.toLowerCase() === SUPERADMIN_EMAIL.toLowerCase();
-      row = { ...r, isActive: fromDb, isPlatformSuperadmin: superadminFromDb || superadminFromEmail };
+      row = {
+        ...r,
+        isActive: fromDb,
+        isPlatformSuperadmin: superadminFromDb || superadminFromEmail,
+      };
     }
   } catch {
     // Columns is_active / is_platform_superadmin may not exist in some DBs; use minimal select and email-based superadmin
@@ -69,6 +76,12 @@ async function loginRawFallback(
 
   if (!row) return null;
 
+  const fullNameFromRow =
+    "full_name" in row && typeof (row as { full_name?: string }).full_name === "string"
+      ? (row as { full_name: string }).full_name.trim()
+      : "";
+  const resolvedFullName = fullNameFromRow || row.email;
+
   let orgMembers: Array<{ organization: { id: string; name: string }; role: string }> = [];
   try {
     const members = await prisma.orgMember.findMany({
@@ -87,6 +100,7 @@ async function loginRawFallback(
   return {
     id: row.id,
     email: row.email,
+    fullName: resolvedFullName,
     passwordHash: row.passwordHash,
     isActive: row.isActive ?? true,
     isPlatformSuperadmin: row.isPlatformSuperadmin ?? row.email?.toLowerCase() === SUPERADMIN_EMAIL.toLowerCase(),
@@ -117,6 +131,7 @@ export const authOptions: NextAuthOptions = {
         let user: {
           id: string;
           email: string;
+          fullName: string;
           passwordHash: string;
           isActive: boolean;
           isPlatformSuperadmin: boolean;
@@ -129,6 +144,7 @@ export const authOptions: NextAuthOptions = {
             select: {
               id: true,
               email: true,
+              fullName: true,
               passwordHash: true,
               isActive: true,
               isPlatformSuperadmin: true,
@@ -161,7 +177,7 @@ export const authOptions: NextAuthOptions = {
         return {
           id: user.id,
           email: user.email,
-          name: user.email,
+          name: user.fullName?.trim() || user.email,
           activeOrgId: activeMembership?.organization.id ?? null,
           activeOrgName: activeMembership?.organization.name ?? null,
           role: (activeMembership?.role ?? "viewer") as string,

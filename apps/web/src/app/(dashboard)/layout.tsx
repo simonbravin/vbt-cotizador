@@ -70,10 +70,11 @@ export default async function DashboardLayout({
         <Sidebar
           role={safeUser.role}
           userDisplayName={safeUser.name?.trim() || safeUser.email?.trim() || null}
+          profileHref="/profile"
           moduleVisibility={moduleVisibility}
         />
         <div className="flex-1 flex flex-col overflow-hidden min-w-0 border-l border-border/60">
-          <TopBar user={safeUser} activeOrgName={safeUser.activeOrgName} />
+          <TopBar user={safeUser} activeOrgName={safeUser.activeOrgName} profileHref="/profile" />
           <main className="app-main-scroll flex-1 overflow-y-auto blueprint-canvas bg-background">{children}</main>
         </div>
       </div>

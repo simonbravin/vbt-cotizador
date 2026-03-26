@@ -15,8 +15,9 @@ import {
   Users,
   UserPlus,
   Target,
+  Phone,
 } from "lucide-react";
-import { useT } from "@/lib/i18n/context";
+import { useT, useLanguage } from "@/lib/i18n/context";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 function engineeringFeeModeLabel(t: (key: string) => string, mode: string | null | undefined): string {
@@ -53,7 +54,7 @@ function memberRoleDisplay(t: (key: string) => string, role: string): string {
     admin: "superadmin.partner.teamRole.admin",
     sales: "superadmin.partner.teamRole.sales",
     engineer: "superadmin.partner.teamRole.engineer",
-    viewer: "superadmin.partner.teamRole.viewer",
+    viewer: "superadmin.partner.memberRole.viewer",
     org_admin: "superadmin.partner.memberRole.org_admin",
     sales_user: "superadmin.partner.memberRole.sales_user",
     technical_user: "superadmin.partner.memberRole.technical_user",
@@ -448,11 +449,38 @@ type OrgMemberRow = {
   id: string;
   role: string;
   status: string;
-  user: { id: string; fullName: string | null; email: string | null };
+  createdAt?: string;
+  joinedAt?: string | null;
+  user: {
+    id: string;
+    fullName: string | null;
+    email: string | null;
+    phone?: string | null;
+    lastLoginAt?: string | null;
+    emailLocale?: string;
+    emailVerified?: string | null;
+    createdAt?: string;
+    isActive?: boolean;
+  };
 };
+
+function formatMemberDate(iso: string | undefined | null, loc: string) {
+  if (!iso) return "—";
+  try {
+    return new Date(iso).toLocaleDateString(loc === "es" ? "es" : "en", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  } catch {
+    return "—";
+  }
+}
 
 function TeamSection({ partnerId, partnerName }: { partnerId: string; partnerName: string }) {
   const t = useT();
+  const { locale } = useLanguage();
+  const loc = locale === "es" ? "es" : "en";
   const [members, setMembers] = useState<OrgMemberRow[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -506,8 +534,14 @@ function TeamSection({ partnerId, partnerName }: { partnerId: string; partnerNam
       if (data.pendingInvite) {
         setInviteSuccess(data.message ?? t("superadmin.partner.inviteSuccessNewUser"));
       } else {
-        setMembers((prev) => [...prev, { ...data, user: data.user ?? { id: data.userId, fullName: null, email: inviteEmail.trim() } }]);
-        setTotal((prev) => prev + 1);
+        const resList = await fetch(
+          `/api/saas/org-members?organizationId=${encodeURIComponent(partnerId)}&limit=100`
+        );
+        if (resList.ok) {
+          const listData = await resList.json();
+          setMembers(listData.members ?? []);
+          setTotal(listData.total ?? 0);
+        }
       }
     } catch {
       setInviteError(t("superadmin.partners.failedToInvite"));
@@ -598,33 +632,72 @@ function TeamSection({ partnerId, partnerName }: { partnerId: string; partnerNam
       ) : members.length === 0 ? (
         <p className="text-sm text-muted-foreground">{t("superadmin.partners.noMembersYetInvite")}</p>
       ) : (
-        <ul className="divide-y divide-border/60">
-          {members.map((m) => (
-            <li key={m.id} className="py-3 flex items-center justify-between">
-              <div>
-                <p className="font-medium text-foreground">{m.user?.fullName ?? "—"}</p>
-                <p className="text-sm text-muted-foreground flex items-center gap-1">
-                  <Mail className="h-3 w-3" />
-                  {m.user?.email ?? "—"}
-                </p>
-              </div>
-              <span className="text-xs rounded-full bg-muted px-2.5 py-0.5 text-foreground">
-                {memberRoleDisplay(t, m.role)}
-              </span>
-              <span
-                className={`text-xs rounded-full px-2.5 py-0.5 ${
-                  m.status === "active"
-                    ? "bg-emerald-500/15 text-emerald-800 dark:text-emerald-200"
-                    : m.status === "invited"
-                      ? "bg-amber-500/15 text-amber-900 dark:text-amber-200"
-                      : "bg-muted text-foreground"
-                }`}
-              >
-                {memberStatusDisplay(t, m.status)}
-              </span>
-            </li>
-          ))}
-        </ul>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[720px] text-sm">
+            <thead className="border-b border-border/60 bg-muted/30">
+              <tr>
+                <th className="px-4 py-2 text-left text-xs font-semibold text-muted-foreground uppercase">{t("common.name")}</th>
+                <th className="px-4 py-2 text-left text-xs font-semibold text-muted-foreground uppercase">{t("auth.email")}</th>
+                <th className="px-4 py-2 text-left text-xs font-semibold text-muted-foreground uppercase">{t("partner.team.colPhone")}</th>
+                <th className="px-4 py-2 text-left text-xs font-semibold text-muted-foreground uppercase">{t("admin.users.role")}</th>
+                <th className="px-4 py-2 text-left text-xs font-semibold text-muted-foreground uppercase">{t("partner.engineering.status")}</th>
+                <th className="px-4 py-2 text-left text-xs font-semibold text-muted-foreground uppercase">{t("partner.team.colMemberSince")}</th>
+                <th className="px-4 py-2 text-left text-xs font-semibold text-muted-foreground uppercase">{t("partner.team.colLastLogin")}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/60">
+              {members.map((m) => (
+                <tr key={m.id} className="hover:bg-muted/20">
+                  <td className="px-4 py-2 font-medium text-foreground">{m.user?.fullName ?? "—"}</td>
+                  <td className="px-4 py-2 text-muted-foreground">
+                    {m.user?.email ? (
+                      <span className="inline-flex items-center gap-1">
+                        <Mail className="h-3 w-3 shrink-0" />
+                        {m.user.email}
+                      </span>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td className="px-4 py-2 text-muted-foreground">
+                    {m.user?.phone?.trim() ? (
+                      <span className="inline-flex items-center gap-1">
+                        <Phone className="h-3 w-3 shrink-0" />
+                        {m.user.phone}
+                      </span>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td className="px-4 py-2">
+                    <span className="text-xs rounded-full bg-muted px-2 py-0.5 text-foreground">
+                      {memberRoleDisplay(t, m.role)}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2">
+                    <span
+                      className={`text-xs rounded-full px-2 py-0.5 ${
+                        m.status === "active"
+                          ? "bg-emerald-500/15 text-emerald-800 dark:text-emerald-200"
+                          : m.status === "invited"
+                            ? "bg-amber-500/15 text-amber-900 dark:text-amber-200"
+                            : "bg-muted text-foreground"
+                      }`}
+                    >
+                      {memberStatusDisplay(t, m.status)}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2 text-muted-foreground">
+                    {formatMemberDate(m.joinedAt ?? m.createdAt, loc)}
+                  </td>
+                  <td className="px-4 py-2 text-muted-foreground">
+                    {formatMemberDate(m.user?.lastLoginAt, loc)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );

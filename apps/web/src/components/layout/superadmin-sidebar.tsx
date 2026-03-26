@@ -28,6 +28,7 @@ import {
   ShoppingCart,
   Brain,
   Award,
+  User,
 } from "lucide-react";
 import { useState } from "react";
 import { useT } from "@/lib/i18n/context";
@@ -67,6 +68,7 @@ const superadminNavigation: NavItem[] = [
     icon: Settings,
     children: [
       { labelKey: "nav.superadmin.settings", href: "/superadmin/settings", icon: Settings },
+      { labelKey: "nav.settings.profile", href: "/superadmin/settings/profile", icon: User },
       { labelKey: "nav.superadmin.pendingApprovals", href: "/superadmin/admin/users", icon: Users },
       { labelKey: "nav.entities", href: "/superadmin/admin/entities", icon: Building },
       { labelKey: "nav.catalog", href: "/superadmin/admin/catalog", icon: BookOpen },
@@ -81,9 +83,10 @@ const superadminNavigation: NavItem[] = [
 
 interface SuperadminSidebarProps {
   userDisplayName?: string | null;
+  profileHref?: string;
 }
 
-export function SuperadminSidebar({ userDisplayName }: SuperadminSidebarProps) {
+export function SuperadminSidebar({ userDisplayName, profileHref }: SuperadminSidebarProps) {
   const pathname = usePathname();
   const t = useT();
   const [expanded, setExpanded] = useState<string[]>([]);
@@ -186,9 +189,19 @@ export function SuperadminSidebar({ userDisplayName }: SuperadminSidebarProps) {
       </nav>
       {userDisplayName?.trim() ? (
         <div className="px-4 py-2.5 border-t border-header-foreground/10">
-          <p className="text-header-foreground/90 text-sm text-center font-medium truncate" title={userDisplayName.trim()}>
-            {userDisplayName.trim()}
-          </p>
+          {profileHref ? (
+            <Link
+              href={profileHref}
+              className="block text-header-foreground/90 text-sm text-center font-medium truncate hover:underline hover:text-header-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-header-foreground/35 rounded-sm"
+              title={userDisplayName.trim()}
+            >
+              {userDisplayName.trim()}
+            </Link>
+          ) : (
+            <p className="text-header-foreground/90 text-sm text-center font-medium truncate" title={userDisplayName.trim()}>
+              {userDisplayName.trim()}
+            </p>
+          )}
         </div>
       ) : null}
       <div className="px-4 py-3 border-t border-header-foreground/10">

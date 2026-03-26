@@ -3,6 +3,8 @@
 import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { FileText, Search, Trash2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/utils";
 import { getCountryName } from "@/lib/countries";
 import { useT } from "@/lib/i18n/context";
@@ -128,25 +130,23 @@ export function QuotesClient({ quotes: initialQuotes, initialStatus }: { quotes:
 
   return (
     <div>
-      <div className="flex flex-col sm:flex-row gap-3 mb-4">
-        <div className="flex rounded-sm border border-border/60 overflow-hidden flex-1 max-w-md bg-background">
-          <input
+      <div className="flex flex-col sm:flex-row gap-3 mb-4 sm:items-center">
+        <div className="relative flex-1 min-w-0 max-w-md">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
             type="text"
             placeholder={t("quotes.searchPlaceholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && runSearch()}
-            className="flex-1 px-3 py-2 text-sm border-0 bg-transparent focus:outline-none focus:ring-2 focus:ring-ring focus:ring-inset font-mono placeholder:font-sans"
+            className="pl-9 font-mono placeholder:font-sans"
+            aria-label={t("quotes.searchPlaceholder")}
           />
-          <button
-            type="button"
-            onClick={runSearch}
-            disabled={searching}
-            className="px-4 py-2 border-l border-border/60 bg-muted/50 text-muted-foreground hover:bg-muted disabled:opacity-50"
-          >
-            <Search className="w-4 h-4" />
-          </button>
         </div>
+        <Button type="button" onClick={runSearch} disabled={searching} className="gap-2 border border-primary/20 shrink-0" size="default">
+          <Search className="w-4 h-4" />
+          {searching ? "…" : t("common.search")}
+        </Button>
         <ViewLayoutToggle view={view} onViewChange={setView} />
       </div>
 

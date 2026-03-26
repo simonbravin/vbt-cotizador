@@ -260,9 +260,12 @@ model Client {
   id             String     @id @default(cuid())
   organizationId String     @map("organization_id")
   name           String
+  legalName      String?    @map("legal_name")
   clientType     ClientType @map("client_type")
+  taxId          String?    @map("tax_id")
   countryCode    String?    @map("country_code")
   city           String?
+  address        String?
   website        String?
   email          String?
   phone          String?
