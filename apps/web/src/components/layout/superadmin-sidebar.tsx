@@ -83,17 +83,14 @@ const superadminNavigation: NavItem[] = [
 ];
 
 interface SuperadminSidebarProps {
-  dashboardWelcomeName?: string | null;
-  userEmail?: string | null;
+  userDisplayName?: string | null;
   profileHref?: string;
 }
 
-export function SuperadminSidebar({ dashboardWelcomeName, userEmail, profileHref }: SuperadminSidebarProps) {
+export function SuperadminSidebar({ userDisplayName, profileHref }: SuperadminSidebarProps) {
   const pathname = usePathname();
   const t = useT();
   const [expanded, setExpanded] = useState<string[]>([]);
-  const welcome = dashboardWelcomeName?.trim() ?? "";
-  const superHomeLabel = welcome ? t("nav.dashboardWelcome", { name: welcome }) : t("nav.superadmin.dashboard");
 
   const toggle = (key: string) => {
     setExpanded((prev) =>
@@ -109,7 +106,7 @@ export function SuperadminSidebar({ dashboardWelcomeName, userEmail, profileHref
         <Link
           href="/superadmin/dashboard"
           className="flex max-h-full w-full items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-header-foreground/35 focus-visible:ring-offset-2 focus-visible:ring-offset-header rounded-sm"
-          aria-label={superHomeLabel}
+          aria-label={t("nav.superadmin.dashboard")}
         >
           <Image
             src="/logo-vbt-white-horizontal.png"
@@ -174,8 +171,6 @@ export function SuperadminSidebar({ dashboardWelcomeName, userEmail, profileHref
               </div>
             );
           }
-          const isSuperHome = item.href === "/superadmin/dashboard";
-          const label = isSuperHome && welcome ? superHomeLabel : t(item.labelKey);
           return (
             <Link
               key={item.href}
@@ -188,13 +183,13 @@ export function SuperadminSidebar({ dashboardWelcomeName, userEmail, profileHref
               )}
             >
               <item.icon className="w-4 h-4 flex-shrink-0" />
-              {label}
+              {t(item.labelKey)}
             </Link>
           );
         })}
       </nav>
-      {userEmail?.trim() && profileHref ? (
-        <SidebarUserFooter email={userEmail.trim()} role="SUPERADMIN" profileHref={profileHref} />
+      {userDisplayName?.trim() && profileHref ? (
+        <SidebarUserFooter displayName={userDisplayName.trim()} role="SUPERADMIN" profileHref={profileHref} />
       ) : null}
       <div className="px-4 py-3 border-t border-header-foreground/10">
         <p className="text-header-foreground/30 text-xs text-center">{t("sidebar.superadminPortal")}</p>

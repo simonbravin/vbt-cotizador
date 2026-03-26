@@ -164,7 +164,7 @@ export const translations = {
     "nav.superadmin.settings": "Global Settings",
 
     // Sidebar
-    "sidebar.footerVersion": "VBT Platform v1.0",
+    "sidebar.footerVersion": "VBT Platform v1.1",
     "sidebar.superadminPortal": "Superadmin portal",
     "sidebar.platformSection": "Platform",
     // Topbar
@@ -1714,8 +1714,12 @@ export const translations = {
     "partner.profile.phonePlaceholder": "Your phone number",
     "partner.profile.phoneNotSet": "Not set",
     "partner.profile.savePhone": "Save phone",
+    "partner.profile.save": "Save",
+    "partner.profile.edit": "Edit",
+    "partner.profile.cancel": "Cancel",
     "partner.profile.saving": "Saving…",
     "partner.profile.phoneSaveError": "Could not save phone.",
+    "partner.profile.localeSaveError": "Could not save email language.",
     "partner.profile.uploadPhoto": "Change profile photo",
     "partner.profile.uploadPhotoHint": "Click the photo to upload (JPEG, PNG or WebP, max 5 MB).",
     "partner.profile.uploadError": "Upload failed. Check file type and size.",
@@ -2330,7 +2334,7 @@ export const translations = {
     "nav.superadmin.settings": "Configuración Global",
 
     // Sidebar
-    "sidebar.footerVersion": "Plataforma VBT v1.0",
+    "sidebar.footerVersion": "Plataforma VBT v1.1",
     "sidebar.superadminPortal": "Portal superadmin",
     "sidebar.platformSection": "Plataforma",
     // Topbar
@@ -3880,8 +3884,12 @@ export const translations = {
     "partner.profile.phonePlaceholder": "Tu número de teléfono",
     "partner.profile.phoneNotSet": "Sin indicar",
     "partner.profile.savePhone": "Guardar teléfono",
+    "partner.profile.save": "Guardar",
+    "partner.profile.edit": "Editar",
+    "partner.profile.cancel": "Cancelar",
     "partner.profile.saving": "Guardando…",
     "partner.profile.phoneSaveError": "No se pudo guardar el teléfono.",
+    "partner.profile.localeSaveError": "No se pudo guardar el idioma de correo.",
     "partner.profile.uploadPhoto": "Cambiar foto de perfil",
     "partner.profile.uploadPhotoHint": "Tocá la foto para subir una imagen (JPEG, PNG o WebP, máx. 5 MB).",
     "partner.profile.uploadError": "Error al subir. Revisá el tipo y el tamaño del archivo.",

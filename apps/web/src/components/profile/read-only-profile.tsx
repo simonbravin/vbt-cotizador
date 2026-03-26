@@ -46,6 +46,11 @@ export function ReadOnlyProfile({ profile }: { profile: ReadOnlyProfilePayload }
   const [phoneInput, setPhoneInput] = useState(profile.phone?.trim() ?? "");
   const [phoneSaving, setPhoneSaving] = useState(false);
   const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [editingPhone, setEditingPhone] = useState(false);
+  const [localeInput, setLocaleInput] = useState<"en" | "es">(profile.emailLocale === "es" ? "es" : "en");
+  const [localeSaving, setLocaleSaving] = useState(false);
+  const [editingLocale, setEditingLocale] = useState(false);
+  const [localeError, setLocaleError] = useState<string | null>(null);
 
   const [avatarNonce, setAvatarNonce] = useState(0);
   const [avatarFailed, setAvatarFailed] = useState(false);
@@ -59,6 +64,9 @@ export function ReadOnlyProfile({ profile }: { profile: ReadOnlyProfilePayload }
   useEffect(() => {
     setPhoneInput(profile.phone?.trim() ?? "");
   }, [profile.phone]);
+  useEffect(() => {
+    setLocaleInput(profile.emailLocale === "es" ? "es" : "en");
+  }, [profile.emailLocale]);
 
   const orgRoleKey = profile.organizationRole
     ? (`superadmin.partner.memberRole.${profile.organizationRole}` as const)
@@ -87,11 +95,35 @@ export function ReadOnlyProfile({ profile }: { profile: ReadOnlyProfilePayload }
         setPhoneError(typeof data.error === "string" ? data.error : t("partner.profile.phoneSaveError"));
         return;
       }
+      setEditingPhone(false);
       router.refresh();
     } catch {
       setPhoneError(t("partner.profile.phoneSaveError"));
     } finally {
       setPhoneSaving(false);
+    }
+  }
+
+  async function saveLocale() {
+    setLocaleSaving(true);
+    setLocaleError(null);
+    try {
+      const res = await fetch("/api/saas/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ locale: localeInput }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setLocaleError(typeof data.error === "string" ? data.error : t("partner.profile.localeSaveError"));
+        return;
+      }
+      setEditingLocale(false);
+      router.refresh();
+    } catch {
+      setLocaleError(t("partner.profile.localeSaveError"));
+    } finally {
+      setLocaleSaving(false);
     }
   }
 
@@ -181,25 +213,6 @@ export function ReadOnlyProfile({ profile }: { profile: ReadOnlyProfilePayload }
         </div>
       </div>
 
-      <div className="space-y-2 rounded-sm border border-border/80 p-4">
-        <label className="text-xs font-mono font-semibold uppercase tracking-wider text-muted-foreground">
-          {t("partner.profile.phone")}
-        </label>
-        <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-          <Input
-            value={phoneInput}
-            onChange={(e) => setPhoneInput(e.target.value)}
-            placeholder={t("partner.profile.phonePlaceholder")}
-            className="sm:max-w-xs"
-            maxLength={40}
-          />
-          <Button type="button" size="sm" onClick={savePhone} disabled={phoneSaving}>
-            {phoneSaving ? t("partner.profile.saving") : t("partner.profile.savePhone")}
-          </Button>
-        </div>
-        {phoneError ? <p className="text-xs text-destructive">{phoneError}</p> : null}
-      </div>
-
       {!isVerified ? (
         <div className="rounded-sm border border-amber-500/30 bg-amber-500/10 p-4 space-y-2">
           <p className="text-sm text-foreground">{t("partner.profile.verifyEmailPrompt")}</p>
@@ -247,13 +260,94 @@ export function ReadOnlyProfile({ profile }: { profile: ReadOnlyProfilePayload }
           <Globe className="h-3.5 w-3.5" />
           {t("partner.profile.emailLanguage")}
         </dt>
-        <dd className="text-foreground">{emailLocaleLabel}</dd>
+        <dd className="text-foreground">
+          {!editingLocale ? (
+            <div className="inline-flex items-center gap-2">
+              <span>{emailLocaleLabel}</span>
+              <button
+                type="button"
+                className="text-xs text-primary hover:underline"
+                onClick={() => {
+                  setLocaleError(null);
+                  setEditingLocale(true);
+                }}
+              >
+                {t("partner.profile.edit")}
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2">
+              <select
+                className="h-9 rounded-sm border border-input bg-background px-2 text-sm"
+                value={localeInput}
+                onChange={(e) => setLocaleInput(e.target.value === "es" ? "es" : "en")}
+              >
+                <option value="es">{t("partner.profile.localeEs")}</option>
+                <option value="en">{t("partner.profile.localeEn")}</option>
+              </select>
+              <Button type="button" size="sm" onClick={saveLocale} disabled={localeSaving}>
+                {localeSaving ? t("partner.profile.saving") : t("partner.profile.save")}
+              </Button>
+              <button
+                type="button"
+                className="text-xs text-muted-foreground hover:underline"
+                onClick={() => {
+                  setEditingLocale(false);
+                  setLocaleInput(profile.emailLocale === "es" ? "es" : "en");
+                }}
+              >
+                {t("partner.profile.cancel")}
+              </button>
+            </div>
+          )}
+          {localeError ? <p className="text-xs text-destructive mt-1">{localeError}</p> : null}
+        </dd>
 
         <dt className="text-muted-foreground flex items-center gap-1.5">
           <Phone className="h-3.5 w-3.5" />
           {t("partner.profile.phone")}
         </dt>
-        <dd className="text-foreground">{profile.phone?.trim() ? profile.phone : t("partner.profile.phoneNotSet")}</dd>
+        <dd className="text-foreground">
+          {!editingPhone ? (
+            <div className="inline-flex items-center gap-2">
+              <span>{profile.phone?.trim() ? profile.phone : t("partner.profile.phoneNotSet")}</span>
+              <button
+                type="button"
+                className="text-xs text-primary hover:underline"
+                onClick={() => {
+                  setPhoneError(null);
+                  setEditingPhone(true);
+                }}
+              >
+                {t("partner.profile.edit")}
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2">
+              <Input
+                value={phoneInput}
+                onChange={(e) => setPhoneInput(e.target.value)}
+                placeholder={t("partner.profile.phonePlaceholder")}
+                className="w-[240px] h-9"
+                maxLength={40}
+              />
+              <Button type="button" size="sm" onClick={savePhone} disabled={phoneSaving}>
+                {phoneSaving ? t("partner.profile.saving") : t("partner.profile.save")}
+              </Button>
+              <button
+                type="button"
+                className="text-xs text-muted-foreground hover:underline"
+                onClick={() => {
+                  setEditingPhone(false);
+                  setPhoneInput(profile.phone?.trim() ?? "");
+                }}
+              >
+                {t("partner.profile.cancel")}
+              </button>
+            </div>
+          )}
+          {phoneError ? <p className="text-xs text-destructive mt-1">{phoneError}</p> : null}
+        </dd>
 
         <dt className="text-muted-foreground">{t("partner.profile.emailVerified")}</dt>
         <dd className="text-foreground">

@@ -10,6 +10,7 @@ const patchSchema = z.object({
     .max(40, "Phone too long")
     .optional()
     .transform((s) => (s === undefined ? undefined : s.trim() === "" ? null : s.trim())),
+  locale: z.enum(["en", "es"]).optional(),
 });
 
 export async function PATCH(req: Request) {
@@ -39,14 +40,17 @@ export async function PATCH(req: Request) {
       );
     }
 
-    const { phone } = parsed.data;
-    if (phone === undefined) {
+    const { phone, locale } = parsed.data;
+    if (phone === undefined && locale === undefined) {
       return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
     }
 
     await prisma.user.update({
       where: { id: userId },
-      data: { phone },
+      data: {
+        ...(phone !== undefined ? { phone } : {}),
+        ...(locale !== undefined ? { emailLocale: locale } : {}),
+      },
     });
 
     return NextResponse.json({ ok: true });

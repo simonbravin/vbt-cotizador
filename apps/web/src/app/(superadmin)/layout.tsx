@@ -3,7 +3,6 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { SuperadminSidebar } from "@/components/layout/superadmin-sidebar";
 import { TopBar } from "@/components/layout/topbar";
-import { deriveNavWelcomeName } from "@/lib/nav-welcome-name";
 
 export default async function SuperadminLayout({
   children,
@@ -33,13 +32,10 @@ export default async function SuperadminLayout({
     email: user.email ?? null,
     role: "SUPERADMIN",
   };
-  const dashboardWelcomeName = deriveNavWelcomeName(safeUser.name, safeUser.email);
-
   return (
     <div className="flex h-screen bg-muted overflow-hidden">
       <SuperadminSidebar
-        dashboardWelcomeName={dashboardWelcomeName || null}
-        userEmail={safeUser.email}
+        userDisplayName={safeUser.name?.trim() || safeUser.email}
         profileHref="/superadmin/settings/profile"
       />
       <div className="flex-1 flex flex-col overflow-hidden min-w-0 border-l border-border/60">

@@ -16,16 +16,17 @@ const ROLE_COLORS: Record<string, string> = {
 };
 
 export function SidebarUserFooter({
-  email,
+  displayName,
   role,
   profileHref,
 }: {
-  email: string;
+  displayName: string;
   role: string;
   profileHref: string;
 }) {
   const t = useT();
   const [avatarFailed, setAvatarFailed] = useState(false);
+  const roleLabel = role.replaceAll("_", " ").toUpperCase();
 
   return (
     <div className="px-3 py-2.5 border-t border-header-foreground/10">
@@ -51,14 +52,14 @@ export function SidebarUserFooter({
           <Link
             href={profileHref}
             className="block text-left text-xs text-header-foreground/90 font-medium truncate hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-header-foreground/35 rounded-sm"
-            title={email}
+            title={displayName}
           >
-            {email}
+            {displayName}
           </Link>
           <span
             className={`inline-block mt-1 text-[10px] px-1.5 py-0.5 rounded-sm font-medium uppercase tracking-wide ${ROLE_COLORS[role] ?? ROLE_BADGE_FALLBACK}`}
           >
-            {role}
+            {roleLabel}
           </span>
         </div>
         <button

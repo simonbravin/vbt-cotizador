@@ -106,10 +106,9 @@ export default async function DashboardPage(props: PageProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">{t("dashboard.title")}</h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
-            {t("dashboard.welcome")}, {(user as any).name ?? (user as any).email}
-          </p>
+          <h1 className="text-2xl font-bold text-foreground">
+            {t("dashboard.title")}, {(user as any).name ?? (user as any).email}
+          </h1>
         </div>
         <div className="flex gap-3">
           <Link
