@@ -6,6 +6,7 @@ import { prisma } from "@vbt/db";
 import { resolvePartnerModuleVisibility } from "@vbt/core";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopBar } from "@/components/layout/topbar";
+import { deriveNavWelcomeName } from "@/lib/nav-welcome-name";
 
 export default async function DashboardLayout({
   children,
@@ -64,17 +65,19 @@ export default async function DashboardLayout({
     };
 
     const moduleVisibility = await resolvePartnerModuleVisibility(prisma, effectiveOrgId);
+    const dashboardWelcomeName = deriveNavWelcomeName(safeUser.name, safeUser.email);
 
     return (
       <div className="flex h-screen bg-muted overflow-hidden">
         <Sidebar
           role={safeUser.role}
-          userDisplayName={safeUser.name?.trim() || safeUser.email?.trim() || null}
+          dashboardWelcomeName={dashboardWelcomeName || null}
+          userEmail={safeUser.email}
           profileHref="/profile"
           moduleVisibility={moduleVisibility}
         />
         <div className="flex-1 flex flex-col overflow-hidden min-w-0 border-l border-border/60">
-          <TopBar user={safeUser} activeOrgName={safeUser.activeOrgName} profileHref="/profile" />
+          <TopBar activeOrgName={safeUser.activeOrgName} />
           <main className="app-main-scroll flex-1 overflow-y-auto blueprint-canvas bg-background">{children}</main>
         </div>
       </div>

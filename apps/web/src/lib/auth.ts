@@ -172,6 +172,13 @@ export const authOptions: NextAuthOptions = {
         const valid = await bcrypt.compare(password, user.passwordHash);
         if (!valid) return null;
 
+        void prisma.user
+          .update({
+            where: { id: user.id },
+            data: { lastLoginAt: new Date() },
+          })
+          .catch((err) => console.error("[auth] lastLoginAt update failed", err));
+
         const activeMembership = user.orgMembers[0];
 
         return {

@@ -217,6 +217,7 @@ model User {
   invitedOrgMembers       OrgMember[]             @relation("InvitedBy")
   approvedProjectClaims   ProjectClaim[]
   passwordResetTokens     PasswordResetToken[]
+  emailVerificationTokens EmailVerificationToken[]
   inventoryTransactionsCreated InventoryTransaction[] @relation("InventoryCreatedBy")
   salesCreated               Sale[]                 @relation("SaleCreatedBy")
   paymentsCreated            Payment[]              @relation("PaymentCreatedBy")
@@ -235,6 +236,19 @@ model PasswordResetToken {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("password_reset_tokens")
+}
+
+model EmailVerificationToken {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  userId    String    @map("user_id")
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("email_verification_tokens")
 }
 
 // ─── Organizations ───────────────────────────────────────────────────────────

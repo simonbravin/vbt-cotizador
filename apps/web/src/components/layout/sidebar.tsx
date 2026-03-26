@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useT } from "@/lib/i18n/context";
+import { SidebarUserFooter } from "@/components/layout/sidebar-user-footer";
 
 interface NavItem {
   labelKey: string;
@@ -67,9 +68,11 @@ const navigation: NavItem[] = [
 
 interface SidebarProps {
   role: string;
-  /** Shown under the nav (name or email). */
-  userDisplayName?: string | null;
-  /** Profile page for footer name link. */
+  /** First name (or fallback) for the dashboard nav label; from server. */
+  dashboardWelcomeName?: string | null;
+  /** Footer: signed-in user email. */
+  userEmail?: string | null;
+  /** Profile page for footer block. */
   profileHref?: string;
   /** Per-partner module visibility (global + override already resolved). */
   moduleVisibility?: {
@@ -113,10 +116,12 @@ function isNavLinkActive(pathname: string, href: string) {
   return pathname.startsWith(`${href}/`);
 }
 
-export function Sidebar({ role, userDisplayName, profileHref, moduleVisibility }: SidebarProps) {
+export function Sidebar({ role, dashboardWelcomeName, userEmail, profileHref, moduleVisibility }: SidebarProps) {
   const pathname = usePathname();
   const t = useT();
   const [expanded, setExpanded] = useState<string[]>([]);
+  const welcome = dashboardWelcomeName?.trim() ?? "";
+  const dashboardLabel = welcome ? t("nav.dashboardWelcome", { name: welcome }) : t("nav.dashboard");
 
   useEffect(() => {
     if (pathname.startsWith("/sales")) {
@@ -142,7 +147,7 @@ export function Sidebar({ role, userDisplayName, profileHref, moduleVisibility }
         <Link
           href="/dashboard"
           className="flex max-h-full w-full items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-header-foreground/35 focus-visible:ring-offset-2 focus-visible:ring-offset-header rounded-sm"
-          aria-label={t("nav.dashboard")}
+          aria-label={dashboardLabel}
         >
           <Image
             src="/logo-vbt-white-horizontal.png"
@@ -219,6 +224,8 @@ export function Sidebar({ role, userDisplayName, profileHref, moduleVisibility }
             );
           }
 
+          const isDashboard = item.href === "/dashboard";
+          const label = isDashboard && welcome ? dashboardLabel : t(item.labelKey);
           return (
             <Link
               key={item.href}
@@ -231,28 +238,14 @@ export function Sidebar({ role, userDisplayName, profileHref, moduleVisibility }
               )}
             >
               <item.icon className="w-4 h-4 flex-shrink-0" />
-              {t(item.labelKey)}
+              {label}
             </Link>
           );
         })}
       </nav>
 
-      {userDisplayName?.trim() ? (
-        <div className="px-4 py-2.5 border-t border-header-foreground/10">
-          {profileHref ? (
-            <Link
-              href={profileHref}
-              className="block text-header-foreground/90 text-sm text-center font-medium truncate hover:underline hover:text-header-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-header-foreground/35 rounded-sm"
-              title={userDisplayName.trim()}
-            >
-              {userDisplayName.trim()}
-            </Link>
-          ) : (
-            <p className="text-header-foreground/90 text-sm text-center font-medium truncate" title={userDisplayName.trim()}>
-              {userDisplayName.trim()}
-            </p>
-          )}
-        </div>
+      {userEmail?.trim() && profileHref ? (
+        <SidebarUserFooter email={userEmail.trim()} role={role} profileHref={profileHref} />
       ) : null}
 
       {/* Footer */}

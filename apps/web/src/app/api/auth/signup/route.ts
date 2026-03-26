@@ -6,10 +6,19 @@ import { Resend } from "resend";
 import { buildSignupRequestAdminEmailHtml } from "@/lib/email-bodies";
 import { getResendFrom, emailSubjectSignupRequest, parseEmailLocale } from "@/lib/email-config";
 import { checkRateLimit, getRateLimitIdentifier, RateLimitExceededError } from "@/lib/rate-limit";
+import { createEmailVerificationTokenAndSend } from "@/lib/send-email-verification";
 
 const signupSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
+  phone: z
+    .string()
+    .max(40, "Phone too long")
+    .optional()
+    .transform((s) => {
+      const t = s?.trim();
+      return t ? t : undefined;
+    }),
   password: z
     .string()
     .min(8, "Password must be at least 8 characters")
@@ -39,10 +48,11 @@ export async function POST(req: Request) {
       );
     }
 
-    const { name, email, password, locale: signupLocale } = parsed.data;
+    const { name, email, password, phone, locale: signupLocale } = parsed.data;
+    const emailNorm = email.toLowerCase().trim();
 
     // Check for existing user
-    const existing = await prisma.user.findUnique({ where: { email } });
+    const existing = await prisma.user.findUnique({ where: { email: emailNorm } });
     if (existing) {
       return NextResponse.json(
         { error: "An account with this email already exists." },
@@ -60,7 +70,8 @@ export async function POST(req: Request) {
     const user = await prisma.user.create({
       data: {
         fullName: name,
-        email,
+        email: emailNorm,
+        phone: phone ?? null,
         passwordHash,
         isActive: false, // pending approval
         emailLocale: parseEmailLocale(signupLocale),
@@ -93,7 +104,7 @@ export async function POST(req: Request) {
         const adminLocale = parseEmailLocale(superadminUser?.emailLocale);
         const html = buildSignupRequestAdminEmailHtml(adminLocale, {
           applicantName: name,
-          applicantEmail: email,
+          applicantEmail: emailNorm,
           adminUsersUrl,
         });
         await resend.emails.send({
@@ -106,6 +117,12 @@ export async function POST(req: Request) {
         console.warn("Failed to send notification email:", emailErr);
       }
     }
+
+    void createEmailVerificationTokenAndSend(user.id, user.email, user.emailLocale).then((r) => {
+      if (!r.ok) {
+        console.warn("[signup] verification email not sent:", r.reason);
+      }
+    });
 
     return NextResponse.json({ id: user.id, status: "PENDING" }, { status: 201 });
   } catch (error) {

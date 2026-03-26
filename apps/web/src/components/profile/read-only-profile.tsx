@@ -1,7 +1,11 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Mail, Phone, User, Building2, Calendar, Globe, ShieldCheck, ShieldAlert } from "lucide-react";
 import { useLanguage } from "@/lib/i18n/context";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export type ReadOnlyProfilePayload = {
   fullName: string;
@@ -36,6 +40,25 @@ function formatDate(iso: string | null | undefined, locale: string) {
 export function ReadOnlyProfile({ profile }: { profile: ReadOnlyProfilePayload }) {
   const { t, locale } = useLanguage();
   const loc = locale === "es" ? "es" : "en";
+  const router = useRouter();
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const [phoneInput, setPhoneInput] = useState(profile.phone?.trim() ?? "");
+  const [phoneSaving, setPhoneSaving] = useState(false);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+
+  const [avatarNonce, setAvatarNonce] = useState(0);
+  const [avatarFailed, setAvatarFailed] = useState(false);
+  const [uploadBusy, setUploadBusy] = useState(false);
+
+  const [verifyBusy, setVerifyBusy] = useState(false);
+  const [verifyFlash, setVerifyFlash] = useState<string | null>(null);
+  const [verifyErr, setVerifyErr] = useState<string | null>(null);
+  const [uploadErr, setUploadErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    setPhoneInput(profile.phone?.trim() ?? "");
+  }, [profile.phone]);
 
   const orgRoleKey = profile.organizationRole
     ? (`superadmin.partner.memberRole.${profile.organizationRole}` as const)
@@ -48,31 +71,145 @@ export function ReadOnlyProfile({ profile }: { profile: ReadOnlyProfilePayload }
       ? t("partner.profile.localeEs")
       : t("partner.profile.localeEn");
 
+  const isVerified = Boolean(profile.emailVerified);
+
+  async function savePhone() {
+    setPhoneSaving(true);
+    setPhoneError(null);
+    try {
+      const res = await fetch("/api/saas/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: phoneInput }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setPhoneError(typeof data.error === "string" ? data.error : t("partner.profile.phoneSaveError"));
+        return;
+      }
+      router.refresh();
+    } catch {
+      setPhoneError(t("partner.profile.phoneSaveError"));
+    } finally {
+      setPhoneSaving(false);
+    }
+  }
+
+  async function onAvatarSelected(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploadBusy(true);
+    setUploadErr(null);
+    try {
+      const fd = new FormData();
+      fd.set("file", file);
+      const res = await fetch("/api/saas/profile/avatar", { method: "POST", body: fd });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setUploadErr(typeof data.error === "string" ? data.error : t("partner.profile.uploadError"));
+        return;
+      }
+      setAvatarFailed(false);
+      setAvatarNonce((n) => n + 1);
+      router.refresh();
+    } catch {
+      setUploadErr(t("partner.profile.uploadError"));
+    } finally {
+      setUploadBusy(false);
+    }
+  }
+
+  async function requestVerification() {
+    setVerifyBusy(true);
+    setVerifyFlash(null);
+    setVerifyErr(null);
+    try {
+      const res = await fetch("/api/saas/profile/request-email-verification", { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setVerifyErr(typeof data.error === "string" ? data.error : t("partner.profile.verifySendError"));
+        return;
+      }
+      setVerifyFlash(t("partner.profile.verifyEmailSent"));
+    } catch {
+      setVerifyErr(t("partner.profile.verifySendError"));
+    } finally {
+      setVerifyBusy(false);
+    }
+  }
+
+  const avatarSrc = `/api/saas/profile/avatar${avatarNonce ? `?t=${avatarNonce}` : ""}`;
+
   return (
     <div className="surface-card p-6 space-y-6">
       <div className="flex flex-wrap items-start gap-4">
-        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-muted">
-          {profile.image ? (
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          disabled={uploadBusy}
+          className="relative flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-muted overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
+          title={t("partner.profile.uploadPhoto")}
+        >
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="hidden"
+            onChange={onAvatarSelected}
+          />
+          {!avatarFailed ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={profile.image} alt="" className="h-16 w-16 rounded-full object-cover" />
+            <img
+              src={avatarSrc}
+              alt=""
+              className="h-16 w-16 object-cover"
+              onError={() => setAvatarFailed(true)}
+            />
           ) : (
             <User className="h-8 w-8 text-muted-foreground" />
           )}
-        </div>
-        <div>
+        </button>
+        <div className="flex-1 min-w-0">
           <h2 className="text-xl font-semibold text-foreground">{profile.fullName}</h2>
           <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-1">
             <Mail className="h-3.5 w-3.5 shrink-0" />
             {profile.email}
           </p>
-          {profile.phone?.trim() ? (
-            <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-0.5">
-              <Phone className="h-3.5 w-3.5 shrink-0" />
-              {profile.phone}
-            </p>
-          ) : null}
+          <p className="text-xs text-muted-foreground mt-2">{t("partner.profile.uploadPhotoHint")}</p>
+          {uploadErr ? <p className="text-xs text-destructive mt-1">{uploadErr}</p> : null}
         </div>
       </div>
+
+      <div className="space-y-2 rounded-sm border border-border/80 p-4">
+        <label className="text-xs font-mono font-semibold uppercase tracking-wider text-muted-foreground">
+          {t("partner.profile.phone")}
+        </label>
+        <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+          <Input
+            value={phoneInput}
+            onChange={(e) => setPhoneInput(e.target.value)}
+            placeholder={t("partner.profile.phonePlaceholder")}
+            className="sm:max-w-xs"
+            maxLength={40}
+          />
+          <Button type="button" size="sm" onClick={savePhone} disabled={phoneSaving}>
+            {phoneSaving ? t("partner.profile.saving") : t("partner.profile.savePhone")}
+          </Button>
+        </div>
+        {phoneError ? <p className="text-xs text-destructive">{phoneError}</p> : null}
+      </div>
+
+      {!isVerified ? (
+        <div className="rounded-sm border border-amber-500/30 bg-amber-500/10 p-4 space-y-2">
+          <p className="text-sm text-foreground">{t("partner.profile.verifyEmailPrompt")}</p>
+          <Button type="button" size="sm" variant="secondary" onClick={requestVerification} disabled={verifyBusy}>
+            {verifyBusy ? t("partner.profile.sending") : t("partner.profile.sendVerifyEmail")}
+          </Button>
+          {verifyFlash ? <p className="text-xs text-emerald-700 dark:text-emerald-400">{verifyFlash}</p> : null}
+          {verifyErr ? <p className="text-xs text-destructive">{verifyErr}</p> : null}
+        </div>
+      ) : null}
 
       <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
         {profile.isPlatformSuperadmin ? (
@@ -111,6 +248,12 @@ export function ReadOnlyProfile({ profile }: { profile: ReadOnlyProfilePayload }
           {t("partner.profile.emailLanguage")}
         </dt>
         <dd className="text-foreground">{emailLocaleLabel}</dd>
+
+        <dt className="text-muted-foreground flex items-center gap-1.5">
+          <Phone className="h-3.5 w-3.5" />
+          {t("partner.profile.phone")}
+        </dt>
+        <dd className="text-foreground">{profile.phone?.trim() ? profile.phone : t("partner.profile.phoneNotSet")}</dd>
 
         <dt className="text-muted-foreground">{t("partner.profile.emailVerified")}</dt>
         <dd className="text-foreground">

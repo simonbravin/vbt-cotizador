@@ -13,6 +13,39 @@ import {
 
 const BRAND_SUBTITLE = "Vision Building Technologies";
 
+export function buildEmailVerificationHtml(
+  locale: EmailLocale,
+  opts: { verifyUrl: string; hours: number }
+): string {
+  const { verifyUrl, hours } = opts;
+  if (locale === "es") {
+    return buildVbtEmailHtml({
+      title: "Verificar correo",
+      subtitle: BRAND_SUBTITLE,
+      preheader: `Enlace seguro · vence en ${hours} h`,
+      bodyHtml: `
+            <p style="margin: 0 0 18px 0;">Hola,</p>
+            <p style="margin: 0 0 24px 0;">Confirmá tu dirección de correo con el botón. El enlace vence en <strong>${hours}</strong> hora(s).</p>
+            <p style="margin: 0 0 20px 0;">${emailPrimaryButton(verifyUrl, "Verificar correo")}</p>
+            <p style="margin: 0; color: #6b7280; font-size: 13px; line-height: 1.5;">Si no creaste una cuenta, ignorá este mensaje.</p>
+          `.trim(),
+      footerText: "Este aviso fue enviado por la Plataforma VBT.",
+    });
+  }
+  return buildVbtEmailHtml({
+    title: "Verify your email",
+    subtitle: BRAND_SUBTITLE,
+    preheader: `Secure link · expires in ${hours} hour(s)`,
+    bodyHtml: `
+            <p style="margin: 0 0 18px 0;">Hi,</p>
+            <p style="margin: 0 0 24px 0;">Please confirm your email address using the button below. This link expires in <strong>${hours}</strong> hour(s).</p>
+            <p style="margin: 0 0 20px 0;">${emailPrimaryButton(verifyUrl, "Verify email")}</p>
+            <p style="margin: 0; color: #6b7280; font-size: 13px; line-height: 1.5;">If you did not sign up, you can ignore this email.</p>
+          `.trim(),
+    footerText: "This notification was sent by the VBT Platform.",
+  });
+}
+
 export function buildForgotPasswordEmailHtml(
   locale: EmailLocale,
   opts: { resetUrl: string; hours: number }

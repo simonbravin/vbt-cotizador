@@ -16,6 +16,7 @@ function getSignupSchema(t: (key: string) => string) {
     .object({
       name: z.string().min(2, t("auth.nameMin2")),
       email: z.string().email(t("auth.emailInvalid")),
+      phone: z.string().max(40, t("auth.phoneTooLong")),
       password: z
         .string()
         .min(8, t("auth.passwordMin8"))
@@ -41,6 +42,7 @@ export default function SignupPage() {
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
+    defaultValues: { phone: "" },
   });
 
   async function onSubmit(data: FormData) {
@@ -53,6 +55,7 @@ export default function SignupPage() {
         body: JSON.stringify({
           name: data.name,
           email: data.email,
+          phone: data.phone?.trim() || undefined,
           password: data.password,
           locale,
         }),
@@ -73,6 +76,7 @@ export default function SignupPage() {
   const textFields = [
     { id: "name" as const, labelKey: "auth.fullName", type: "text" as const, placeholderKey: "auth.placeholderName" as const },
     { id: "email" as const, labelKey: "auth.email", type: "email" as const, placeholderKey: "auth.placeholderEmailCompany" as const },
+    { id: "phone" as const, labelKey: "auth.phone", type: "tel" as const, placeholderKey: "auth.placeholderPhone" as const },
   ];
 
   return (

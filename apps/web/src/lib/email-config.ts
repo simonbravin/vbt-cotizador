@@ -28,6 +28,7 @@ const SUBJECTS = {
     quote: (quoteNumber: string, projectName: string) =>
       `Quote #${quoteNumber} · ${projectName}`,
     passwordReset: "Reset your password — secure link inside",
+    emailVerification: "Verify your email — VBT Platform",
     signupRequest: "New account pending your review — VBT Platform",
     accountApproved: "You're approved — welcome to VBT Platform",
     accountRejected: "Update on your VBT Platform account request",
@@ -53,6 +54,7 @@ const SUBJECTS = {
     quote: (quoteNumber: string, projectName: string) =>
       `Cotización ${quoteNumber} · ${projectName}`,
     passwordReset: "Restablecé tu contraseña — enlace seguro dentro",
+    emailVerification: "Verificá tu correo — Plataforma VBT",
     signupRequest: "Nueva cuenta pendiente de revisión — Plataforma VBT",
     accountApproved: "Cuenta habilitada — bienvenido/a a Plataforma VBT",
     accountRejected: "Novedades sobre tu solicitud — Plataforma VBT",
@@ -86,6 +88,10 @@ export function emailSubjectQuote(locale: EmailLocale, quoteNumber: string, proj
 
 export function emailSubjectPasswordReset(locale: EmailLocale): string {
   return SUBJECTS[locale].passwordReset;
+}
+
+export function emailSubjectEmailVerification(locale: EmailLocale): string {
+  return SUBJECTS[locale].emailVerification;
 }
 
 export function emailSubjectSignupRequest(locale: EmailLocale = "en"): string {

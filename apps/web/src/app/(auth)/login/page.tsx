@@ -64,6 +64,16 @@ function LoginForm() {
     <AuthFormSurface>
       <h2 className="text-lg font-semibold text-foreground tracking-tight mb-6">{t("auth.signIn")}</h2>
 
+      {searchParams.get("verified") === "1" && (
+        <div className="mb-4 p-3 rounded-sm border border-primary/30 bg-primary/10 text-sm text-foreground">
+          {t("auth.emailVerifiedSuccess")}
+        </div>
+      )}
+      {searchParams.get("error") === "verify_invalid" && (
+        <div className="mb-4 p-3 rounded-sm border border-destructive/30 bg-destructive/10 text-sm text-destructive">
+          {t("auth.verifyInvalid")}
+        </div>
+      )}
       {searchParams.get("reset") === "success" && (
         <div className="mb-4 p-3 rounded-sm border border-primary/30 bg-primary/10 text-sm text-foreground">
           {t("auth.resetSuccess")}

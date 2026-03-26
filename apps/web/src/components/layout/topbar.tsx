@@ -3,9 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { signOut } from "next-auth/react";
-import { LogOut, User, Bell, Building2, ChevronDown, Sun, Moon } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Bell, Building2, ChevronDown, Sun, Moon } from "lucide-react";
 import { useLanguage } from "@/lib/i18n/context";
 import { useTheme } from "@/lib/theme";
 
@@ -20,25 +18,11 @@ type NotificationItem = {
 };
 
 interface TopBarProps {
-  user: {
-    name?: string | null;
-    email?: string | null;
-    role: string;
-  };
   /** When true, show context switcher (Platform vs Partner). Only set in superadmin layout. */
   showContextSwitcher?: boolean;
   /** Current organization name (partner context). Shown next to title when set. */
   activeOrgName?: string | null;
-  /** Link target for the user block (profile). */
-  profileHref?: string;
 }
-
-const ROLE_COLORS: Record<string, string> = {
-  SUPERADMIN: "bg-muted text-muted-foreground",
-  ADMIN: "bg-muted text-muted-foreground",
-  SALES: "bg-muted text-muted-foreground",
-  VIEWER: "bg-muted text-muted-foreground",
-};
 
 const NOTIFICATIONS_LAST_READ_KEY = "vbt_notifications_last_read_at";
 const NOTIFICATIONS_BADGE_LIMIT = 10;
@@ -59,7 +43,7 @@ function setLastReadAt() {
 
 type PartnerOption = { id: string; name: string };
 
-export function TopBar({ user, showContextSwitcher, activeOrgName, profileHref }: TopBarProps) {
+export function TopBar({ showContextSwitcher, activeOrgName }: TopBarProps) {
   const { locale, setLocale, t } = useLanguage();
   const { theme, toggleTheme } = useTheme();
   const router = useRouter();
@@ -288,56 +272,6 @@ export function TopBar({ user, showContextSwitcher, activeOrgName, profileHref }
             </>
           )}
         </div>
-
-        {profileHref ? (
-          <Link
-            href={profileHref}
-            className={cn(
-              "flex items-center gap-3 rounded-sm px-1 py-0.5 -mx-0.5",
-              "hover:bg-header-foreground/10 transition-colors",
-              "outline-none focus-visible:ring-2 focus-visible:ring-header-foreground/35 focus-visible:ring-offset-2 focus-visible:ring-offset-header"
-            )}
-            title={t("partner.profile.title")}
-          >
-            <div className="w-8 h-8 rounded-full bg-header-foreground/20 flex items-center justify-center">
-              <User className="w-4 h-4 text-header-foreground" />
-            </div>
-            <div className="hidden sm:block text-left">
-              <p className="text-sm font-medium text-header-foreground leading-tight">
-                {user.name ?? user.email}
-              </p>
-              <span
-                className={`text-xs px-1.5 py-0.5 rounded-sm font-medium ${ROLE_COLORS[user.role] ?? "bg-header-foreground/20 text-header-foreground"}`}
-              >
-                {user.role}
-              </span>
-            </div>
-          </Link>
-        ) : (
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-header-foreground/20 flex items-center justify-center">
-              <User className="w-4 h-4 text-header-foreground" />
-            </div>
-            <div className="hidden sm:block">
-              <p className="text-sm font-medium text-header-foreground leading-tight">
-                {user.name ?? user.email}
-              </p>
-              <span
-                className={`text-xs px-1.5 py-0.5 rounded-sm font-medium ${ROLE_COLORS[user.role] ?? "bg-header-foreground/20 text-header-foreground"}`}
-              >
-                {user.role}
-              </span>
-            </div>
-          </div>
-        )}
-
-        <button
-          onClick={() => signOut({ callbackUrl: "/login" })}
-          className="p-2 text-header-foreground/70 hover:text-header-foreground transition-colors"
-          title={t("topbar.signOut")}
-        >
-          <LogOut className="w-4 h-4" />
-        </button>
       </div>
     </header>
   );
