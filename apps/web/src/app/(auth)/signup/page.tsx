@@ -86,7 +86,7 @@ export default function SignupPage() {
         <p className="text-sm text-muted-foreground mb-6">{t("auth.createAccountSub")}</p>
 
         {error && (
-          <div className="mb-4 p-3 rounded-sm border border-destructive/30 bg-destructive/10 text-destructive text-sm">
+          <div className="mb-4 p-3 rounded-lg border border-destructive/30 bg-destructive/10 text-destructive text-sm">
             {error}
           </div>
         )}

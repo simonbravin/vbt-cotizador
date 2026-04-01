@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Package, Plus, Calculator, ArrowDownToLine, Search } from "lucide-react";
 import { useT } from "@/lib/i18n/context";
+import { FilterSelect } from "@/components/ui/filter-select";
 
 type Org = { id: string; name: string };
 type WarehouseRow = { id: string; name: string; location: string | null; isActive: boolean };
@@ -230,13 +231,13 @@ export function SuperadminInventoryClient() {
   return (
     <div className="space-y-6">
       {partnerOrgs.length > 0 && (
-        <div className="rounded-sm border border-border bg-muted/30 p-3">
+        <div className="rounded-lg border border-border bg-muted/30 p-3">
           <p className="text-sm font-medium text-foreground mb-2">{t("admin.inventory.viewPartnerInventoryHint")}</p>
           <div className="relative max-w-md">
             <button
               type="button"
               onClick={() => setPartnerDropdownOpen((v) => !v)}
-              className="w-full flex items-center justify-between rounded-sm border border-input bg-background px-3 py-2 text-sm text-left"
+              className="w-full flex items-center justify-between rounded-lg border border-input bg-background px-3 py-2 text-sm text-left"
             >
               <span className="text-muted-foreground">
                 {selectedPartnerIds.length === 0
@@ -246,7 +247,7 @@ export function SuperadminInventoryClient() {
               <span className="text-muted-foreground">{partnerDropdownOpen ? "▲" : "▼"}</span>
             </button>
             {partnerDropdownOpen && (
-              <div className="absolute z-10 mt-1 flex max-h-64 w-full flex-col overflow-hidden rounded-sm border border-border/60 bg-popover shadow-none">
+              <div className="absolute z-10 mt-1 flex max-h-64 w-full flex-col overflow-hidden rounded-lg border border-border/60 bg-popover shadow-none">
                 <div className="p-2 border-b border-border relative">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                   <input
@@ -254,7 +255,7 @@ export function SuperadminInventoryClient() {
                     placeholder={t("admin.inventory.searchPartnerPlaceholder")}
                     value={partnerSearchQuery}
                     onChange={(e) => setPartnerSearchQuery(e.target.value)}
-                    className="w-full pl-8 pr-3 py-1.5 rounded-sm border border-input bg-background text-sm"
+                    className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-input bg-background text-sm"
                   />
                 </div>
                 <div className="overflow-y-auto p-2">
@@ -264,13 +265,13 @@ export function SuperadminInventoryClient() {
                     filteredPartnersForDropdown.map((org) => (
                       <label
                         key={org.id}
-                        className="flex items-center gap-2 py-1.5 px-2 rounded-sm hover:bg-muted/50 cursor-pointer text-sm"
+                        className="flex items-center gap-2 py-1.5 px-2 rounded-lg hover:bg-muted/50 cursor-pointer text-sm"
                       >
                         <input
                           type="checkbox"
                           checked={selectedPartnerIds.includes(org.id)}
                           onChange={() => togglePartnerFilter(org.id)}
-                          className="rounded-sm border-input"
+                          className="rounded-lg border-input"
                         />
                         {org.name}
                       </label>
@@ -291,13 +292,13 @@ export function SuperadminInventoryClient() {
             placeholder={t("admin.inventory.filterPlaceholder")}
             value={searchFilter}
             onChange={(e) => setSearchFilter(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 rounded-sm border border-input bg-background text-sm"
+            className="w-full pl-9 pr-3 py-2 rounded-lg border border-input bg-background text-sm"
           />
         </div>
         <button
           type="button"
           onClick={() => setShowAddItemForm((v) => !v)}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-sm text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90"
         >
           <Plus className="h-4 w-4" /> {t("admin.inventory.addItem")}
         </button>
@@ -418,41 +419,38 @@ export function SuperadminInventoryClient() {
               <div className="flex flex-wrap gap-3 items-end">
                 <div>
                   <label className="block text-xs text-muted-foreground mb-1">{t("admin.inventory.warehouse")}</label>
-                  <select
+                  <FilterSelect
                     value={txForm.warehouseId}
-                    onChange={(e) => setTxForm((f) => ({ ...f, warehouseId: e.target.value }))}
-                    className="rounded-sm border border-input bg-background px-3 py-1.5 text-sm min-w-[160px]"
-                  >
-                    <option value="">—</option>
-                    {warehouses.map((w) => (
-                      <option key={w.id} value={w.id}>{w.name}</option>
-                    ))}
-                  </select>
+                    onValueChange={(v) => setTxForm((f) => ({ ...f, warehouseId: v }))}
+                    emptyOptionLabel="—"
+                    options={warehouses.map((w) => ({ value: w.id, label: w.name }))}
+                    aria-label={t("admin.inventory.warehouse")}
+                    triggerClassName="h-9 min-w-[160px] max-w-[min(100vw-2rem,240px)] text-sm"
+                  />
                 </div>
                 <div>
                   <label className="block text-xs text-muted-foreground mb-1">{t("admin.inventory.piece")}</label>
-                  <select
+                  <FilterSelect
                     value={txForm.catalogPieceId}
-                    onChange={(e) => setTxForm((f) => ({ ...f, catalogPieceId: e.target.value }))}
-                    className="rounded-sm border border-input bg-background px-3 py-1.5 text-sm min-w-[180px]"
-                  >
-                    <option value="">—</option>
-                    {catalogPieces.map((p) => (
-                      <option key={p.id} value={p.id}>{p.canonicalName} ({p.systemCode})</option>
-                    ))}
-                  </select>
+                    onValueChange={(v) => setTxForm((f) => ({ ...f, catalogPieceId: v }))}
+                    emptyOptionLabel="—"
+                    options={catalogPieces.map((p) => ({
+                      value: p.id,
+                      label: `${p.canonicalName} (${p.systemCode})`,
+                    }))}
+                    aria-label={t("admin.inventory.piece")}
+                    triggerClassName="h-9 min-w-[180px] max-w-[min(100vw-2rem,280px)] text-sm"
+                  />
                 </div>
                 <div>
                   <label className="block text-xs text-muted-foreground mb-1">{t("admin.inventory.labelType")}</label>
-                  <select
+                  <FilterSelect
                     value={txForm.type}
-                    onChange={(e) => setTxForm((f) => ({ ...f, type: e.target.value }))}
-                    className="rounded-sm border border-input bg-background px-3 py-1.5 text-sm min-w-[160px]"
-                  >
-                    {txTypes.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
+                    onValueChange={(v) => setTxForm((f) => ({ ...f, type: v }))}
+                    options={txTypes.map((opt) => ({ value: opt.value, label: opt.label }))}
+                    aria-label={t("admin.inventory.labelType")}
+                    triggerClassName="h-9 min-w-[160px] max-w-[min(100vw-2rem,240px)] text-sm"
+                  />
                 </div>
                 <div>
                   <label className="block text-xs text-muted-foreground mb-1">{t("admin.inventory.labelQuantity")}</label>
@@ -462,7 +460,7 @@ export function SuperadminInventoryClient() {
                     step="any"
                     value={txForm.quantityDelta || ""}
                     onChange={(e) => setTxForm((f) => ({ ...f, quantityDelta: Number(e.target.value) || 0 }))}
-                    className="rounded-sm border border-input bg-background px-3 py-1.5 text-sm w-24"
+                    className="rounded-lg border border-input bg-background px-3 py-1.5 text-sm w-24"
                   />
                 </div>
                 <div>
@@ -472,14 +470,14 @@ export function SuperadminInventoryClient() {
                     value={txForm.notes}
                     onChange={(e) => setTxForm((f) => ({ ...f, notes: e.target.value }))}
                     placeholder={t("admin.inventory.optional")}
-                    className="rounded-sm border border-input bg-background px-3 py-1.5 text-sm w-40"
+                    className="rounded-lg border border-input bg-background px-3 py-1.5 text-sm w-40"
                   />
                 </div>
                 <button
                   type="button"
                   onClick={handleCreateTransaction}
                   disabled={txSaving || !txForm.warehouseId || !txForm.catalogPieceId || txForm.quantityDelta === 0}
-                  className="rounded-sm px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 flex items-center gap-1"
+                  className="rounded-lg px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 flex items-center gap-1"
                 >
                   <Plus className="h-4 w-4" /> {t("admin.inventory.apply")}
                 </button>
@@ -494,13 +492,13 @@ export function SuperadminInventoryClient() {
                     placeholder={t("admin.inventory.quoteIdPlaceholder")}
                     value={affectQuoteId}
                     onChange={(e) => setAffectQuoteId(e.target.value)}
-                    className="rounded-sm border border-input bg-background px-3 py-1.5 text-sm w-56"
+                    className="rounded-lg border border-input bg-background px-3 py-1.5 text-sm w-56"
                   />
                   <button
                     type="button"
                     onClick={handleAffect}
                     disabled={txSaving || !affectQuoteId.trim()}
-                    className="flex items-center gap-1 rounded-sm border border-primary/20 bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
+                    className="flex items-center gap-1 rounded-lg border border-primary/20 bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
                   >
                     <ArrowDownToLine className="h-4 w-4" /> {t("admin.inventory.affectButton")}
                   </button>
@@ -517,19 +515,19 @@ export function SuperadminInventoryClient() {
                     placeholder={t("admin.inventory.quoteIdPlaceholder")}
                     value={simulateQuoteId}
                     onChange={(e) => setSimulateQuoteId(e.target.value)}
-                    className="rounded-sm border border-input bg-background px-3 py-1.5 text-sm w-56"
+                    className="rounded-lg border border-input bg-background px-3 py-1.5 text-sm w-56"
                   />
                   <button
                     type="button"
                     onClick={handleSimulate}
                     disabled={!simulateQuoteId.trim()}
-                    className="rounded-sm px-3 py-1.5 text-sm font-medium bg-muted text-muted-foreground hover:bg-muted/80 flex items-center gap-1"
+                    className="rounded-lg px-3 py-1.5 text-sm font-medium bg-muted text-muted-foreground hover:bg-muted/80 flex items-center gap-1"
                   >
                     <Calculator className="h-4 w-4" /> {t("admin.inventory.simulateButton")}
                   </button>
                 </div>
                 {simulateResult && (
-                  <div className="mt-3 p-3 rounded-sm bg-muted/50 text-sm space-y-2">
+                  <div className="mt-3 p-3 rounded-lg bg-muted/50 text-sm space-y-2">
                     <p className="font-medium">{t("admin.inventory.simulateRequiredByPiece")}</p>
                     <ul className="list-disc list-inside">
                       {simulateResult.required.map((r, i) => (

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/lib/i18n/context";
+import { FilterSelect } from "@/components/ui/filter-select";
 
 type ProjectOption = { id: string; projectName: string };
 
@@ -125,22 +126,17 @@ export function NewEngineeringRequestForm() {
   return (
     <div className="surface-card max-w-2xl p-6">
       <form onSubmit={handleSubmit} className="space-y-4">
-        {error && <p className="rounded-sm border border-destructive/25 bg-destructive/5 px-3 py-2 text-sm text-destructive">{error}</p>}
+        {error && <p className="rounded-lg border border-destructive/25 bg-destructive/5 px-3 py-2 text-sm text-destructive">{error}</p>}
         <div>
           <label className="block text-sm font-medium text-foreground mb-1">{t("partner.engineering.project")} *</label>
-          <select
+          <FilterSelect
             value={form.projectId}
-            onChange={(e) => setForm((f) => ({ ...f, projectId: e.target.value }))}
-            required
-            className="input-native"
-          >
-            <option value="">{t("partner.engineering.selectProject")}</option>
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.projectName}
-              </option>
-            ))}
-          </select>
+            onValueChange={(v) => setForm((f) => ({ ...f, projectId: v }))}
+            emptyOptionLabel={t("partner.engineering.selectProject")}
+            options={projects.map((p) => ({ value: p.id, label: p.projectName }))}
+            aria-label={t("partner.engineering.project")}
+            triggerClassName="h-10 w-full min-w-0 max-w-full text-sm"
+          />
         </div>
         <div>
           <label className="block text-sm font-medium text-foreground mb-1">{t("partner.engineering.request")} # *</label>
@@ -155,18 +151,17 @@ export function NewEngineeringRequestForm() {
         </div>
         <div>
           <label className="block text-sm font-medium text-foreground mb-1">{t("partner.engineering.requestTypeLabel")}</label>
-          <select
+          <FilterSelect
             value={form.requestType}
-            onChange={(e) => setForm((f) => ({ ...f, requestType: e.target.value }))}
-            className="input-native"
-          >
-            <option value="">—</option>
-            {REQUEST_TYPE_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {t(opt.labelKey)}
-              </option>
-            ))}
-          </select>
+            onValueChange={(v) => setForm((f) => ({ ...f, requestType: v }))}
+            emptyOptionLabel="—"
+            options={REQUEST_TYPE_OPTIONS.map((opt) => ({
+              value: opt.value,
+              label: t(opt.labelKey),
+            }))}
+            aria-label={t("partner.engineering.requestTypeLabel")}
+            triggerClassName="h-10 w-full min-w-0 max-w-full text-sm"
+          />
         </div>
         <div>
           <label className="block text-sm font-medium text-foreground mb-1">{t("partner.engineering.wallAreaM2")}</label>
@@ -187,7 +182,7 @@ export function NewEngineeringRequestForm() {
                   type="checkbox"
                   checked={form.systemTypeIds.includes(opt.value)}
                   onChange={() => toggleSystem(opt.value)}
-                  className="rounded-sm border-input"
+                  className="rounded-lg border-input"
                 />
                 <span className="text-sm text-foreground">{t(opt.labelKey)}</span>
               </label>
@@ -221,7 +216,7 @@ export function NewEngineeringRequestForm() {
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="rounded-sm border border-border/60 bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-muted"
+            className="rounded-lg border border-border/60 bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-muted"
           >
             {t("partner.engineering.uploadFile")}
           </button>
@@ -237,14 +232,14 @@ export function NewEngineeringRequestForm() {
           <button
             type="submit"
             disabled={saving}
-            className="rounded-sm border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
+            className="rounded-lg border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
           >
             {saving ? t("partner.engineering.creating") : t("partner.engineering.createRequest")}
           </button>
           <button
             type="button"
             onClick={() => router.push("/engineering")}
-            className="rounded-sm border border-border/60 px-4 py-2 text-sm font-medium text-foreground hover:bg-muted"
+            className="rounded-lg border border-border/60 px-4 py-2 text-sm font-medium text-foreground hover:bg-muted"
           >
             {t("common.cancel")}
           </button>

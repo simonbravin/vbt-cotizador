@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { NewSaleClient } from "@/app/(dashboard)/sales/new/NewSaleClient";
 import { useT } from "@/lib/i18n/context";
+import { FilterSelect } from "@/components/ui/filter-select";
 
 export function SuperadminNewSaleClient({ initialOrganizationId = "" }: { initialOrganizationId?: string }) {
   const t = useT();
@@ -27,18 +28,14 @@ export function SuperadminNewSaleClient({ initialOrganizationId = "" }: { initia
     <div className="space-y-6">
       <div className="max-w-md">
         <label className="block text-sm font-medium text-foreground mb-1">{t("admin.entities.partnerLabel")}</label>
-        <select
+        <FilterSelect
           value={organizationId}
-          onChange={(e) => setOrganizationId(e.target.value)}
-          className="w-full px-3 py-2 border border-input rounded-sm text-sm bg-background"
-        >
-          <option value="">{t("admin.entities.selectPartner")}</option>
-          {partners.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
+          onValueChange={setOrganizationId}
+          emptyOptionLabel={t("admin.entities.selectPartner")}
+          options={partners.map((p) => ({ value: p.id, label: p.name }))}
+          aria-label={t("admin.entities.partnerLabel")}
+          triggerClassName="h-10 w-full min-w-0 max-w-full text-sm"
+        />
         {!organizationId ? (
           <p className="text-sm text-muted-foreground mt-2">{t("superadmin.sales.new.selectPartnerFirst")}</p>
         ) : null}

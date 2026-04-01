@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { format } from "date-fns";
 import { useT } from "@/lib/i18n/context";
+import { FilterSelect } from "@/components/ui/filter-select";
 
 type AttemptRow = {
   id: string;
@@ -93,18 +94,14 @@ export function QuizAttemptsAdminClient() {
       <form onSubmit={applyFilters} className="surface-card p-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div>
           <label className="block text-xs text-muted-foreground mb-1">{t("superadmin.quizzes.attempts.filterQuiz")}</label>
-          <select
-            className="input-native w-full"
+          <FilterSelect
             value={quizDefinitionId}
-            onChange={(e) => setQuizDefinitionId(e.target.value)}
-          >
-            <option value="">{t("superadmin.quizzes.attempts.any")}</option>
-            {defs.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.title}
-              </option>
-            ))}
-          </select>
+            onValueChange={setQuizDefinitionId}
+            emptyOptionLabel={t("superadmin.quizzes.attempts.any")}
+            options={defs.map((d) => ({ value: d.id, label: d.title }))}
+            aria-label={t("superadmin.quizzes.attempts.filterQuiz")}
+            triggerClassName="h-10 w-full min-w-0 max-w-full text-sm"
+          />
         </div>
         <div>
           <label className="block text-xs text-muted-foreground mb-1">{t("superadmin.quizzes.attempts.filterOrg")}</label>
@@ -127,7 +124,7 @@ export function QuizAttemptsAdminClient() {
         <div className="flex items-end">
           <button
             type="submit"
-            className="rounded-sm border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-muted/50"
+            className="rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-muted/50"
           >
             {t("superadmin.quizzes.attempts.apply")}
           </button>

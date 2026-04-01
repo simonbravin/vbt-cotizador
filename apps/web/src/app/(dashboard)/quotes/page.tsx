@@ -9,7 +9,7 @@ import { QuotesClient } from "./QuotesClient";
 import type { SessionUser } from "@/lib/auth";
 import { getT, LOCALE_COOKIE_NAME } from "@/lib/i18n/translations";
 import type { Locale } from "@/lib/i18n/translations";
-import { normalizeQuoteStatus } from "@vbt/core";
+import { cn } from "@/lib/utils";
 
 const STATUS_KEYS: Record<string, string> = {
   draft: "quotes.draft",
@@ -66,12 +66,12 @@ export default async function QuotesPage({ searchParams }: { searchParams: { sta
   return (
     <div className="space-y-5">
       {dataLoadError && quotes.length > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-4 rounded-sm border border-alert-warningBorder bg-alert-warning px-4 py-3 text-sm text-foreground">
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-alert-warningBorder bg-alert-warning px-4 py-3 text-sm text-foreground">
           <p className="text-foreground">
             <span className="font-medium">{t("dashboard.errorLoad")}</span>
             <span className="text-muted-foreground ml-1">{t("dashboard.errorHelp")}</span>
           </p>
-          <Link href="/quotes" className="shrink-0 px-3 py-1.5 bg-muted text-foreground rounded-sm text-sm font-medium hover:bg-muted/80 border border-border">
+          <Link href="/quotes" className="shrink-0 px-3 py-1.5 bg-muted text-foreground rounded-lg text-sm font-medium hover:bg-muted/80 border border-border">
             {t("common.retry")}
           </Link>
         </div>
@@ -90,31 +90,44 @@ export default async function QuotesPage({ searchParams }: { searchParams: { sta
         </Button>
       </div>
 
-      {/* Filter tabs */}
-      <div className="flex gap-1 flex-wrap border border-border/60 rounded-sm p-1 bg-muted/30 w-fit max-w-full">
+      {/* Status filters: same pattern as ViewLayoutToggle — flex + gap + pill active state */}
+      <div
+        className="inline-flex max-w-full flex-wrap items-center gap-1 rounded-full border border-border/80 bg-filter p-1"
+        role="tablist"
+        aria-label={t("common.status")}
+      >
         <Link
           href="/quotes"
-          className={`px-3 py-1.5 rounded-sm text-xs font-mono font-semibold uppercase tracking-wider transition-colors ${
+          role="tab"
+          aria-selected={!searchParams.status}
+          className={cn(
+            "inline-flex shrink-0 items-center justify-center rounded-full px-3 py-1.5 text-xs font-mono font-semibold uppercase tracking-wider transition-colors",
             !searchParams.status
-              ? "bg-primary text-primary-foreground"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted/80"
-          }`}
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+          )}
         >
           {t("quotes.all")}
         </Link>
-        {statuses.map((s) => (
-          <Link
-            key={s}
-            href={`/quotes?status=${s}`}
-            className={`px-3 py-1.5 rounded-sm text-xs font-mono font-semibold uppercase tracking-wider transition-colors ${
-              searchParams.status === s
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/80"
-            }`}
-          >
-            {t(STATUS_KEYS[s] ?? s)}
-          </Link>
-        ))}
+        {statuses.map((s) => {
+          const active = searchParams.status === s;
+          return (
+            <Link
+              key={s}
+              href={`/quotes?status=${s}`}
+              role="tab"
+              aria-selected={active}
+              className={cn(
+                "inline-flex shrink-0 items-center justify-center rounded-full px-3 py-1.5 text-xs font-mono font-semibold uppercase tracking-wider transition-colors",
+                active
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+              )}
+            >
+              {t(STATUS_KEYS[s] ?? s)}
+            </Link>
+          );
+        })}
       </div>
 
       <QuotesClient quotes={quotes} initialStatus={searchParams.status} />

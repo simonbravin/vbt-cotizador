@@ -189,7 +189,7 @@ export function TrainingProgramSessionsClient({ programId }: { programId: string
         <button
           type="submit"
           disabled={savingCert}
-          className="rounded-sm border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-muted/50 disabled:opacity-50"
+          className="rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-muted/50 disabled:opacity-50"
         >
           {savingCert ? t("common.loading") : t("common.save")}
         </button>
@@ -216,7 +216,7 @@ export function TrainingProgramSessionsClient({ programId }: { programId: string
           value={form.meetingUrl}
           onChange={(e) => setForm((f) => ({ ...f, meetingUrl: e.target.value }))}
         />
-        <button type="submit" className="rounded-sm bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
+        <button type="submit" className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
           {t("superadmin.training.addSession")}
         </button>
       </form>

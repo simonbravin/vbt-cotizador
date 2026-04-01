@@ -100,7 +100,7 @@ export function DocumentsPartnerClient({
 
   const filterBanner =
     categoryCode ? (
-      <div className="rounded-sm border border-border/60 bg-muted/30 px-4 py-2 text-sm flex flex-wrap items-center justify-between gap-2">
+      <div className="rounded-lg border border-border/60 bg-muted/30 px-4 py-2 text-sm flex flex-wrap items-center justify-between gap-2">
         <span className="text-muted-foreground">
           {t("partner.documents.filteredByCategory", { code: categoryCode })}
         </span>
@@ -122,7 +122,7 @@ export function DocumentsPartnerClient({
     return (
       <div className="space-y-4">
         {filterBanner}
-        <div className="rounded-sm border border-alert-warningBorder bg-alert-warning p-6 text-foreground">{error}</div>
+        <div className="rounded-lg border border-alert-warningBorder bg-alert-warning p-6 text-foreground">{error}</div>
       </div>
     );
   }
@@ -142,7 +142,7 @@ export function DocumentsPartnerClient({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t("partner.documents.searchPlaceholder")}
-              className="w-full rounded-sm border border-input bg-background py-2 pl-9 pr-3 text-sm outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring"
+              className="w-full rounded-lg border border-input bg-background py-2 pl-9 pr-3 text-sm outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring"
               autoComplete="off"
             />
           </div>
@@ -209,7 +209,7 @@ export function DocumentsPartnerClient({
             {filteredDocuments.map((doc) => (
               <div
                 key={doc.id}
-                className="flex flex-col rounded-sm border border-border/60 bg-muted/20 p-4 transition-colors hover:border-border"
+                className="flex flex-col rounded-lg border border-border/60 bg-muted/20 p-4 transition-colors hover:border-border"
               >
                 <div className="mb-2 flex items-start gap-2">
                   <FileText className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground/70" />
@@ -229,7 +229,7 @@ export function DocumentsPartnerClient({
                       href={`/api/saas/documents/${doc.id}/file`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex w-full items-center justify-center gap-2 rounded-sm border border-primary/20 bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-primary/20 bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
                     >
                       {t("partner.documents.openFile")}
                       <ExternalLink className="h-3.5 w-3.5" />

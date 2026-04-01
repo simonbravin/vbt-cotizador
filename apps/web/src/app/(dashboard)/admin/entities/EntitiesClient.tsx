@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Plus, Pencil } from "lucide-react";
 import { useT } from "@/lib/i18n/context";
+import { FilterSelect } from "@/components/ui/filter-select";
 
 type Entity = { id: string; name: string; slug: string; isActive: boolean };
 
@@ -134,18 +135,14 @@ export function EntitiesClient({ scope = "tenant" }: { scope?: "tenant" | "platf
       {scope === "platform" && (
         <div className="max-w-md">
           <label className="mb-1 block text-sm font-medium text-foreground">{t("admin.entities.partnerLabel")}</label>
-          <select
+          <FilterSelect
             value={organizationId}
-            onChange={(e) => setOrganizationId(e.target.value)}
-            className="input-native"
-          >
-            <option value="">{t("admin.entities.selectPartner")}</option>
-            {partners.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
+            onValueChange={setOrganizationId}
+            emptyOptionLabel={t("admin.entities.selectPartner")}
+            options={partners.map((p) => ({ value: p.id, label: p.name }))}
+            aria-label={t("admin.entities.partnerLabel")}
+            triggerClassName="h-10 w-full min-w-0 max-w-full text-sm"
+          />
           <p className="mt-1 text-xs text-muted-foreground">{t("admin.entities.partnerHint")}</p>
         </div>
       )}
@@ -159,7 +156,7 @@ export function EntitiesClient({ scope = "tenant" }: { scope?: "tenant" | "platf
           type="button"
           disabled={scope === "platform" && !organizationId}
           onClick={() => { setAddOpen(true); setError(null); }}
-          className="inline-flex items-center gap-2 rounded-sm border border-vbt-orange/30 bg-vbt-orange px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:pointer-events-none disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-full border border-transparent bg-primary px-5 py-2.5 text-[17px] font-normal text-primary-foreground hover:opacity-[0.88] disabled:pointer-events-none disabled:opacity-50"
         >
           <Plus className="w-4 h-4" /> {t("admin.entities.addEntity")}
         </button>
@@ -188,7 +185,7 @@ export function EntitiesClient({ scope = "tenant" }: { scope?: "tenant" | "platf
                   <td className="px-4 py-3 font-medium text-foreground">{e.name}</td>
                   <td className="px-4 py-3 text-muted-foreground">{e.slug}</td>
                   <td className="px-4 py-3">
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${e.isActive ? "bg-emerald-500/15 text-emerald-800 dark:text-emerald-200" : "bg-muted text-muted-foreground"}`}>
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${e.isActive ? "border border-primary/25 bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
                       {e.isActive ? t("admin.countries.active") : t("admin.countries.inactive")}
                     </span>
                   </td>
@@ -239,10 +236,10 @@ export function EntitiesClient({ scope = "tenant" }: { scope?: "tenant" | "platf
                 <p className="mt-0.5 text-xs text-muted-foreground">{t("admin.entities.slugHint")}</p>
               </div>
               <div className="flex gap-2 pt-2">
-                <button type="submit" disabled={saving} className="rounded-sm border border-vbt-orange/30 bg-vbt-orange px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50">
+                <button type="submit" disabled={saving} className="rounded-full border border-transparent bg-primary px-5 py-2.5 text-[17px] font-normal text-primary-foreground hover:opacity-[0.88] disabled:opacity-50">
                   {saving ? t("common.saving") : t("common.save")}
                 </button>
-                <button type="button" onClick={() => !saving && setAddOpen(false)} className="rounded-sm border border-border bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-muted/40">
+                <button type="button" onClick={() => !saving && setAddOpen(false)} className="rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-muted/40">
                   {t("common.cancel")}
                 </button>
               </div>
@@ -283,15 +280,15 @@ export function EntitiesClient({ scope = "tenant" }: { scope?: "tenant" | "platf
                   id="edit-active"
                   checked={editActive}
                   onChange={(e) => setEditActive(e.target.checked)}
-                  className="rounded-sm border-input"
+                  className="rounded-lg border-input"
                 />
                 <label htmlFor="edit-active" className="text-sm text-foreground">{t("admin.entities.activeInDropdowns")}</label>
               </div>
               <div className="flex gap-2 pt-2">
-                <button type="submit" disabled={saving} className="rounded-sm border border-vbt-orange/30 bg-vbt-orange px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50">
+                <button type="submit" disabled={saving} className="rounded-full border border-transparent bg-primary px-5 py-2.5 text-[17px] font-normal text-primary-foreground hover:opacity-[0.88] disabled:opacity-50">
                   {saving ? t("common.saving") : t("common.save")}
                 </button>
-                <button type="button" onClick={() => !saving && setEditId(null)} className="rounded-sm border border-border bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-muted/40">
+                <button type="button" onClick={() => !saving && setEditId(null)} className="rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-muted/40">
                   {t("common.cancel")}
                 </button>
               </div>

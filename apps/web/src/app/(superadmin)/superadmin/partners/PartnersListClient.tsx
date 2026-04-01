@@ -120,7 +120,7 @@ export function PartnersListClient() {
 
   if (error) {
     return (
-      <div className="rounded-sm border border-alert-warningBorder bg-alert-warning p-6 text-foreground">
+      <div className="rounded-lg border border-alert-warningBorder bg-alert-warning p-6 text-foreground">
         <p className="font-medium">{error}</p>
       </div>
     );
@@ -139,19 +139,19 @@ export function PartnersListClient() {
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && setDebouncedSearch(searchInput.trim())}
-            className="rounded-sm border border-input bg-background px-3 py-1.5 text-sm min-w-[200px]"
+            className="rounded-lg border border-input bg-background px-3 py-1.5 text-sm min-w-[200px]"
           />
           <button
             type="button"
             onClick={() => setDebouncedSearch(searchInput.trim())}
-            className="rounded-sm px-3 py-1.5 text-sm font-medium bg-muted text-muted-foreground hover:bg-muted/80"
+            className="rounded-lg px-3 py-1.5 text-sm font-medium bg-muted text-muted-foreground hover:bg-muted/80"
           >
             {t("superadmin.partners.search")}
           </button>
           <ViewLayoutToggle view={view} onViewChange={setView} />
           <Link
             href="/superadmin/partners/new"
-            className="inline-flex items-center gap-2 rounded-sm border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
+            className="inline-flex items-center gap-2 rounded-lg border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
           >
             <Plus className="h-4 w-4" />
             {t("superadmin.partners.newPartner")}
@@ -174,7 +174,7 @@ export function PartnersListClient() {
             <p className="mt-1 text-sm text-muted-foreground">{t("superadmin.partners.emptyStateHint")}</p>
             <Link
               href="/superadmin/partners/new"
-              className="mt-4 inline-flex items-center gap-2 rounded-sm bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              className="mt-4 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
             >
               <Plus className="h-4 w-4" />
               {t("superadmin.partners.newPartner")}
@@ -272,7 +272,7 @@ export function PartnersListClient() {
                 className="surface-card p-5 transition-colors hover:border-border"
               >
                 <div className="flex items-start justify-between gap-2">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-muted">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
                     <Building2 className="h-5 w-5 text-muted-foreground" />
                   </div>
                   <span

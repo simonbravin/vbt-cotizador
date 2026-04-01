@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/lib/i18n/context";
+import { FilterSelect } from "@/components/ui/filter-select";
 
 const PARTNER_TYPES = [
   { value: "commercial_partner", labelKey: "superadmin.partners.commercialPartner" as const },
@@ -102,7 +103,7 @@ export function CreatePartnerForm() {
   return (
     <form onSubmit={handleSubmit} className="surface-card max-w-2xl p-6 space-y-6">
       {error && (
-        <div className="rounded-sm border border-alert-errorBorder bg-alert-error px-4 py-3 text-sm text-foreground">
+        <div className="rounded-lg border border-alert-errorBorder bg-alert-error px-4 py-3 text-sm text-foreground">
           {error}
         </div>
       )}
@@ -175,61 +176,53 @@ export function CreatePartnerForm() {
           <label htmlFor="partnerType" className="block text-sm font-medium text-foreground">
             {t("superadmin.partner.edit.partnerType")}
           </label>
-          <select
-            id="partnerType"
-            required
+          <FilterSelect
             value={form.partnerType}
-            onChange={(e) => setForm((f) => ({ ...f, partnerType: e.target.value as "commercial_partner" | "master_partner" }))}
-            className="input-native mt-1"
-          >
-            {PARTNER_TYPES.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {t(opt.labelKey)}
-              </option>
-            ))}
-          </select>
+            onValueChange={(v) =>
+              setForm((f) => ({ ...f, partnerType: v as "commercial_partner" | "master_partner" }))
+            }
+            options={PARTNER_TYPES.map((opt) => ({ value: opt.value, label: t(opt.labelKey) }))}
+            aria-label={t("superadmin.partner.edit.partnerType")}
+            triggerClassName="mt-1 h-10 w-full min-w-0 max-w-full text-sm"
+          />
         </div>
         <div>
           <label htmlFor="engineeringFeeMode" className="block text-sm font-medium text-foreground">
             {t("superadmin.partner.edit.engineeringFeeMode")}
           </label>
-          <select
-            id="engineeringFeeMode"
+          <FilterSelect
             value={form.engineeringFeeMode}
-            onChange={(e) => setForm((f) => ({ ...f, engineeringFeeMode: e.target.value }))}
-            className="input-native mt-1"
-          >
-            <option value="">—</option>
-            {FEE_MODES.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {t(opt.labelKey)}
-              </option>
-            ))}
-          </select>
+            onValueChange={(v) => setForm((f) => ({ ...f, engineeringFeeMode: v }))}
+            emptyOptionLabel="—"
+            options={FEE_MODES.map((opt) => ({ value: opt.value, label: t(opt.labelKey) }))}
+            aria-label={t("superadmin.partner.edit.engineeringFeeMode")}
+            triggerClassName="mt-1 h-10 w-full min-w-0 max-w-full text-sm"
+          />
         </div>
         <div>
           <label htmlFor="status" className="block text-sm font-medium text-foreground">
             {t("superadmin.partner.edit.accountStatus")}
           </label>
-          <select
-            id="status"
+          <FilterSelect
             value={form.status}
-            onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
-            className="input-native mt-1"
-          >
-            <option value="active">{t("admin.users.statusActive")}</option>
-            <option value="suspended">{t("admin.users.statusSuspended")}</option>
-            <option value="pending">{t("admin.users.statusPending")}</option>
-          </select>
+            onValueChange={(v) => setForm((f) => ({ ...f, status: v }))}
+            options={[
+              { value: "active", label: t("admin.users.statusActive") },
+              { value: "suspended", label: t("admin.users.statusSuspended") },
+              { value: "pending", label: t("admin.users.statusPending") },
+            ]}
+            aria-label={t("superadmin.partner.edit.accountStatus")}
+            triggerClassName="mt-1 h-10 w-full min-w-0 max-w-full text-sm"
+          />
         </div>
       </div>
-      <div className="flex items-center gap-2 rounded-sm border border-border/60 bg-muted/30/50 p-4">
+      <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/30/50 p-4">
         <input
           id="sendInvite"
           type="checkbox"
           checked={form.sendInvite}
           onChange={(e) => setForm((f) => ({ ...f, sendInvite: e.target.checked }))}
-          className="h-4 w-4 rounded-sm border-input text-primary focus-visible:ring-ring"
+          className="h-4 w-4 rounded-lg border-input text-primary focus-visible:ring-ring"
         />
         <label htmlFor="sendInvite" className="text-sm font-medium text-foreground">
           {t("superadmin.partners.sendInviteLabel")}
@@ -242,14 +235,14 @@ export function CreatePartnerForm() {
         <button
           type="submit"
           disabled={saving || !form.companyName.trim()}
-          className="rounded-sm border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
+          className="rounded-lg border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
         >
           {saving ? t("superadmin.partners.creating") : t("superadmin.partners.createPartner")}
         </button>
         <button
           type="button"
           onClick={() => router.back()}
-          className="rounded-sm border border-border/60 bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-muted"
+          className="rounded-lg border border-border/60 bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-muted"
         >
           {t("common.cancel")}
         </button>

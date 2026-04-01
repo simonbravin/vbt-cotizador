@@ -16,7 +16,7 @@ export default async function SettingsFreightPage() {
       <div className="flex items-center gap-3">
         <Link
           href="/settings"
-          className="rounded-sm border border-border/60 p-2 hover:bg-muted/40"
+          className="rounded-lg border border-border/60 p-2 hover:bg-muted/40"
         >
           <ArrowLeft className="w-4 h-4 text-muted-foreground" />
         </Link>

@@ -28,7 +28,7 @@ export default async function SettingsHubPage() {
           href="/settings/team"
           className="surface-card p-6 transition-colors hover:border-primary/40 flex items-start gap-4"
         >
-          <div className="rounded-sm bg-primary/10 p-2">
+          <div className="rounded-lg bg-primary/10 p-2">
             <Users className="h-6 w-6 text-primary" />
           </div>
           <div>
@@ -42,7 +42,7 @@ export default async function SettingsHubPage() {
           href="/settings/warehouses"
           className="surface-card p-6 transition-colors hover:border-primary/40 flex items-start gap-4"
         >
-          <div className="rounded-sm bg-primary/10 p-2">
+          <div className="rounded-lg bg-primary/10 p-2">
             <Warehouse className="h-6 w-6 text-primary" />
           </div>
           <div>
@@ -56,7 +56,7 @@ export default async function SettingsHubPage() {
           href="/settings/freight"
           className="surface-card p-6 transition-colors hover:border-primary/40 flex items-start gap-4"
         >
-          <div className="rounded-sm bg-primary/10 p-2">
+          <div className="rounded-lg bg-primary/10 p-2">
             <Truck className="h-6 w-6 text-primary" />
           </div>
           <div>
@@ -70,7 +70,7 @@ export default async function SettingsHubPage() {
           href="/settings/taxes"
           className="surface-card p-6 transition-colors hover:border-primary/40 flex items-start gap-4"
         >
-          <div className="rounded-sm bg-primary/10 p-2">
+          <div className="rounded-lg bg-primary/10 p-2">
             <TrendingUp className="h-6 w-6 text-primary" />
           </div>
           <div>

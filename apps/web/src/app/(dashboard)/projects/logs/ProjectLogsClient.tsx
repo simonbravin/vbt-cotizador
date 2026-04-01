@@ -99,7 +99,7 @@ export function ProjectLogsClient() {
                   type="button"
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page <= 1}
-                  className="rounded-sm border border-border bg-background px-3 py-1 text-sm text-foreground hover:bg-muted/40 disabled:opacity-50"
+                  className="rounded-lg border border-border bg-background px-3 py-1 text-sm text-foreground hover:bg-muted/40 disabled:opacity-50"
                 >
                   Previous
                 </button>
@@ -107,7 +107,7 @@ export function ProjectLogsClient() {
                   type="button"
                   onClick={() => setPage((p) => p + 1)}
                   disabled={page * limit >= total}
-                  className="rounded-sm border border-border bg-background px-3 py-1 text-sm text-foreground hover:bg-muted/40 disabled:opacity-50"
+                  className="rounded-lg border border-border bg-background px-3 py-1 text-sm text-foreground hover:bg-muted/40 disabled:opacity-50"
                 >
                   Next
                 </button>

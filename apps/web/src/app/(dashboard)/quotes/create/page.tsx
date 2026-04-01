@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, FileText } from "lucide-react";
 import { useT } from "@/lib/i18n/context";
+import { FilterSelect } from "@/components/ui/filter-select";
 
 type Project = { id: string; projectName: string; projectCode?: string | null };
 
@@ -61,7 +62,7 @@ function CreateQuotePage() {
       <div className="flex items-center gap-3">
         <Link
           href={projectIdFromQuery ? `/projects/${projectIdFromQuery}` : "/quotes"}
-          className="p-2 rounded-sm border border-border/60 hover:bg-muted/40"
+          className="p-2 rounded-lg border border-border/60 hover:bg-muted/40"
         >
           <ArrowLeft className="w-4 h-4 text-muted-foreground" />
         </Link>
@@ -73,19 +74,18 @@ function CreateQuotePage() {
 
       <div className="surface-card space-y-4 p-5">
         <label className="block text-sm font-medium text-foreground">{t("quotes.selectProject")}</label>
-        <select
+        <FilterSelect
           value={projectId}
-          onChange={(e) => setProjectId(e.target.value)}
-          className="w-full px-3 py-2 border border-input rounded-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-input"
+          onValueChange={setProjectId}
+          emptyOptionLabel={t("quotes.selectProjectPlaceholder")}
+          options={projects.map((p) => ({
+            value: p.id,
+            label: p.projectName || p.projectCode || p.id.slice(0, 8),
+          }))}
+          aria-label={t("quotes.selectProject")}
+          triggerClassName="h-10 w-full min-w-0 max-w-full text-sm"
           disabled={!!projectIdFromQuery}
-        >
-          <option value="">{t("quotes.selectProjectPlaceholder")}</option>
-          {projects.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.projectName || p.projectCode || p.id.slice(0, 8)}
-            </option>
-          ))}
-        </select>
+        />
         {projectIdFromQuery && (
           <p className="text-xs text-muted-foreground">{t("quotes.projectFixedFromLink")}</p>
         )}
@@ -98,7 +98,7 @@ function CreateQuotePage() {
           type="button"
           onClick={handleCreate}
           disabled={loading || !projectId.trim()}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-sm border border-vbt-orange/30 bg-vbt-orange px-4 py-2.5 font-semibold text-white hover:opacity-90 disabled:pointer-events-none disabled:opacity-50"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-transparent bg-primary px-5 py-3 text-[17px] font-normal text-primary-foreground hover:opacity-[0.88] disabled:pointer-events-none disabled:opacity-50"
         >
           <FileText className="w-4 h-4" />
           {loading ? t("quotes.creating") : t("quotes.createDraftButton")}

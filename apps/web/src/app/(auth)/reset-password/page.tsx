@@ -88,7 +88,7 @@ function ResetPasswordForm() {
       <p className="text-sm text-muted-foreground mb-6">{t("auth.resetPasswordSub")}</p>
 
       {error && (
-        <div className="mb-4 p-3 rounded-sm border border-destructive/30 bg-destructive/10 text-sm text-destructive">
+        <div className="mb-4 p-3 rounded-lg border border-destructive/30 bg-destructive/10 text-sm text-destructive">
           {error}
         </div>
       )}

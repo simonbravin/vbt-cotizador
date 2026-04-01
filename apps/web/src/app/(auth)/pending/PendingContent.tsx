@@ -13,7 +13,7 @@ export function PendingContent({ supportEmail }: { supportEmail: string }) {
   return (
     <AuthEngineeringShell>
       <AuthFormSurface className="text-center">
-        <div className="inline-flex items-center justify-center w-12 h-12 rounded-sm border border-border/60 bg-muted/40 text-muted-foreground mb-5">
+        <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg border border-border/60 bg-muted/40 text-muted-foreground mb-5">
           <Clock className="w-6 h-6" strokeWidth={1.5} aria-hidden />
         </div>
         <h2 className="text-lg font-semibold text-foreground tracking-tight mb-2">{t("auth.pendingTitle")}</h2>

@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { FolderOpen, Wrench, FileText, ExternalLink, Upload } from "lucide-react";
 import { parseEngineeringTimelineEvent } from "@vbt/core";
 import { useT } from "@/lib/i18n/context";
+import { FilterSelect } from "@/components/ui/filter-select";
 import { renderEngineeringTimelineBody } from "@/lib/engineering-timeline-ui";
 
 const ENGINEERING_STATUSES = ["draft", "in_review", "completed"] as const;
@@ -67,6 +68,18 @@ export function SuperadminEngineeringDetailClient({ requestId }: { requestId: st
       .then((d) => Array.isArray(d?.users) && setPlatformUsers(d.users))
       .catch(() => {});
   }, []);
+
+  const assigneeUserOptions = useMemo(() => {
+    const base = platformUsers.map((u) => ({ value: u.id, label: u.fullName || u.email }));
+    const aid = request?.assignedToUser?.id;
+    if (aid && !platformUsers.some((u) => u.id === aid)) {
+      base.push({
+        value: aid,
+        label: request.assignedToUser?.fullName ?? aid,
+      });
+    }
+    return base;
+  }, [platformUsers, request]);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -213,7 +226,7 @@ export function SuperadminEngineeringDetailClient({ requestId }: { requestId: st
     return <div className="surface-card p-8 text-center text-sm text-muted-foreground">{t("common.loading")}</div>;
   }
   if (error && !request) {
-    return <div className="rounded-sm border border-alert-warningBorder bg-alert-warning p-6 text-sm text-foreground">{error}</div>;
+    return <div className="rounded-lg border border-alert-warningBorder bg-alert-warning p-6 text-sm text-foreground">{error}</div>;
   }
   if (!request) return null;
 
@@ -222,13 +235,13 @@ export function SuperadminEngineeringDetailClient({ requestId }: { requestId: st
   return (
     <div className="space-y-6">
       {error && (
-        <div className="rounded-sm border border-alert-warningBorder bg-alert-warning px-4 py-2 text-sm text-foreground">{error}</div>
+        <div className="rounded-lg border border-alert-warningBorder bg-alert-warning px-4 py-2 text-sm text-foreground">{error}</div>
       )}
 
       <div className="surface-card-overflow">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-muted">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
               <Wrench className="h-5 w-5 text-muted-foreground" />
             </div>
             <div>
@@ -247,45 +260,34 @@ export function SuperadminEngineeringDetailClient({ requestId }: { requestId: st
         <div className="grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-3">
           <div>
             <label className="text-xs font-medium text-muted-foreground">{t("superadmin.engineeringDetail.status")}</label>
-            <select
+            <FilterSelect
               value={statusEdit}
-              onChange={(e) => setStatusEdit(e.target.value)}
-              className="mt-1 block w-full rounded-sm border border-input bg-background px-3 py-2 text-sm"
-            >
-              {ENGINEERING_STATUSES.map((s) => (
-                <option key={s} value={s}>
-                  {t(`partner.engineering.status.${s}`)}
-                </option>
-              ))}
-            </select>
+              onValueChange={setStatusEdit}
+              options={ENGINEERING_STATUSES.map((s) => ({
+                value: s,
+                label: t(`partner.engineering.status.${s}`),
+              }))}
+              aria-label={t("superadmin.engineeringDetail.status")}
+              triggerClassName="mt-1 h-10 w-full min-w-0 max-w-full text-sm"
+            />
           </div>
           <div>
             <label className="text-xs font-medium text-muted-foreground">{t("superadmin.engineeringDetail.assignedUserId")}</label>
-            <select
+            <FilterSelect
               value={assignedEdit}
-              onChange={(e) => setAssignedEdit(e.target.value)}
-              className="mt-1 block w-full rounded-sm border border-input bg-background px-3 py-2 text-sm"
-            >
-              <option value="">{t("superadmin.engineeringDetail.assignedNone")}</option>
-              {platformUsers.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.fullName || u.email}
-                </option>
-              ))}
-              {request.assignedToUser?.id &&
-                !platformUsers.some((u) => u.id === request.assignedToUser?.id) && (
-                  <option value={request.assignedToUser.id}>
-                    {request.assignedToUser.fullName ?? request.assignedToUser.id}
-                  </option>
-                )}
-            </select>
+              onValueChange={setAssignedEdit}
+              emptyOptionLabel={t("superadmin.engineeringDetail.assignedNone")}
+              options={assigneeUserOptions}
+              aria-label={t("superadmin.engineeringDetail.assignedUserId")}
+              triggerClassName="mt-1 h-10 w-full min-w-0 max-w-full text-sm"
+            />
           </div>
           <div className="flex items-end">
             <button
               type="button"
               onClick={() => void saveHeader()}
               disabled={saving}
-              className="rounded-sm bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+              className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
             >
               {saving ? t("common.loading") : t("superadmin.engineeringDetail.saveHeader")}
             </button>
@@ -339,7 +341,7 @@ export function SuperadminEngineeringDetailClient({ requestId }: { requestId: st
               value={revTitle}
               onChange={(e) => setRevTitle(e.target.value)}
               placeholder={t("superadmin.engineeringDetail.revisionTitlePlaceholder")}
-              className="mt-1 block w-full rounded-sm border border-input bg-background px-3 py-2 text-sm"
+              className="mt-1 block w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
             />
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -354,7 +356,7 @@ export function SuperadminEngineeringDetailClient({ requestId }: { requestId: st
               type="button"
               onClick={() => revFileRef.current?.click()}
               disabled={revUploading}
-              className="rounded-sm border border-input bg-background px-3 py-2 text-sm hover:bg-muted disabled:opacity-50"
+              className="rounded-lg border border-input bg-background px-3 py-2 text-sm hover:bg-muted disabled:opacity-50"
             >
               {t("partner.engineering.uploadFile")}
             </button>
@@ -362,7 +364,7 @@ export function SuperadminEngineeringDetailClient({ requestId }: { requestId: st
               type="button"
               onClick={() => void uploadRevision()}
               disabled={revUploading}
-              className="inline-flex items-center gap-2 rounded-sm bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
             >
               <Upload className="h-4 w-4" />
               {revUploading ? t("superadmin.engineeringDetail.uploadingRevision") : t("superadmin.engineeringDetail.uploadRevision")}
@@ -454,35 +456,36 @@ export function SuperadminEngineeringDetailClient({ requestId }: { requestId: st
           value={noteBody}
           onChange={(e) => setNoteBody(e.target.value)}
           rows={4}
-          className="mt-3 w-full rounded-sm border border-input bg-background px-3 py-2 text-sm"
+          className="mt-3 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
           placeholder={t("superadmin.engineeringDetail.notePlaceholder")}
         />
         <div className="mt-3 flex flex-wrap items-center gap-3">
-          <select
+          <FilterSelect
             value={noteVisibility}
-            onChange={(e) => setNoteVisibility(e.target.value as "partner" | "internal")}
-            className="rounded-sm border border-input bg-background px-3 py-2 text-sm"
-          >
-            <option value="partner">{t("superadmin.engineeringDetail.visPartner")}</option>
-            <option value="internal">{t("superadmin.engineeringDetail.visInternal")}</option>
-          </select>
-          <select
+            onValueChange={(v) => setNoteVisibility(v as "partner" | "internal")}
+            options={[
+              { value: "partner", label: t("superadmin.engineeringDetail.visPartner") },
+              { value: "internal", label: t("superadmin.engineeringDetail.visInternal") },
+            ]}
+            aria-label={t("superadmin.engineeringDetail.visPartner")}
+            triggerClassName="h-10 min-w-[8rem] max-w-[min(100vw-2rem,200px)] text-sm"
+          />
+          <FilterSelect
             value={noteToStatus}
-            onChange={(e) => setNoteToStatus(e.target.value)}
-            className="rounded-sm border border-input bg-background px-3 py-2 text-sm"
-          >
-            <option value="">{t("superadmin.engineeringDetail.keepStatus")}</option>
-            {ENGINEERING_STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {t(`partner.engineering.status.${s}`)}
-              </option>
-            ))}
-          </select>
+            onValueChange={setNoteToStatus}
+            emptyOptionLabel={t("superadmin.engineeringDetail.keepStatus")}
+            options={ENGINEERING_STATUSES.map((s) => ({
+              value: s,
+              label: t(`partner.engineering.status.${s}`),
+            }))}
+            aria-label={t("superadmin.engineeringDetail.status")}
+            triggerClassName="h-10 min-w-[10rem] max-w-[min(100vw-2rem,220px)] text-sm"
+          />
           <button
             type="button"
             onClick={() => void postNote()}
             disabled={postingNote || !noteBody.trim()}
-            className="rounded-sm bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+            className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
           >
             {postingNote ? t("common.loading") : t("superadmin.engineeringDetail.publishNote")}
           </button>

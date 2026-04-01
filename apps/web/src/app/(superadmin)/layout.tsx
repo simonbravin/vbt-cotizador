@@ -51,13 +51,13 @@ export default async function SuperadminLayout({
     role: "SUPERADMIN",
   };
   return (
-    <div className="flex h-screen bg-muted overflow-hidden">
+    <div className="flex h-screen bg-background overflow-hidden">
       <SuperadminSidebar
         userDisplayName={safeUser.name?.trim() || "Superadmin"}
         hasAvatar={hasAvatar}
         profileHref="/superadmin/settings/profile"
       />
-      <div className="flex-1 flex flex-col overflow-hidden min-w-0 border-l border-border/60">
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0 border-l border-header-foreground/10">
         <TopBar showContextSwitcher />
         <main className="app-main-scroll flex-1 overflow-y-auto bg-background">{children}</main>
       </div>

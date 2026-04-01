@@ -174,14 +174,14 @@ export function TrainingAdminClient() {
         <button
           type="submit"
           disabled={creating || !newTitle.trim()}
-          className="rounded-sm bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+          className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
         >
           {t("superadmin.training.createProgram")}
         </button>
       </form>
 
       {createError && (
-        <div className="rounded-sm border border-alert-warningBorder bg-alert-warning p-4 text-sm text-foreground">
+        <div className="rounded-lg border border-alert-warningBorder bg-alert-warning p-4 text-sm text-foreground">
           {createError}
         </div>
       )}
@@ -189,12 +189,12 @@ export function TrainingAdminClient() {
       {(programsError || enrollmentsError) && (
         <div className="space-y-2">
           {programsError && (
-            <div className="rounded-sm border border-alert-warningBorder bg-alert-warning p-4 text-sm text-foreground">
+            <div className="rounded-lg border border-alert-warningBorder bg-alert-warning p-4 text-sm text-foreground">
               {programsError}
             </div>
           )}
           {enrollmentsError && (
-            <div className="rounded-sm border border-alert-warningBorder bg-alert-warning p-4 text-sm text-foreground">
+            <div className="rounded-lg border border-alert-warningBorder bg-alert-warning p-4 text-sm text-foreground">
               {enrollmentsError}
             </div>
           )}

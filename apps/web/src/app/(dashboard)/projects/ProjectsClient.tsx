@@ -150,16 +150,16 @@ export function ProjectsClient({ projects: initialProjects, total: initialTotal 
               className="surface-card p-5 transition-colors hover:border-border"
             >
               <div className="flex items-start justify-between mb-3">
-                <div className="w-10 h-10 bg-primary/10 rounded-sm flex items-center justify-center">
+                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
                   <FolderOpen className="h-5 w-5 text-primary" />
                 </div>
                 <div className="flex items-center gap-2">
                   {p.status && (
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                      p.status === "won" ? "bg-emerald-500/15 text-emerald-800 dark:text-emerald-200" :
+                      p.status === "won" ? "border border-primary/25 bg-primary/10 text-primary" :
                       p.status === "lost" ? "bg-muted text-foreground" :
                       p.status === "quoting" ? "bg-primary/10 text-primary" :
-                      p.status === "qualified" ? "bg-amber-500/15 text-amber-900 dark:text-amber-200" :
+                      p.status === "qualified" ? "border border-border/80 bg-muted text-foreground" :
                       "bg-muted text-foreground"
                     }`}>{statusLabel[p.status] ?? p.status}</span>
                   )}
@@ -213,10 +213,10 @@ export function ProjectsClient({ projects: initialProjects, total: initialTotal 
                   <td className="px-4 py-3">
                     {p.status ? (
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                        p.status === "won" ? "bg-emerald-500/15 text-emerald-800 dark:text-emerald-200" :
+                        p.status === "won" ? "border border-primary/25 bg-primary/10 text-primary" :
                         p.status === "lost" ? "bg-muted text-foreground" :
                         p.status === "quoting" ? "bg-primary/10 text-primary" :
-                        p.status === "qualified" ? "bg-amber-500/15 text-amber-900 dark:text-amber-200" :
+                        p.status === "qualified" ? "border border-border/80 bg-muted text-foreground" :
                         "bg-muted text-foreground"
                       }`}>{statusLabel[p.status] ?? p.status}</span>
                     ) : (

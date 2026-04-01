@@ -177,7 +177,7 @@ export function EngineeringDetailClient({ requestId, initialRequest }: Props) {
   };
 
   if (loading) return <div className="surface-card p-8 text-center text-sm text-muted-foreground">{t("common.loading")}</div>;
-  if (error || !request) return <div className="rounded-sm border border-alert-warningBorder bg-alert-warning p-6 text-foreground">{error ?? t("partner.engineering.notFound")}</div>;
+  if (error || !request) return <div className="rounded-lg border border-alert-warningBorder bg-alert-warning p-6 text-foreground">{error ?? t("partner.engineering.notFound")}</div>;
 
   const requestTypeLabel =
     request.requestType && ["new_design", "revision", "technical_support", "other"].includes(request.requestType)
@@ -197,12 +197,12 @@ export function EngineeringDetailClient({ requestId, initialRequest }: Props) {
   return (
     <div className="space-y-6">
       {attachBanner && (
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-sm border border-alert-warningBorder bg-alert-warning px-4 py-3 text-sm text-foreground">
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-alert-warningBorder bg-alert-warning px-4 py-3 text-sm text-foreground">
           <span>{t("partner.engineering.attachmentsUploadFailed")}</span>
           <button
             type="button"
             onClick={() => setAttachBanner(false)}
-            className="text-amber-800 underline font-medium"
+            className="font-medium text-primary underline"
           >
             {t("common.dismiss")}
           </button>
@@ -253,7 +253,7 @@ export function EngineeringDetailClient({ requestId, initialRequest }: Props) {
             <p className="text-sm text-muted-foreground">
               <span className="text-muted-foreground">{t("partner.engineering.systemType")}:</span>{" "}
               {systemTypeLabels.map((s) => (
-                <span key={s.code} className="inline-flex rounded-sm px-1.5 py-0.5 text-xs font-medium bg-muted text-foreground mr-1">
+                <span key={s.code} className="inline-flex rounded-lg px-1.5 py-0.5 text-xs font-medium bg-muted text-foreground mr-1">
                   {s.label}
                 </span>
               ))}
@@ -299,7 +299,7 @@ export function EngineeringDetailClient({ requestId, initialRequest }: Props) {
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading || !canUploadFiles}
-              className="inline-flex items-center gap-1.5 rounded-sm border border-border/60 bg-background px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 bg-background px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50"
             >
               <Upload className="h-4 w-4" />
               {uploading ? t("partner.engineering.uploading") : t("partner.engineering.uploadFile")}
@@ -416,7 +416,7 @@ export function EngineeringDetailClient({ requestId, initialRequest }: Props) {
               type="checkbox"
               checked={resubmit}
               onChange={(e) => setResubmit(e.target.checked)}
-              className="h-4 w-4 rounded-sm border-input"
+              className="h-4 w-4 rounded-lg border-input"
             />
             {t("partner.engineering.resubmitLabel")}
           </label>
@@ -425,7 +425,7 @@ export function EngineeringDetailClient({ requestId, initialRequest }: Props) {
           type="button"
           onClick={() => void postPartnerNote()}
           disabled={postingNote || !noteBody.trim()}
-          className="mt-4 rounded-sm border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
+          className="mt-4 rounded-lg border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
         >
           {postingNote ? t("common.loading") : t("partner.engineering.publishNote")}
         </button>

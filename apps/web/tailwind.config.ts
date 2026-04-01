@@ -1,5 +1,17 @@
 import type { Config } from "tailwindcss";
 
+const sansApple = [
+  "var(--font-inter)",
+  "-apple-system",
+  "BlinkMacSystemFont",
+  '"SF Pro Text"',
+  '"SF Pro Display"',
+  '"Helvetica Neue"',
+  "Helvetica",
+  "Arial",
+  "sans-serif",
+] as const;
+
 const config: Config = {
   darkMode: ["class"],
   content: [
@@ -17,8 +29,17 @@ const config: Config = {
     },
     extend: {
       fontFamily: {
-        sans: ["var(--font-plex-sans)", "IBM Plex Sans", "system-ui", "sans-serif"],
+        sans: [...sansApple],
+        display: [...sansApple],
         mono: ["var(--font-plex-mono)", "IBM Plex Mono", "ui-monospace", "monospace"],
+      },
+      fontSize: {
+        "display-hero": ["3.5rem", { lineHeight: "1.07", letterSpacing: "-0.28px", fontWeight: "600" }],
+        "section-title": ["2.5rem", { lineHeight: "1.1", letterSpacing: "-0.28px", fontWeight: "600" }],
+        "tile-title": ["1.75rem", { lineHeight: "1.14", letterSpacing: "0.196px", fontWeight: "400" }],
+        "body-emphasis": ["1.0625rem", { lineHeight: "1.24", letterSpacing: "-0.374px", fontWeight: "600" }],
+        caption: ["0.875rem", { lineHeight: "1.29", letterSpacing: "-0.224px" }],
+        micro: ["0.75rem", { lineHeight: "1.33", letterSpacing: "-0.12px" }],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -54,13 +75,12 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // VBT brand (from CSS vars for theme support)
-        vbt: {
-          blue: "hsl(var(--primary))",
-          orange: "hsl(var(--vbt-orange))",
-          light: "hsl(var(--muted))",
+        link: {
+          DEFAULT: "hsl(var(--link))",
         },
-        // Header/sidebar chrome
+        filter: {
+          DEFAULT: "hsl(var(--filter-bg))",
+        },
         header: {
           DEFAULT: "hsl(var(--header))",
           foreground: "hsl(var(--header-foreground))",
@@ -73,14 +93,16 @@ const config: Config = {
           error: "hsl(var(--alert-error-bg))",
           errorBorder: "hsl(var(--alert-error-border))",
         },
-        engine: {
-          accent: "hsl(var(--engine-accent))",
-        },
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        pill: "980px",
+        filter: "11px",
+      },
+      boxShadow: {
+        card: "var(--shadow-card)",
       },
       keyframes: {
         "accordion-down": {

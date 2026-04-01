@@ -280,7 +280,7 @@ export function TrainingPartnerClient() {
   }
   if (error) {
     return (
-      <div className="rounded-sm border border-alert-warningBorder bg-alert-warning p-6 text-foreground">
+      <div className="rounded-lg border border-alert-warningBorder bg-alert-warning p-6 text-foreground">
         {error}
       </div>
     );
@@ -290,7 +290,7 @@ export function TrainingPartnerClient() {
     <div className="space-y-8">
       {actionError && (
         <div
-          className="rounded-sm border border-alert-warningBorder bg-alert-warning/90 px-4 py-3 text-sm text-foreground flex justify-between gap-4 items-start"
+          className="rounded-lg border border-alert-warningBorder bg-alert-warning/90 px-4 py-3 text-sm text-foreground flex justify-between gap-4 items-start"
           role="alert"
         >
           <span>{actionError}</span>
@@ -317,7 +317,7 @@ export function TrainingPartnerClient() {
                 <ul className="mt-2 space-y-2">
                   {q.options.map((o) => (
                     <li key={o.oKey}>
-                      <label className="flex items-start gap-2.5 text-sm cursor-pointer rounded-sm px-2 py-1.5 hover:bg-muted/50">
+                      <label className="flex items-start gap-2.5 text-sm cursor-pointer rounded-lg px-2 py-1.5 hover:bg-muted/50">
                         <input
                           type="radio"
                           name={q.qKey}
@@ -335,7 +335,7 @@ export function TrainingPartnerClient() {
             <button
               type="button"
               onClick={() => void handleSubmitQuiz()}
-              className="inline-flex items-center rounded-sm border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
+              className="inline-flex items-center rounded-lg border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
             >
               {t("partner.training.submitQuiz")}
             </button>
@@ -344,7 +344,7 @@ export function TrainingPartnerClient() {
       )}
 
       {quizResult && (
-        <div className="rounded-sm border border-border/60 bg-muted/30 p-4 text-sm surface-card">
+        <div className="rounded-lg border border-border/60 bg-muted/30 p-4 text-sm surface-card">
           <p className="font-medium text-foreground">
             {t("partner.training.quizScore", { score: String(quizResult.scorePct) })}{" "}
             — {quizResult.passed ? t("partner.training.quizPassed") : t("partner.training.quizFailed")}
@@ -386,7 +386,7 @@ export function TrainingPartnerClient() {
                         type="button"
                         onClick={() => void handleEnrollProgram(p.id)}
                         disabled={enrollingId === p.id}
-                        className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-sm border border-primary/20 bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
+                        className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-lg border border-primary/20 bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
                       >
                         <UserPlus className="h-4 w-4" />
                         {enrollingId === p.id ? t("partner.training.enrolling") : t("partner.training.enroll")}
@@ -408,7 +408,7 @@ export function TrainingPartnerClient() {
                           return (
                             <li
                               key={s.id}
-                              className="rounded-sm bg-muted/40 px-3 py-2 text-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2"
+                              className="rounded-lg bg-muted/40 px-3 py-2 text-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2"
                             >
                               <div>
                                 <p className="font-medium text-foreground">{s.title}</p>
@@ -430,7 +430,7 @@ export function TrainingPartnerClient() {
                               </div>
                               <div>
                                 {reg && reg.status === "registered" ? (
-                                  <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                                  <span className="text-xs font-medium text-primary">
                                     {t("partner.training.sessionEnrolled")}
                                   </span>
                                 ) : reg && (reg.status === "attended" || reg.status === "no_show") ? (
@@ -442,7 +442,7 @@ export function TrainingPartnerClient() {
                                     type="button"
                                     disabled={enrollingSessionId === s.id}
                                     onClick={() => void handleEnrollSession(s.id)}
-                                    className="rounded-sm border border-border bg-card px-2 py-1 text-xs font-medium hover:bg-muted/60"
+                                    className="rounded-lg border border-border bg-card px-2 py-1 text-xs font-medium hover:bg-muted/60"
                                   >
                                     {enrollingSessionId === s.id
                                       ? t("common.loading")
@@ -515,7 +515,7 @@ export function TrainingPartnerClient() {
                     </p>
                   </div>
                 </div>
-                {e.completedAt && <CheckCircle className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />}
+                {e.completedAt && <CheckCircle className="h-5 w-5 text-primary" />}
               </li>
             ))}
           </ul>
@@ -541,7 +541,7 @@ export function TrainingPartnerClient() {
                   type="button"
                   disabled={!!activeQuiz}
                   onClick={() => void handleStartQuiz(q.id)}
-                  className="rounded-sm border border-primary/25 bg-card px-3 py-1.5 text-sm font-medium text-primary hover:bg-muted/50 disabled:opacity-50"
+                  className="rounded-lg border border-primary/25 bg-card px-3 py-1.5 text-sm font-medium text-primary hover:bg-muted/50 disabled:opacity-50"
                 >
                   {t("partner.training.startQuiz")}
                 </button>

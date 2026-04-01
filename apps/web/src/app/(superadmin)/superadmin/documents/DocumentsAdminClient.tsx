@@ -5,6 +5,7 @@ import { Plus, FileText, Pencil, ExternalLink, Search } from "lucide-react";
 import { useT } from "@/lib/i18n/context";
 import { ViewLayoutToggle } from "@/components/ui/view-layout-toggle";
 import { documentMatchesSearchQuery } from "@/lib/documents-list-utils";
+import { FilterSelect } from "@/components/ui/filter-select";
 
 const VIEW_STORAGE_KEY = "vbt-documents-view-superadmin";
 
@@ -294,31 +295,27 @@ export function DocumentsAdminClient() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-3">
-          <select
+          <FilterSelect
             value={filters.categoryId}
-            onChange={(e) => setFilters((f) => ({ ...f, categoryId: e.target.value }))}
-            className="min-w-[160px] rounded-sm border border-input bg-background px-3 py-2 text-sm text-foreground ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <option value="">{t("superadmin.documents.allCategories")}</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
-          <select
+            onValueChange={(v) => setFilters((f) => ({ ...f, categoryId: v }))}
+            emptyOptionLabel={t("superadmin.documents.allCategories")}
+            options={categories.map((c) => ({ value: c.id, label: c.name }))}
+            aria-label={t("superadmin.documents.allCategories")}
+            triggerClassName="h-9 min-w-[160px] max-w-[min(100vw-2rem,260px)] text-sm"
+          />
+          <FilterSelect
             value={filters.visibility}
-            onChange={(e) => setFilters((f) => ({ ...f, visibility: e.target.value }))}
-            className="min-w-[140px] rounded-sm border border-input bg-background px-3 py-2 text-sm text-foreground ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <option value="">{t("superadmin.documents.allVisibility")}</option>
-            {VISIBILITY_OPTIONS.map((v) => (
-              <option key={v} value={v}>{visibilityOptionLabel(t, v)}</option>
-            ))}
-          </select>
+            onValueChange={(v) => setFilters((f) => ({ ...f, visibility: v }))}
+            emptyOptionLabel={t("superadmin.documents.allVisibility")}
+            options={VISIBILITY_OPTIONS.map((v) => ({ value: v, label: visibilityOptionLabel(t, v) }))}
+            aria-label={t("superadmin.documents.allVisibility")}
+            triggerClassName="h-9 min-w-[140px] max-w-[min(100vw-2rem,220px)] text-sm"
+          />
         </div>
         <button
           type="button"
           onClick={openNew}
-          className="inline-flex items-center gap-2 rounded-sm border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
+          className="inline-flex items-center gap-2 rounded-lg border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
         >
           <Plus className="h-4 w-4" />
           {t("superadmin.documents.newDocumentButton")}
@@ -332,7 +329,7 @@ export function DocumentsAdminClient() {
           </h3>
           <form onSubmit={handleSubmit} className="space-y-4 max-w-xl">
             {formError && (
-              <p className="rounded-sm border border-alert-errorBorder bg-alert-error px-3 py-2 text-sm text-foreground">{formError}</p>
+              <p className="rounded-lg border border-alert-errorBorder bg-alert-error px-3 py-2 text-sm text-foreground">{formError}</p>
             )}
             <div>
               <label className="mb-1 block text-sm font-medium text-foreground">{t("superadmin.documents.fieldTitle")}</label>
@@ -355,23 +352,20 @@ export function DocumentsAdminClient() {
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium text-foreground">{t("superadmin.documents.fieldCategory")}</label>
-              <select
+              <FilterSelect
                 value={form.categoryId}
-                onChange={(e) => setForm((f) => ({ ...f, categoryId: e.target.value }))}
-                required
-                className="input-native"
-              >
-                <option value="">{t("superadmin.documents.selectCategory")}</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
+                onValueChange={(v) => setForm((f) => ({ ...f, categoryId: v }))}
+                emptyOptionLabel={t("superadmin.documents.selectCategory")}
+                options={categories.map((c) => ({ value: c.id, label: c.name }))}
+                aria-label={t("superadmin.documents.selectCategory")}
+                triggerClassName="h-10 w-full min-w-0 max-w-full text-sm"
+              />
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium text-foreground">{t("superadmin.documents.fieldFileOrUrl")}</label>
               <p className="mb-2 text-xs text-muted-foreground">{t("superadmin.documents.fileOrUrlHint")}</p>
               <div className="flex flex-wrap items-center gap-2 mb-2">
-                <label className="inline-flex cursor-pointer items-center gap-2 rounded-sm border border-input bg-muted/40 px-3 py-2 text-sm hover:bg-muted/60">
+                <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-input bg-muted/40 px-3 py-2 text-sm hover:bg-muted/60">
                   <input type="file" className="sr-only" onChange={onPickFile} disabled={uploadingFile || saving} />
                   {uploadingFile ? t("superadmin.documents.uploading") : t("superadmin.documents.uploadFileButton")}
                 </label>
@@ -388,15 +382,15 @@ export function DocumentsAdminClient() {
             <div>
               <label className="mb-1 block text-sm font-medium text-foreground">{t("superadmin.documents.fieldVisibility")}</label>
               <p className="mb-2 text-xs text-muted-foreground">{t("superadmin.documents.visibilityHint")}</p>
-              <select
+              <FilterSelect
                 value={form.visibility}
-                onChange={(e) => setForm((f) => ({ ...f, visibility: e.target.value as (typeof VISIBILITY_OPTIONS)[number] }))}
-                className="input-native"
-              >
-                {VISIBILITY_OPTIONS.map((v) => (
-                  <option key={v} value={v}>{visibilityOptionLabel(t, v)}</option>
-                ))}
-              </select>
+                onValueChange={(v) =>
+                  setForm((f) => ({ ...f, visibility: v as (typeof VISIBILITY_OPTIONS)[number] }))
+                }
+                options={VISIBILITY_OPTIONS.map((v) => ({ value: v, label: visibilityOptionLabel(t, v) }))}
+                aria-label={t("superadmin.documents.fieldVisibility")}
+                triggerClassName="h-10 w-full min-w-0 max-w-full text-sm"
+              />
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium text-foreground">{t("superadmin.documents.fieldCountryScope")}</label>
@@ -413,7 +407,7 @@ export function DocumentsAdminClient() {
                 <label className="mb-1 block text-sm font-medium text-foreground">{t("superadmin.documents.fieldPartnerAllowlist")}</label>
                 <p className="mb-2 text-xs text-muted-foreground">{t("superadmin.documents.partnerAllowlistHint")}</p>
                 {partners.length === 0 ? (
-                  <p className="rounded-sm border border-alert-warningBorder bg-alert-warning px-3 py-2 text-sm text-foreground">{t("superadmin.documents.partnersLoadEmpty")}</p>
+                  <p className="rounded-lg border border-alert-warningBorder bg-alert-warning px-3 py-2 text-sm text-foreground">{t("superadmin.documents.partnersLoadEmpty")}</p>
                 ) : (
                   <>
                     <select
@@ -449,7 +443,7 @@ export function DocumentsAdminClient() {
               </div>
             )}
             {!isPlatformDocumentForm && (
-              <p className="rounded-sm border border-border/60 bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+              <p className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
                 {t("superadmin.documents.partnerOwnedDocHint")}
               </p>
             )}
@@ -457,14 +451,14 @@ export function DocumentsAdminClient() {
               <button
                 type="submit"
                 disabled={saving || uploadingFile}
-                className="rounded-sm border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
+                className="rounded-lg border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
               >
                 {saving ? t("common.saving") : editingId ? t("superadmin.documents.buttonUpdate") : t("superadmin.documents.buttonCreate")}
               </button>
               <button
                 type="button"
                 onClick={closeForm}
-                className="rounded-sm border border-border bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-muted/40"
+                className="rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-muted/40"
               >
                 {t("common.cancel")}
               </button>
@@ -485,7 +479,7 @@ export function DocumentsAdminClient() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t("superadmin.documents.searchPlaceholder")}
-              className="w-full rounded-sm border border-input bg-background py-2 pl-9 pr-3 text-sm outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring"
+              className="w-full rounded-lg border border-input bg-background py-2 pl-9 pr-3 text-sm outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring"
               autoComplete="off"
             />
           </div>
@@ -495,7 +489,7 @@ export function DocumentsAdminClient() {
 
       <div className="surface-card-overflow">
         {error && (
-          <div className="rounded-sm border border-alert-warningBorder bg-alert-warning p-4 text-sm text-foreground">{error}</div>
+          <div className="rounded-lg border border-alert-warningBorder bg-alert-warning p-4 text-sm text-foreground">{error}</div>
         )}
         {loading ? (
           <div className="p-12 text-center text-sm text-muted-foreground">{t("superadmin.documents.loadingDocuments")}</div>
@@ -507,7 +501,7 @@ export function DocumentsAdminClient() {
             <button
               type="button"
               onClick={openNew}
-              className="mt-4 inline-flex items-center gap-2 rounded-sm border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
+              className="mt-4 inline-flex items-center gap-2 rounded-lg border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
             >
               <Plus className="h-4 w-4" />
               {t("superadmin.documents.emptyStateAddButton")}
@@ -576,7 +570,7 @@ export function DocumentsAdminClient() {
             {filteredDocuments.map((doc) => (
               <div
                 key={doc.id}
-                className="flex flex-col rounded-sm border border-border/60 bg-muted/20 p-4 transition-colors hover:border-border"
+                className="flex flex-col rounded-lg border border-border/60 bg-muted/20 p-4 transition-colors hover:border-border"
               >
                 <div className="mb-2 flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">

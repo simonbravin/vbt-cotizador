@@ -1,16 +1,16 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
-import { IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
+import { IBM_Plex_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { Toaster } from "@/components/ui/toaster";
 import type { Locale } from "@/lib/i18n/translations";
 import { LOCALE_COOKIE_NAME } from "@/lib/i18n/translations";
 
-const plexSans = IBM_Plex_Sans({
+const inter = Inter({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-plex-sans",
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-inter",
   display: "swap",
 });
 const plexMono = IBM_Plex_Mono({
@@ -39,7 +39,7 @@ export default async function RootLayout({
 
   return (
     <html lang={lang} suppressHydrationWarning>
-      <body className={`${plexSans.variable} ${plexMono.variable} ${plexSans.className}`}>
+      <body className={`${inter.variable} ${plexMono.variable} ${inter.className}`}>
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){var m=document.cookie.match(/NEXT_THEME=([^;]+)/);if(!m||m[1]!=='light')document.documentElement.classList.add('dark');})();`,

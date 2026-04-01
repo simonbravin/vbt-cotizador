@@ -4,77 +4,82 @@
 
 @layer base {
   /*
-   * Engineering UI — dual surfaces:
-   * :root = blueprint vellum (light, cool gray-blue, for optional “light”)
-   * .dark  = CAD terminal (deep neutral, cyan/steel accents)
+   * Apple-style system (DESIGN.md + preview.html / preview-dark.html).
+   * All semantic colors are HSL triplets for Tailwind: hsl(var(--token) / <alpha>).
    */
   :root {
-    --background: 215 18% 86%;
-    --foreground: 222 32% 12%;
-    --card: 210 22% 94%;
-    --card-foreground: 222 32% 12%;
-    --popover: 210 22% 96%;
-    --popover-foreground: 222 32% 12%;
-    --primary: 205 62% 30%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 215 14% 78%;
-    --secondary-foreground: 222 32% 12%;
-    --muted: 215 16% 80%;
-    --muted-foreground: 222 18% 38%;
-    --accent: 215 20% 72%;
-    --accent-foreground: 222 32% 12%;
-    --destructive: 0 72% 42%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 215 14% 58%;
-    --input: 215 14% 58%;
-    --ring: 188 55% 38%;
-    --radius: 0.125rem;
-    --header: 222 28% 16%;
-    --header-foreground: 210 25% 94%;
-    --vbt-orange: 28 88% 48%;
-    --blueprint-grid: 215 35% 45%;
-    --engine-accent: 188 55% 38%;
-    --auth-grid-overlay: 0 0% 100% / 0.12;
-    --alert-warning-bg: 42 90% 88%;
-    --alert-warning-border: 38 85% 42%;
-    --alert-success-bg: 152 55% 40% / 0.14;
+    --background: 240 9% 97%;
+    --foreground: 240 2% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 2% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 2% 12%;
+    --primary: 211 100% 45%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 6% 97%;
+    --secondary-foreground: 240 2% 12%;
+    --muted: 240 5% 94%;
+    --muted-foreground: 240 2% 38%;
+    --accent: 240 5% 92%;
+    --accent-foreground: 240 2% 12%;
+    --destructive: 3 92% 59%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 4% 84%;
+    --input: 240 4% 84%;
+    --ring: 211 100% 45%;
+    /* Controls + cards: ~12px so fields align with Apple-style chrome (not boxy vs pill actions). */
+    --radius: 0.75rem;
+    --link: 211 100% 40%;
+    --link-on-dark: 210 100% 58%;
+    --filter-bg: 240 10% 98%;
+    /* Solid chrome matches top bar (glass reads as charcoal, not pure black). */
+    --header: 220 6% 13%;
+    --header-foreground: 0 0% 100%;
+    --nav-glass: 220 6% 13%;
+    --shadow-card: 0 5px 30px rgb(0 0 0 / 0.22);
+    --focus-ring: 0 0 0 3px rgb(0 113 227 / 0.2);
+    --alert-warning-bg: 48 100% 94%;
+    --alert-warning-border: 38 92% 50%;
+    --alert-success-bg: 152 55% 92%;
     --alert-success-border: 152 60% 32%;
-    --alert-error-bg: 0 72% 50% / 0.12;
-    --alert-error-border: 0 65% 45%;
+    --alert-error-bg: 3 100% 96%;
+    --alert-error-border: 3 92% 50%;
   }
 
   .dark {
-    --background: 220 16% 7%;
-    --foreground: 210 18% 93%;
-    --card: 220 14% 10%;
-    --card-foreground: 210 18% 93%;
-    --popover: 220 14% 11%;
-    --popover-foreground: 210 18% 93%;
-    --primary: 188 42% 48%;
-    --primary-foreground: 220 20% 8%;
-    --secondary: 220 12% 18%;
-    --secondary-foreground: 210 18% 93%;
-    --muted: 220 12% 16%;
-    --muted-foreground: 215 12% 58%;
-    --accent: 220 10% 20%;
-    --accent-foreground: 210 18% 93%;
-    --destructive: 0 62% 48%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 215 12% 22%;
-    --input: 215 12% 22%;
-    --ring: 188 50% 52%;
-    --header: 220 18% 8%;
-    --header-foreground: 210 20% 92%;
-    --vbt-orange: 28 90% 52%;
-    --blueprint-grid: 188 30% 40%;
-    --engine-accent: 188 50% 52%;
-    --auth-grid-overlay: 0 0% 100% / 0.06;
-    --alert-warning-bg: 42 85% 50% / 0.14;
+    --background: 0 0% 0%;
+    --foreground: 240 5% 96%;
+    --card: 240 3% 11%;
+    --card-foreground: 240 5% 96%;
+    --popover: 240 3% 11%;
+    --popover-foreground: 240 5% 96%;
+    --primary: 210 100% 58%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 3% 16%;
+    --secondary-foreground: 240 5% 96%;
+    --muted: 240 3% 16%;
+    --muted-foreground: 240 5% 64%;
+    --accent: 240 3% 18%;
+    --accent-foreground: 240 5% 96%;
+    --destructive: 4 90% 61%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 2% 20%;
+    --input: 240 2% 20%;
+    --ring: 210 100% 58%;
+    --link: 210 100% 58%;
+    --link-on-dark: 210 100% 58%;
+    --filter-bg: 240 3% 11%;
+    --header: 0 0% 0%;
+    --header-foreground: 240 5% 96%;
+    --nav-glass: 0 0% 0%;
+    --shadow-card: 0 5px 30px rgb(0 0 0 / 0.5);
+    --focus-ring: 0 0 0 3px rgb(41 151 255 / 0.25);
+    --alert-warning-bg: 48 80% 20%;
     --alert-warning-border: 42 88% 48%;
-    --alert-success-bg: 152 55% 42% / 0.16;
+    --alert-success-bg: 152 40% 18%;
     --alert-success-border: 152 55% 42%;
-    --alert-error-bg: 0 62% 48% / 0.14;
-    --alert-error-border: 0 58% 50%;
+    --alert-error-bg: 4 50% 18%;
+    --alert-error-border: 4 90% 55%;
   }
 }
 
@@ -83,72 +88,53 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground font-sans antialiased;
+    @apply bg-background text-foreground font-sans antialiased text-[17px] font-normal leading-[1.47] tracking-[-0.374px];
+  }
+
+  /* Native selects: OS chrome often ignores radius; unify with shadcn-style controls. */
+  select:not([size]):not([multiple]) {
+    appearance: none;
+    -webkit-appearance: none;
+    border-radius: 9999px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none'%3E%3Cpath stroke='%236e6e73' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.65rem center;
+    background-size: 1rem 1rem;
+    /* Reserve space for chevron even when utilities use px-* (shorthand). */
+    padding-right: 2.5rem !important;
+  }
+
+  .dark select:not([size]):not([multiple]) {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none'%3E%3Cpath stroke='%23a1a1a6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  }
+
+  input[type="search"]::-webkit-search-decoration,
+  input[type="search"]::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    appearance: none;
   }
 }
 
-/* Blueprint grid on main canvas (partner / superadmin content) */
 @layer components {
-  /* Low-contrast grid for long-session comfort; use only on partner main + quote sheet root */
-  .blueprint-canvas {
-    background-color: hsl(var(--background));
-    background-image: linear-gradient(
-        hsl(var(--blueprint-grid) / 0.08) 1px,
-        transparent 1px
-      ),
-      linear-gradient(
-        90deg,
-        hsl(var(--blueprint-grid) / 0.08) 1px,
-        transparent 1px
-      );
-    background-size: 22px 22px;
-  }
-
-  /**
-   * Scrollable main column (partner dashboard + superadmin).
-   * Slightly less top padding than sides/bottom so content sits closer under the top bar.
-   */
   .app-main-scroll {
-    @apply px-6 pb-6 pt-4;
+    @apply px-8 pb-8 pt-5;
   }
 
-  /**
-   * Content surfaces — border-first engineering UI (partner + superadmin).
-   * Prefer these over ad-hoc bg-white / rounded-sm / shadow-sm.
-   */
   .surface-card {
-    @apply rounded-sm border border-border/60 bg-card text-card-foreground shadow-none;
+    @apply rounded-lg border border-border/80 bg-card text-card-foreground shadow-none;
   }
   .surface-card-overflow {
-    @apply rounded-sm border border-border/60 bg-card text-card-foreground shadow-none overflow-hidden;
+    @apply rounded-lg border border-border/80 bg-card text-card-foreground shadow-none overflow-hidden;
   }
-  /** Modal / dialog panel (overlays) */
   .surface-modal {
-    @apply rounded-sm border border-border/60 bg-background text-foreground shadow-none;
+    @apply rounded-lg border border-border/80 bg-card text-card-foreground shadow-none;
   }
-  /** Native inputs outside shadcn Input (forms, admin) */
   .input-native {
-    @apply w-full rounded-sm border border-input bg-background px-3 py-2 text-sm text-foreground ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply w-full rounded-full border border-input bg-background px-3.5 py-2.5 text-[17px] tracking-[-0.374px] text-foreground ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-primary focus-visible:shadow-[var(--focus-ring)] disabled:cursor-not-allowed disabled:opacity-50;
   }
 }
 
-/* Staggered reveal — high-impact sections (class-only, no JS) */
-@layer utilities {
-  .animate-engine-reveal {
-    animation: engine-reveal 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  @keyframes engine-reveal {
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-}
-
-/* Dark mode: map legacy gray/white utilities to tokens */
-/* Slashes in Tailwind class names must be escaped as \/ for valid CSS selectors */
+/* Dark mode: map legacy utilities to tokens */
 .dark .bg-white {
   background-color: hsl(var(--card));
 }
@@ -193,7 +179,7 @@
   border-color: hsl(var(--input));
 }
 .dark .shadow-sm {
-  box-shadow: 0 0 0 1px hsl(var(--border) / 0.35);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.2);
 }
 .dark thead.bg-muted\/30 {
   background-color: hsl(var(--muted));

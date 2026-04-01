@@ -128,7 +128,7 @@ export function SuperadminQuoteDetailClient({ quoteId }: { quoteId: string }) {
   if (loading) return <div className="text-sm text-muted-foreground">{t("common.loading")}</div>;
   if (error || !quote) {
     return (
-      <div className="rounded-sm border border-destructive/30 bg-destructive/10 p-6 font-medium text-foreground">
+      <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-6 font-medium text-foreground">
         {error ?? t("superadmin.quoteDetail.notFound")}
       </div>
     );
@@ -205,7 +205,7 @@ export function SuperadminQuoteDetailClient({ quoteId }: { quoteId: string }) {
           value={comment}
           onChange={(e) => setComment(e.target.value)}
           placeholder={t("superadmin.quotes.commentForPartnerPlaceholder")}
-          className="w-full min-h-[80px] rounded-sm border border-input bg-background px-3 py-2 text-sm"
+          className="w-full min-h-[80px] rounded-lg border border-input bg-background px-3 py-2 text-sm"
           rows={3}
         />
       </div>
@@ -216,7 +216,7 @@ export function SuperadminQuoteDetailClient({ quoteId }: { quoteId: string }) {
             type="button"
             onClick={handleApprove}
             disabled={!!actionLoading}
-            className="rounded-sm border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
+            className="rounded-lg border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
           >
             {actionLoading ? "…" : t("superadmin.quoteDetail.approve")}
           </button>
@@ -227,7 +227,7 @@ export function SuperadminQuoteDetailClient({ quoteId }: { quoteId: string }) {
             onClick={handleReject}
             disabled={!!actionLoading}
             title={!comment.trim() ? t("superadmin.quoteDetail.commentRequiredToReject") : undefined}
-            className="rounded-sm border border-destructive/30 bg-destructive px-4 py-2 text-sm font-semibold text-destructive-foreground hover:opacity-90 disabled:opacity-50"
+            className="rounded-lg border border-destructive/30 bg-destructive px-4 py-2 text-sm font-semibold text-destructive-foreground hover:opacity-90 disabled:opacity-50"
           >
             {actionLoading ? "…" : t("superadmin.quoteDetail.reject")}
           </button>
@@ -236,7 +236,7 @@ export function SuperadminQuoteDetailClient({ quoteId }: { quoteId: string }) {
           <button
             type="button"
             onClick={() => setModifyOpen(!modifyOpen)}
-            className="rounded-sm border border-border/60 bg-muted px-4 py-2 text-sm font-medium text-foreground hover:bg-muted/80"
+            className="rounded-lg border border-border/60 bg-muted px-4 py-2 text-sm font-medium text-foreground hover:bg-muted/80"
           >
             {modifyOpen ? t("superadmin.quoteDetail.cancelModify") : t("superadmin.quoteDetail.modify")}
           </button>
@@ -253,7 +253,7 @@ export function SuperadminQuoteDetailClient({ quoteId }: { quoteId: string }) {
                 type="number"
                 value={modifyVisionLatamPct}
                 onChange={(e) => setModifyVisionLatamPct(e.target.value)}
-                className="w-full rounded-sm border border-input bg-background px-3 py-2 text-sm"
+                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
                 step="0.01"
                 min="0"
                 max="100"
@@ -268,7 +268,7 @@ export function SuperadminQuoteDetailClient({ quoteId }: { quoteId: string }) {
             type="button"
             onClick={handleModifySubmit}
             disabled={!!actionLoading}
-            className="mt-4 rounded-sm border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
+            className="mt-4 rounded-lg border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
           >
             {actionLoading ? t("superadmin.quoteDetail.saving") : t("superadmin.quoteDetail.saveChanges")}
           </button>

@@ -19,13 +19,13 @@ const styles = StyleSheet.create({
     paddingBottom: 60,
     paddingLeft: 40,
     paddingRight: 40,
-    color: "#1a1a1a",
+    color: "#1d1d1f",
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     marginBottom: 20,
-    borderBottom: "2px solid #1a3a5c",
+    borderBottom: "1px solid #d2d2d7",
     paddingBottom: 12,
   },
   headerLeft: {
@@ -37,17 +37,17 @@ const styles = StyleSheet.create({
   companyName: {
     fontSize: 18,
     fontFamily: "Helvetica-Bold",
-    color: "#1a3a5c",
+    color: "#1d1d1f",
   },
   companyTagline: {
     fontSize: 8,
-    color: "#666",
+    color: "#6e6e73",
     marginTop: 2,
   },
   quoteTitle: {
     fontSize: 14,
     fontFamily: "Helvetica-Bold",
-    color: "#e87722",
+    color: "#0071e3",
   },
   quoteNumber: {
     fontSize: 10,
@@ -56,7 +56,7 @@ const styles = StyleSheet.create({
   },
   quoteStatus: {
     fontSize: 8,
-    backgroundColor: "#1a3a5c",
+    backgroundColor: "#1d1d1f",
     color: "white",
     padding: "3 8",
     borderRadius: 4,
@@ -68,8 +68,8 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 10,
     fontFamily: "Helvetica-Bold",
-    color: "#1a3a5c",
-    borderBottom: "1px solid #e0e0e0",
+    color: "#1d1d1f",
+    borderBottom: "1px solid #d2d2d7",
     paddingBottom: 3,
     marginBottom: 8,
     textTransform: "uppercase",
@@ -94,8 +94,8 @@ const styles = StyleSheet.create({
   },
   tableHeader: {
     flexDirection: "row",
-    backgroundColor: "#1a3a5c",
-    color: "white",
+    backgroundColor: "#f5f5f7",
+    color: "#1d1d1f",
     padding: "4 6",
     fontFamily: "Helvetica-Bold",
     fontSize: 8,
@@ -120,10 +120,10 @@ const styles = StyleSheet.create({
   colTotal: { width: 65, textAlign: "right" },
   // Summary box
   summaryBox: {
-    backgroundColor: "#f0f4f8",
+    backgroundColor: "#f5f5f7",
     padding: 12,
-    borderRadius: 4,
-    borderLeft: "3px solid #1a3a5c",
+    borderRadius: 8,
+    borderLeft: "3px solid #0071e3",
     marginBottom: 12,
   },
   summaryRow: {
@@ -144,17 +144,17 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginTop: 6,
     paddingTop: 6,
-    borderTop: "1.5px solid #1a3a5c",
+    borderTop: "1px solid #d2d2d7",
   },
   totalLabel: {
     fontSize: 11,
     fontFamily: "Helvetica-Bold",
-    color: "#1a3a5c",
+    color: "#1d1d1f",
   },
   totalValue: {
     fontSize: 12,
     fontFamily: "Helvetica-Bold",
-    color: "#e87722",
+    color: "#0071e3",
   },
   // Tax lines
   taxLine: {
@@ -172,10 +172,10 @@ const styles = StyleSheet.create({
   },
   infoBox: {
     width: "48%",
-    backgroundColor: "#f8f9fa",
+    backgroundColor: "#f5f5f7",
     padding: 8,
-    borderRadius: 4,
-    borderLeft: "2px solid #e87722",
+    borderRadius: 8,
+    borderLeft: "2px solid #0071e3",
   },
   infoBoxLabel: {
     fontSize: 7,
@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
   infoBoxValue: {
     fontSize: 11,
     fontFamily: "Helvetica-Bold",
-    color: "#1a3a5c",
+    color: "#1d1d1f",
   },
   // Footer
   footer: {
@@ -205,15 +205,15 @@ const styles = StyleSheet.create({
   },
   // Alert
   alertBox: {
-    backgroundColor: "#fff3cd",
-    borderLeft: "3px solid #f59e0b",
+    backgroundColor: "#f5f5f7",
+    borderLeft: "3px solid #d2d2d7",
     padding: "4 8",
     marginBottom: 4,
     flexDirection: "row",
   },
   alertText: {
     fontSize: 8,
-    color: "#92400e",
+    color: "#1d1d1f",
   },
   // Notes
   notesBox: {

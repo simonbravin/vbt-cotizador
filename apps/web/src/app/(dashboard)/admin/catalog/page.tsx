@@ -92,7 +92,7 @@ export default function CatalogPage() {
 
   const SYS_COLORS: Record<string, string> = {
     S80: "bg-primary/10 text-primary",
-    S150: "bg-emerald-500/15 text-emerald-800 dark:text-emerald-200",
+    S150: "border border-primary/25 bg-primary/10 text-primary",
     S200: "bg-muted text-foreground",
   };
   const SYS_LABELS: Record<string, string> = useMemo(
@@ -129,7 +129,7 @@ export default function CatalogPage() {
         <button
           type="button"
           onClick={() => setImportDialog(true)}
-          className="inline-flex items-center gap-2 rounded-sm border border-vbt-orange/30 bg-vbt-orange px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
+          className="inline-flex items-center gap-2 rounded-full border border-transparent bg-primary px-5 py-2.5 text-[17px] font-normal text-primary-foreground hover:opacity-[0.88]"
         >
           <Upload className="w-4 h-4" /> {t("admin.catalog.import")}
         </button>
@@ -144,7 +144,7 @@ export default function CatalogPage() {
             placeholder={t("admin.catalog.searchPlaceholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-sm border border-input bg-background py-2 pl-9 pr-3 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="w-full rounded-lg border border-input bg-background py-2 pl-9 pr-3 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
         </div>
         <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-foreground">
@@ -152,7 +152,7 @@ export default function CatalogPage() {
             type="checkbox"
             checked={incompleteOnly}
             onChange={(e) => setIncompleteOnly(e.target.checked)}
-            className="h-4 w-4 rounded-sm border-input"
+            className="h-4 w-4 rounded-lg border-input"
           />
           <span>{t("admin.catalog.incompleteOnly")}</span>
         </label>
@@ -168,7 +168,7 @@ export default function CatalogPage() {
               code === "S80"
                 ? "border-primary/40 bg-primary/10 text-primary"
                 : code === "S150"
-                  ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-800 dark:text-emerald-200"
+                  ? "border-primary/40 bg-primary/10 text-primary"
                   : "border-border bg-muted text-foreground";
             const offClass = "bg-muted/30 text-muted-foreground border-border/60 hover:bg-muted";
             return (
@@ -177,7 +177,7 @@ export default function CatalogPage() {
                 type="button"
                 aria-pressed={on}
                 onClick={() => setSystemOn((prev) => ({ ...prev, [code]: !prev[code] }))}
-                className={`rounded-sm border px-3 py-2 text-sm font-medium transition-colors ${on ? onClass : offClass}`}
+                className={`rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${on ? onClass : offClass}`}
               >
                 {SYS_LABELS[code] ?? code}
               </button>
@@ -187,7 +187,7 @@ export default function CatalogPage() {
       </div>
 
       {/* Table */}
-      <div className="overflow-hidden rounded-sm border border-border/60 bg-card">
+      <div className="overflow-hidden rounded-lg border border-border/60 bg-card">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="border-b border-border/60 bg-muted/30">
@@ -233,7 +233,7 @@ export default function CatalogPage() {
                       : <span className="text-muted-foreground/50">—</span>}
                   </td>
                   <td className="px-3 py-2.5 text-center">
-                    <span className={`inline-block rounded-full px-2 py-0.5 text-xs ${p.isActive ? "bg-emerald-500/15 text-emerald-800 dark:text-emerald-200" : "bg-muted text-muted-foreground"}`}>
+                    <span className={`inline-block rounded-full px-2 py-0.5 text-xs ${p.isActive ? "border border-primary/25 bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
                       {p.isActive ? t("admin.catalog.active") : t("admin.catalog.inactive")}
                     </span>
                   </td>
@@ -241,7 +241,7 @@ export default function CatalogPage() {
                     <button
                       type="button"
                       onClick={() => setEditPiece({ ...p, _costEdit: p.costs?.[0]?.pricePerM2Cored ?? 0 })}
-                      className="inline-flex rounded-sm p-1.5 text-muted-foreground hover:text-foreground"
+                      className="inline-flex rounded-lg p-1.5 text-muted-foreground hover:text-foreground"
                     >
                       <Edit className="w-3.5 h-3.5" />
                     </button>
@@ -256,16 +256,16 @@ export default function CatalogPage() {
       {/* Import Dialog */}
       {importDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4">
-          <div className="m-4 w-full max-w-lg rounded-sm border border-border/60 bg-background p-6">
+          <div className="m-4 w-full max-w-lg rounded-lg border border-border/60 bg-background p-6">
             <h3 className="mb-4 text-lg font-semibold tracking-tight text-foreground">{t("admin.catalog.importTitle")}</h3>
             <input
               ref={fileRef}
               type="file"
               accept=".xlsx,.xls,.csv"
-              className="block w-full text-sm text-muted-foreground file:mr-4 file:rounded-sm file:border file:border-border/60 file:bg-muted/30 file:px-4 file:py-2 file:text-sm file:font-medium file:text-foreground hover:file:bg-muted"
+              className="block w-full text-sm text-muted-foreground file:mr-4 file:rounded-lg file:border file:border-border/60 file:bg-muted/30 file:px-4 file:py-2 file:text-sm file:font-medium file:text-foreground hover:file:bg-muted"
             />
             {importResult && (
-              <div className="mt-4 space-y-1 rounded-sm border border-border/60 bg-muted/20 p-4 text-sm">
+              <div className="mt-4 space-y-1 rounded-lg border border-border/60 bg-muted/20 p-4 text-sm">
                 <p className="font-medium">{importResult.dryRun ? t("admin.catalog.dryRunPreview") : t("admin.catalog.importComplete")}</p>
                 <p className="text-primary">{t("admin.catalog.created")}: {importResult.created}</p>
                 <p className="text-primary">{t("admin.catalog.updated")}: {importResult.updated}</p>
@@ -274,11 +274,11 @@ export default function CatalogPage() {
               </div>
             )}
             <div className="mt-4 flex justify-end gap-3">
-              <button type="button" onClick={() => { setImportDialog(false); setImportResult(null); }} className="rounded-sm border border-border/60 px-4 py-2 text-sm text-foreground hover:bg-muted">{t("common.cancel")}</button>
-              <button type="button" onClick={() => handleImport(true)} disabled={importing} className="rounded-sm border border-border/60 px-4 py-2 text-sm text-foreground hover:bg-muted disabled:opacity-50">
+              <button type="button" onClick={() => { setImportDialog(false); setImportResult(null); }} className="rounded-lg border border-border/60 px-4 py-2 text-sm text-foreground hover:bg-muted">{t("common.cancel")}</button>
+              <button type="button" onClick={() => handleImport(true)} disabled={importing} className="rounded-lg border border-border/60 px-4 py-2 text-sm text-foreground hover:bg-muted disabled:opacity-50">
                 {importing ? "..." : t("admin.catalog.dryRun")}
               </button>
-              <button type="button" onClick={() => handleImport(false)} disabled={importing} className="rounded-sm border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50">
+              <button type="button" onClick={() => handleImport(false)} disabled={importing} className="rounded-lg border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50">
                 {importing ? t("admin.catalog.importing") : t("admin.catalog.importNow")}
               </button>
             </div>
@@ -289,7 +289,7 @@ export default function CatalogPage() {
       {/* Edit Piece Dialog */}
       {editPiece && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4">
-          <div className="m-4 w-full max-w-md rounded-sm border border-border/60 bg-background p-6">
+          <div className="m-4 w-full max-w-md rounded-lg border border-border/60 bg-background p-6">
             <h3 className="mb-4 text-lg font-semibold tracking-tight text-foreground">{t("admin.catalog.editPiece")}</h3>
             <p className="mb-4 text-sm text-muted-foreground">{editPiece.canonicalName}</p>
             <div className="space-y-3">
@@ -301,7 +301,7 @@ export default function CatalogPage() {
                   step="0.01"
                   value={editPiece._costEdit}
                   onChange={(e) => setEditPiece((p: any) => ({ ...p, _costEdit: parseFloat(e.target.value) || 0 }))}
-                  className="w-full rounded-sm border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 />
               </div>
               <div>
@@ -312,13 +312,13 @@ export default function CatalogPage() {
                   step="0.1"
                   value={editPiece.usefulWidthMm ?? 0}
                   onChange={(e) => setEditPiece((p: any) => ({ ...p, usefulWidthMm: parseFloat(e.target.value) || 0 }))}
-                  className="w-full rounded-sm border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 />
               </div>
             </div>
             <div className="mt-4 flex justify-end gap-3">
-              <button type="button" onClick={() => setEditPiece(null)} className="rounded-sm border border-border/60 px-4 py-2 text-sm text-foreground hover:bg-muted">{t("common.cancel")}</button>
-              <button type="button" onClick={saveEdit} className="rounded-sm border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90">{t("common.save")}</button>
+              <button type="button" onClick={() => setEditPiece(null)} className="rounded-lg border border-border/60 px-4 py-2 text-sm text-foreground hover:bg-muted">{t("common.cancel")}</button>
+              <button type="button" onClick={saveEdit} className="rounded-lg border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90">{t("common.save")}</button>
             </div>
           </div>
         </div>

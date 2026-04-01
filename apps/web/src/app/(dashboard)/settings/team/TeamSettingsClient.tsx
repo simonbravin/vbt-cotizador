@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Plus, User, Mail, Phone } from "lucide-react";
 import { useLanguage } from "@/lib/i18n/context";
+import { FilterSelect } from "@/components/ui/filter-select";
 
 type Member = {
   id: string;
@@ -103,7 +104,7 @@ export function TeamSettingsClient() {
           <h2 className="text-lg font-semibold text-foreground">{t("partner.team.inviteByEmail")}</h2>
         </div>
         <form onSubmit={handleInvite} className="p-5 flex flex-wrap items-end gap-3">
-          {inviteError && <p className="w-full text-sm text-red-600">{inviteError}</p>}
+          {inviteError && <p className="w-full text-caption text-destructive">{inviteError}</p>}
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">{t("auth.email")}</label>
             <input
@@ -111,25 +112,23 @@ export function TeamSettingsClient() {
               value={inviteEmail}
               onChange={(e) => setInviteEmail(e.target.value)}
               placeholder={t("auth.placeholderEmail")}
-              className="rounded-sm border border-input px-3 py-2 text-sm w-56"
+              className="rounded-lg border border-input px-3 py-2 text-sm w-56"
             />
           </div>
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">{t("admin.users.role")}</label>
-            <select
+            <FilterSelect
               value={inviteRole}
-              onChange={(e) => setInviteRole(e.target.value)}
-              className="rounded-sm border border-input px-3 py-2 text-sm"
-            >
-              {ROLES.map((r) => (
-                <option key={r} value={r}>{r}</option>
-              ))}
-            </select>
+              onValueChange={setInviteRole}
+              options={ROLES.map((r) => ({ value: r, label: r }))}
+              aria-label={t("admin.users.role")}
+              triggerClassName="h-10 w-44 min-w-0 text-sm"
+            />
           </div>
           <button
             type="submit"
             disabled={inviting}
-            className="rounded-sm bg-primary px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50 flex items-center gap-2"
+            className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50 flex items-center gap-2"
           >
             <Plus className="h-4 w-4" />
             {inviting ? t("partner.team.inviting") : t("partner.team.invite")}
@@ -143,7 +142,7 @@ export function TeamSettingsClient() {
         <div className="px-5 py-4 border-b border-border/60">
           <h2 className="text-lg font-semibold text-foreground">{t("partner.team.members")}</h2>
         </div>
-        {error && <div className="rounded-sm border border-alert-warningBorder bg-alert-warning p-4 text-sm text-foreground">{error}</div>}
+        {error && <div className="rounded-lg border border-alert-warningBorder bg-alert-warning p-4 text-sm text-foreground">{error}</div>}
         {loading ? (
           <div className="p-8 text-center text-sm text-muted-foreground">{t("common.loading")}</div>
         ) : members.length === 0 ? (

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createQuizDefinitionSchema, updateQuizDefinitionSchema } from "@vbt/core/validation";
 import { useT } from "@/lib/i18n/context";
+import { FilterSelect } from "@/components/ui/filter-select";
 import { useToast } from "@/components/ui/use-toast";
 
 type Topic = { id: string; name: string };
@@ -237,7 +238,7 @@ export function QuizDefinitionFormClient({ definitionId }: { definitionId?: stri
           />
         </div>
 
-        <div className="border border-border/60 rounded-sm p-3 space-y-2">
+        <div className="border border-border/60 rounded-lg p-3 space-y-2">
           <p className="text-xs text-muted-foreground">{t("superadmin.quizzes.definitions.certStatementHint")}</p>
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
@@ -280,18 +281,20 @@ export function QuizDefinitionFormClient({ definitionId }: { definitionId?: stri
           <label className="block text-xs font-medium text-muted-foreground mb-1">
             {t("superadmin.quizzes.definitions.visibility")}
           </label>
-          <select
-            className="input-native w-full max-w-md"
+          <FilterSelect
             value={visibility}
-            onChange={(e) => setVisibility(e.target.value as typeof visibility)}
-          >
-            <option value="all_partners">{t("superadmin.quizzes.visibility.all_partners")}</option>
-            <option value="selected_partners">{t("superadmin.quizzes.visibility.selected_partners")}</option>
-          </select>
+            onValueChange={(v) => setVisibility(v as typeof visibility)}
+            options={[
+              { value: "all_partners", label: t("superadmin.quizzes.visibility.all_partners") },
+              { value: "selected_partners", label: t("superadmin.quizzes.visibility.selected_partners") },
+            ]}
+            aria-label={t("superadmin.quizzes.definitions.visibility")}
+            triggerClassName="h-10 w-full max-w-md min-w-0 text-sm"
+          />
         </div>
 
         {visibility === "selected_partners" && (
-          <div className="border border-border/60 rounded-sm p-3 max-h-48 overflow-y-auto space-y-2">
+          <div className="border border-border/60 rounded-lg p-3 max-h-48 overflow-y-auto space-y-2">
             <p className="text-xs text-muted-foreground">{t("superadmin.quizzes.definitions.pickPartners")}</p>
             {partners.length === 0 ? (
               <p className="text-sm text-muted-foreground">{t("superadmin.quizzes.definitions.noPartners")}</p>
@@ -302,7 +305,7 @@ export function QuizDefinitionFormClient({ definitionId }: { definitionId?: stri
                     type="checkbox"
                     checked={allowedOrganizationIds.includes(p.id)}
                     onChange={() => toggleOrg(p.id)}
-                    className="h-4 w-4 accent-primary rounded-sm"
+                    className="h-4 w-4 accent-primary rounded-lg"
                   />
                   <span>{p.name}</span>
                 </label>
@@ -318,22 +321,18 @@ export function QuizDefinitionFormClient({ definitionId }: { definitionId?: stri
           <div className="space-y-2">
             {topicRules.map((row, i) => (
               <div key={i} className="flex flex-wrap gap-2 items-center">
-                <select
-                  className="input-native flex-1 min-w-[10rem]"
+                <FilterSelect
                   value={row.topicId}
-                  onChange={(e) =>
+                  onValueChange={(v) =>
                     setTopicRules((prev) =>
-                      prev.map((r, j) => (j === i ? { ...r, topicId: e.target.value } : r))
+                      prev.map((r, j) => (j === i ? { ...r, topicId: v } : r))
                     )
                   }
-                >
-                  <option value="">{t("superadmin.quizzes.definitions.pickTopic")}</option>
-                  {topics.map((tp) => (
-                    <option key={tp.id} value={tp.id}>
-                      {tp.name}
-                    </option>
-                  ))}
-                </select>
+                  emptyOptionLabel={t("superadmin.quizzes.definitions.pickTopic")}
+                  options={topics.map((tp) => ({ value: tp.id, label: tp.name }))}
+                  aria-label={t("superadmin.quizzes.definitions.pickTopic")}
+                  triggerClassName="h-10 min-w-[10rem] flex-1 max-w-full text-sm"
+                />
                 <input
                   type="number"
                   min={1}
@@ -370,15 +369,17 @@ export function QuizDefinitionFormClient({ definitionId }: { definitionId?: stri
           <label className="block text-xs font-medium text-muted-foreground mb-1">
             {t("superadmin.quizzes.colStatus")}
           </label>
-          <select
-            className="input-native w-full max-w-xs"
+          <FilterSelect
             value={status}
-            onChange={(e) => setStatus(e.target.value as typeof status)}
-          >
-            <option value="draft">{t("superadmin.quizzes.status.draft")}</option>
-            <option value="published">{t("superadmin.quizzes.status.published")}</option>
-            <option value="archived">{t("superadmin.quizzes.status.archived")}</option>
-          </select>
+            onValueChange={(v) => setStatus(v as typeof status)}
+            options={[
+              { value: "draft", label: t("superadmin.quizzes.status.draft") },
+              { value: "published", label: t("superadmin.quizzes.status.published") },
+              { value: "archived", label: t("superadmin.quizzes.status.archived") },
+            ]}
+            aria-label={t("superadmin.quizzes.colStatus")}
+            triggerClassName="h-10 w-full max-w-xs min-w-0 text-sm"
+          />
         </div>
 
         <div>
@@ -396,7 +397,7 @@ export function QuizDefinitionFormClient({ definitionId }: { definitionId?: stri
 
         <button
           type="submit"
-          className="rounded-sm bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+          className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
         >
           {t("common.save")}
         </button>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/lib/i18n/context";
+import { FilterSelect } from "@/components/ui/filter-select";
 
 const PARTNER_TYPES = [
   { value: "commercial_partner", labelKey: "superadmin.partners.commercialPartner" as const },
@@ -133,12 +134,12 @@ export function EditPartnerForm({
       className="surface-card max-w-2xl p-6 space-y-6"
     >
       {error && (
-        <div className="rounded-sm border border-alert-errorBorder bg-alert-error px-4 py-3 text-sm text-foreground">
+        <div className="rounded-lg border border-alert-errorBorder bg-alert-error px-4 py-3 text-sm text-foreground">
           {error}
         </div>
       )}
       {successMessage && (
-        <div className="rounded-sm border border-alert-successBorder bg-alert-success px-4 py-3 text-sm text-foreground">
+        <div className="rounded-lg border border-alert-successBorder bg-alert-success px-4 py-3 text-sm text-foreground">
           {successMessage}
         </div>
       )}
@@ -209,47 +210,36 @@ export function EditPartnerForm({
           <label htmlFor="partnerType" className="block text-sm font-medium text-foreground">
             {t("superadmin.partner.edit.partnerType")}
           </label>
-          <select
-            id="partnerType"
-            required
+          <FilterSelect
             value={form.partnerType}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, partnerType: e.target.value as "commercial_partner" | "master_partner" }))
+            onValueChange={(v) =>
+              setForm((f) => ({ ...f, partnerType: v as "commercial_partner" | "master_partner" }))
             }
-            className="input-native mt-1"
-          >
-            {PARTNER_TYPES.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {t(opt.labelKey)}
-              </option>
-            ))}
-          </select>
+            options={PARTNER_TYPES.map((opt) => ({ value: opt.value, label: t(opt.labelKey) }))}
+            aria-label={t("superadmin.partner.edit.partnerType")}
+            triggerClassName="mt-1 h-10 w-full min-w-0 max-w-full text-sm"
+          />
         </div>
         <div>
           <label htmlFor="engineeringFeeMode" className="block text-sm font-medium text-foreground">
             {t("superadmin.partner.edit.engineeringFeeMode")}
           </label>
-          <select
-            id="engineeringFeeMode"
+          <FilterSelect
             value={form.engineeringFeeMode}
-            onChange={(e) => setForm((f) => ({ ...f, engineeringFeeMode: e.target.value }))}
-            className="input-native mt-1"
-          >
-            <option value="">—</option>
-            {FEE_MODES.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {t(opt.labelKey)}
-              </option>
-            ))}
-          </select>
+            onValueChange={(v) => setForm((f) => ({ ...f, engineeringFeeMode: v }))}
+            emptyOptionLabel="—"
+            options={FEE_MODES.map((opt) => ({ value: opt.value, label: t(opt.labelKey) }))}
+            aria-label={t("superadmin.partner.edit.engineeringFeeMode")}
+            triggerClassName="mt-1 h-10 w-full min-w-0 max-w-full text-sm"
+          />
         </div>
         <div className="sm:col-span-2">
-          <label className="flex cursor-pointer items-start gap-3 rounded-sm border border-border/60 bg-muted/30/80 px-4 py-3">
+          <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border/60 bg-muted/30/80 px-4 py-3">
             <input
               type="checkbox"
               checked={form.requireDeliveredEngineeringForQuotes}
               onChange={(e) => setForm((f) => ({ ...f, requireDeliveredEngineeringForQuotes: e.target.checked }))}
-              className="mt-1 h-4 w-4 rounded-sm border-input"
+              className="mt-1 h-4 w-4 rounded-lg border-input"
             />
             <span>
               <span className="block text-sm font-medium text-foreground">{t("superadmin.partner.requireDeliveredEngineeringQuotes")}</span>
@@ -261,16 +251,17 @@ export function EditPartnerForm({
           <label htmlFor="status" className="block text-sm font-medium text-foreground">
             {t("superadmin.partner.edit.accountStatus")}
           </label>
-          <select
-            id="status"
+          <FilterSelect
             value={form.status}
-            onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
-            className="input-native mt-1"
-          >
-            <option value="active">{t("admin.users.statusActive")}</option>
-            <option value="suspended">{t("admin.users.statusSuspended")}</option>
-            <option value="pending">{t("admin.users.statusPending")}</option>
-          </select>
+            onValueChange={(v) => setForm((f) => ({ ...f, status: v }))}
+            options={[
+              { value: "active", label: t("admin.users.statusActive") },
+              { value: "suspended", label: t("admin.users.statusSuspended") },
+              { value: "pending", label: t("admin.users.statusPending") },
+            ]}
+            aria-label={t("superadmin.partner.edit.accountStatus")}
+            triggerClassName="mt-1 h-10 w-full min-w-0 max-w-full text-sm"
+          />
         </div>
         <div>
           <label htmlFor="visionLatamCommissionPct" className="block text-sm font-medium text-foreground">
@@ -314,7 +305,7 @@ export function EditPartnerForm({
                   type="checkbox"
                   checked={visibility[key] ?? true}
                   onChange={(e) => setVisibility((v) => ({ ...v, [key]: e.target.checked }))}
-                  className="h-4 w-4 rounded-sm border-input"
+                  className="h-4 w-4 rounded-lg border-input"
                 />
                 <span className="text-sm text-foreground">{t(labelKey)}</span>
               </label>
@@ -334,7 +325,7 @@ export function EditPartnerForm({
                     if (e.target.checked) setEnabledSystems((s) => (s.includes(value) ? s : [...s, value]));
                     else setEnabledSystems((s) => s.filter((x) => x !== value));
                   }}
-                  className="h-4 w-4 rounded-sm border-input"
+                  className="h-4 w-4 rounded-lg border-input"
                 />
                 <span className="text-sm text-foreground">{t(labelKey)}</span>
               </label>
@@ -346,14 +337,14 @@ export function EditPartnerForm({
         <button
           type="submit"
           disabled={saving}
-          className="rounded-sm border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
+          className="rounded-lg border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
         >
           {saving ? t("common.saving") : t("common.saveChanges")}
         </button>
         <button
           type="button"
           onClick={() => router.push(`/superadmin/partners/${partnerId}`)}
-          className="rounded-sm border border-border/60 bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-muted"
+          className="rounded-lg border border-border/60 bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-muted"
         >
           {t("common.cancel")}
         </button>

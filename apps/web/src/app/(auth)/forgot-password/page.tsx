@@ -59,7 +59,7 @@ export default function ForgotPasswordPage() {
 
         {success ? (
           <div className="space-y-4">
-            <div className="p-3 rounded-sm border border-primary/30 bg-primary/10 text-sm text-foreground">
+            <div className="p-3 rounded-lg border border-primary/30 bg-primary/10 text-sm text-foreground">
               {t("auth.forgotSuccess")}
             </div>
             <p className="text-center">
@@ -71,7 +71,7 @@ export default function ForgotPasswordPage() {
         ) : (
           <>
             {error && (
-              <div className="mb-4 p-3 rounded-sm border border-destructive/30 bg-destructive/10 text-sm text-destructive">
+              <div className="mb-4 p-3 rounded-lg border border-destructive/30 bg-destructive/10 text-sm text-destructive">
                 {error}
               </div>
             )}

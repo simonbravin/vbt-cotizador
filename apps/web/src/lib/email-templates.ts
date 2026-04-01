@@ -1,16 +1,16 @@
 /**
  * Shared VBT email layout for transactional messages.
- * Table-based wrapper for broad client support; accent bar + clear type hierarchy.
+ * Table-based wrapper; Apple-style neutrals + single interactive blue accent.
  */
 export const VBT_EMAIL = {
-  headerBg: "#0f243b",
-  accent: "#e87722",
+  headerBg: "#000000",
+  accent: "#0071e3",
   bodyBg: "#ffffff",
-  pageBg: "#eef1f5",
-  text: "#374151",
-  textMuted: "#6b7280",
-  border: "#e5e7eb",
-  cardShadow: "0 4px 24px rgba(26, 58, 92, 0.1)",
+  pageBg: "#f5f5f7",
+  text: "#1d1d1f",
+  textMuted: "rgba(0,0,0,0.56)",
+  border: "#d2d2d7",
+  cardShadow: "0 5px 30px rgba(0, 0, 0, 0.12)",
 } as const;
 
 /** System stack for crisp rendering in Apple Mail, Gmail, Outlook.com */
@@ -48,12 +48,12 @@ function truncatePreheader(s: string, max = 100): string {
   return `${t.slice(0, max - 1)}…`;
 }
 
-/** Primary action button (orange) — use for one main CTA per email */
+/** Primary action — pill CTA, single accent blue */
 export function emailPrimaryButton(href: string, label: string): string {
-  return `<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:14px 28px;background-color:${VBT_EMAIL.accent};color:#ffffff !important;text-decoration:none;border-radius:8px;font-weight:600;font-size:15px;line-height:1.25;font-family:${EMAIL_FONT_STACK};">${escapeHtml(label)}</a>`;
+  return `<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:10px 22px;background-color:${VBT_EMAIL.accent};color:#ffffff !important;text-decoration:none;border-radius:980px;font-weight:400;font-size:17px;line-height:1.2;letter-spacing:-0.02em;font-family:${EMAIL_FONT_STACK};">${escapeHtml(label)}</a>`;
 }
 
-/** Inline text link (accent color) */
+/** Inline text link (accent) */
 export function emailTextLink(href: string, label: string): string {
   return `<a href="${escapeHtml(href)}" style="color:${VBT_EMAIL.accent};font-weight:600;text-decoration:none;">${escapeHtml(label)}</a>`;
 }
@@ -87,7 +87,7 @@ export function buildVbtEmailHtml(options: VbtEmailOptions): string {
     ? `
             <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top:24px;">
               <tr>
-                <td style="padding:16px 18px;background-color:#f8fafc;border-radius:8px;border-left:3px solid ${VBT_EMAIL.accent};font-family:${ff};font-size:14px;line-height:1.55;color:#4b5563;">
+                <td style="padding:16px 18px;background-color:#ffffff;border-radius:8px;border:1px solid ${VBT_EMAIL.border};font-family:${ff};font-size:14px;line-height:1.47;letter-spacing:-0.02em;color:${VBT_EMAIL.textMuted};">
                   ${escapeHtml(attachmentDescription)}
                 </td>
               </tr>
@@ -111,7 +111,7 @@ export function buildVbtEmailHtml(options: VbtEmailOptions): string {
       .vbt-header { padding: 20px 18px 22px 18px !important; }
       .vbt-logo { width: 34px !important; height: 34px !important; }
       .vbt-title { font-size: 22px !important; line-height: 1.32 !important; }
-      .vbt-body { padding: 24px 18px 22px 18px !important; font-size: 14px !important; line-height: 1.6 !important; }
+      .vbt-body { padding: 24px 18px 22px 18px !important; font-size: 15px !important; line-height: 1.47 !important; }
       .vbt-cta-wrap { margin-top: 16px !important; }
       .vbt-btn { width: 100% !important; text-align: center !important; box-sizing: border-box !important; }
     }
@@ -124,15 +124,15 @@ export function buildVbtEmailHtml(options: VbtEmailOptions): string {
       <td class="vbt-shell" align="center" style="padding:32px 16px;">
         <table class="vbt-card" role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:${VBT_EMAIL.cardShadow};">
           <tr>
-            <td style="height:4px;line-height:4px;font-size:0;background-color:${VBT_EMAIL.accent};">&nbsp;</td>
+            <td style="height:3px;line-height:3px;font-size:0;background-color:${VBT_EMAIL.accent};">&nbsp;</td>
           </tr>
           <tr>
             <td class="vbt-header" style="background-color:${VBT_EMAIL.headerBg};padding:28px 32px 32px 32px;">
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
                 <tr>
                   <td valign="top" style="padding-right:12px;">
-                    <p style="margin:0 0 10px;font-family:${ff};font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.75);">${escapeHtml(subtitle)}</p>
-                    <h1 class="vbt-title" style="margin:0;font-family:${ff};font-size:26px;font-weight:600;color:#ffffff;line-height:1.28;">${escapeHtml(title)}</h1>
+                    <p style="margin:0 0 10px;font-family:${ff};font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:rgba(255,255,255,0.55);">${escapeHtml(subtitle)}</p>
+                    <h1 class="vbt-title" style="margin:0;font-family:${ff};font-size:26px;font-weight:600;color:#ffffff;line-height:1.1;letter-spacing:-0.02em;">${escapeHtml(title)}</h1>
                   </td>
                   <td valign="top" align="right" style="width:54px;">
                     <img class="vbt-logo" src="${escapeHtml(logoUrl)}" alt="VISION" width="40" height="40" style="display:block;width:40px;height:40px;object-fit:contain;border:0;outline:none;text-decoration:none;">
@@ -142,7 +142,7 @@ export function buildVbtEmailHtml(options: VbtEmailOptions): string {
             </td>
           </tr>
           <tr>
-            <td class="vbt-body" style="padding:36px 32px 32px 32px;font-family:${ff};font-size:15px;line-height:1.65;color:${VBT_EMAIL.text};background-color:${VBT_EMAIL.bodyBg};">
+            <td class="vbt-body" style="padding:36px 32px 32px 32px;font-family:${ff};font-size:17px;line-height:1.47;letter-spacing:-0.02em;color:${VBT_EMAIL.text};background-color:${VBT_EMAIL.bodyBg};">
               ${bodyHtml}
               ${
                 ctaHtml
@@ -156,14 +156,14 @@ export function buildVbtEmailHtml(options: VbtEmailOptions): string {
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top:28px;border-top:1px solid ${VBT_EMAIL.border};">
                 <tr>
                   <td style="padding-top:22px;">
-                    <p style="margin:0;font-family:${ff};font-size:12px;line-height:1.55;color:${VBT_EMAIL.textMuted};">${escapeHtml(footerText)}</p>
+                    <p style="margin:0;font-family:${ff};font-size:12px;line-height:1.4;letter-spacing:-0.01em;color:${VBT_EMAIL.textMuted};">${escapeHtml(footerText)}</p>
                   </td>
                 </tr>
               </table>
             </td>
           </tr>
         </table>
-        <p style="margin:20px 0 0;font-family:${ff};font-size:11px;line-height:1.4;color:#9ca3af;text-align:center;max-width:600px;">
+        <p style="margin:20px 0 0;font-family:${ff};font-size:11px;line-height:1.4;color:rgba(0,0,0,0.48);text-align:center;max-width:600px;">
           © Vision Building Technologies · Vision Latam
         </p>
       </td>

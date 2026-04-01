@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Warehouse, Plus, Pencil, Trash2 } from "lucide-react";
 import { useT } from "@/lib/i18n/context";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { FilterSelect } from "@/components/ui/filter-select";
 
 type Country = { id: string; code: string; name: string };
 
@@ -102,7 +103,7 @@ export default function WarehousesPage() {
         </div>
         <button
           onClick={openAdd}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-sm text-sm font-medium hover:opacity-90"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90"
         >
           <Plus className="w-4 h-4" /> {t("admin.warehouses.add")}
         </button>
@@ -113,7 +114,7 @@ export default function WarehousesPage() {
           <div key={w.id} className="surface-card p-4">
               <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-primary/10">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
                   <Warehouse className="w-5 h-5 text-primary" />
                 </div>
                 <div>
@@ -132,14 +133,14 @@ export default function WarehousesPage() {
                 <div className="flex items-center gap-1.5">
                   <button
                     onClick={() => openEdit(w)}
-                    className="p-1.5 text-muted-foreground/70 hover:text-muted-foreground rounded-sm"
+                    className="p-1.5 text-muted-foreground/70 hover:text-muted-foreground rounded-lg"
                     title={t("common.edit")}
                   >
                     <Pencil className="w-3.5 h-3.5" />
                   </button>
                   <button
                     onClick={() => setDeleteTarget(w)}
-                    className="p-1.5 text-muted-foreground/70 hover:text-destructive rounded-sm"
+                    className="p-1.5 text-muted-foreground/70 hover:text-destructive rounded-lg"
                     title={t("common.delete")}
                     disabled={saving}
                   >
@@ -153,7 +154,7 @@ export default function WarehousesPage() {
 
       {showAdd && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4">
-          <div className="m-4 w-full max-w-sm rounded-sm border border-border/60 bg-background p-6">
+          <div className="m-4 w-full max-w-sm rounded-lg border border-border/60 bg-background p-6">
             <h3 className="mb-4 text-lg font-semibold tracking-tight text-foreground">{editItem ? t("admin.warehouses.editTitle") : t("admin.warehouses.addTitle")}</h3>
             <div className="space-y-3">
               <div>
@@ -163,7 +164,7 @@ export default function WarehousesPage() {
                   value={form.name}
                   onChange={(e) => setForm(p => ({ ...p, name: e.target.value }))}
                   placeholder={t("admin.warehouses.namePlaceholder")}
-                  className="w-full rounded-sm border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 />
               </div>
               <div>
@@ -173,21 +174,19 @@ export default function WarehousesPage() {
                   value={form.location}
                   onChange={(e) => setForm(p => ({ ...p, location: e.target.value }))}
                   placeholder={t("admin.warehouses.locationPlaceholder")}
-                  className="w-full rounded-sm border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 />
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-muted-foreground">{t("admin.warehouses.country")}</label>
-                <select
+                <FilterSelect
                   value={form.countryCode}
-                  onChange={(e) => setForm(p => ({ ...p, countryCode: e.target.value }))}
-                  className="w-full rounded-sm border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                >
-                  <option value="">—</option>
-                  {countries.map((c) => (
-                    <option key={c.id} value={c.code}>{c.name}</option>
-                  ))}
-                </select>
+                  onValueChange={(v) => setForm((p) => ({ ...p, countryCode: v }))}
+                  emptyOptionLabel="—"
+                  options={countries.map((c) => ({ value: c.code, label: c.name }))}
+                  aria-label={t("admin.warehouses.country")}
+                  triggerClassName="h-10 w-full min-w-0 max-w-full text-sm"
+                />
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-muted-foreground">{t("admin.warehouses.address")}</label>
@@ -196,7 +195,7 @@ export default function WarehousesPage() {
                   value={form.address}
                   onChange={(e) => setForm(p => ({ ...p, address: e.target.value }))}
                   placeholder={t("admin.warehouses.addressPlaceholder")}
-                  className="w-full rounded-sm border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 />
               </div>
               <div>
@@ -206,7 +205,7 @@ export default function WarehousesPage() {
                   value={form.managerName}
                   onChange={(e) => setForm(p => ({ ...p, managerName: e.target.value }))}
                   placeholder={t("admin.warehouses.managerPlaceholder")}
-                  className="w-full rounded-sm border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 />
               </div>
               <div>
@@ -216,7 +215,7 @@ export default function WarehousesPage() {
                   value={form.contactPhone}
                   onChange={(e) => setForm(p => ({ ...p, contactPhone: e.target.value }))}
                   placeholder={t("admin.warehouses.contactPhonePlaceholder")}
-                  className="w-full rounded-sm border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 />
               </div>
               <div>
@@ -226,13 +225,13 @@ export default function WarehousesPage() {
                   value={form.contactEmail}
                   onChange={(e) => setForm(p => ({ ...p, contactEmail: e.target.value }))}
                   placeholder={t("admin.warehouses.contactEmailPlaceholder")}
-                  className="w-full rounded-sm border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 />
               </div>
             </div>
             <div className="mt-4 flex justify-end gap-3">
-              <button type="button" onClick={() => setShowAdd(false)} className="rounded-sm border border-border/60 px-4 py-2 text-sm text-foreground hover:bg-muted">{t("common.cancel")}</button>
-              <button type="button" onClick={save} disabled={saving || !form.name} className="rounded-sm border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50">
+              <button type="button" onClick={() => setShowAdd(false)} className="rounded-lg border border-border/60 px-4 py-2 text-sm text-foreground hover:bg-muted">{t("common.cancel")}</button>
+              <button type="button" onClick={save} disabled={saving || !form.name} className="rounded-lg border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50">
                 {saving ? t("common.saving") : t("common.save")}
               </button>
             </div>

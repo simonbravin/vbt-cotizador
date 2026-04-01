@@ -28,7 +28,7 @@ export default async function VerificarCertificadoPage({ params }: { params: { c
 
   return (
     <div className="min-h-screen bg-background text-foreground p-6 md:p-10">
-      <div className="max-w-lg mx-auto border border-border rounded-sm p-6 md:p-8 surface-card space-y-4">
+      <div className="max-w-lg mx-auto border border-border rounded-lg p-6 md:p-8 surface-card space-y-4">
         <p className="text-xs uppercase tracking-wider text-muted-foreground">Vision Building Technologies</p>
         <h1 className="text-xl font-semibold text-foreground">Certificado verificado</h1>
         <p className="text-sm text-muted-foreground leading-relaxed">

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ClipboardList, ChevronRight, FileText } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { useT } from "@/lib/i18n/context";
+import { FilterSelect } from "@/components/ui/filter-select";
 import { ViewLayoutToggle } from "@/components/ui/view-layout-toggle";
 
 const SEARCH_DEBOUNCE_MS = 350;
@@ -97,7 +98,7 @@ export function SuperadminQuotesListClient() {
   return (
     <div className="space-y-4">
       {error && (
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-sm border border-alert-warningBorder bg-alert-warning px-4 py-2 text-sm text-foreground">
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-alert-warningBorder bg-alert-warning px-4 py-2 text-sm text-foreground">
           <span>
             {error}
             {quotes.length === 0 && t("superadmin.quotesList.emptyListHint")}
@@ -105,35 +106,33 @@ export function SuperadminQuotesListClient() {
           <button
             type="button"
             onClick={() => fetchQuotes()}
-            className="rounded-sm border border-primary/20 bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
+            className="rounded-lg border border-primary/20 bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
           >
             {t("superadmin.quotesList.retry")}
           </button>
         </div>
       )}
       <div className="flex flex-wrap items-center gap-3">
-        <select
+        <FilterSelect
           value={organizationId}
-          onChange={(e) => setOrganizationId(e.target.value)}
-          className="rounded-sm border border-input bg-background px-3 py-1.5 text-sm min-w-[180px]"
-        >
-          <option value="">{t("superadmin.quotesList.allCompanies")}</option>
-          {partners.map((p) => (
-            <option key={p.id} value={p.id}>{p.name}</option>
-          ))}
-        </select>
+          onValueChange={setOrganizationId}
+          emptyOptionLabel={t("superadmin.quotesList.allCompanies")}
+          options={partners.map((p) => ({ value: p.id, label: p.name }))}
+          aria-label={t("admin.entities.partnerLabel")}
+          triggerClassName="h-9 min-w-[180px] max-w-[min(100vw-2rem,280px)] text-sm"
+        />
         <input
           type="search"
           placeholder={t("superadmin.quotesList.searchPlaceholder")}
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && setDebouncedSearch(searchInput.trim())}
-          className="rounded-sm border border-input bg-background px-3 py-1.5 text-sm min-w-[200px]"
+          className="rounded-lg border border-input bg-background px-3 py-1.5 text-sm min-w-[200px]"
         />
         <button
           type="button"
           onClick={() => setDebouncedSearch(searchInput.trim())}
-          className="rounded-sm px-3 py-1.5 text-sm font-medium bg-muted text-muted-foreground hover:bg-muted/80"
+          className="rounded-lg px-3 py-1.5 text-sm font-medium bg-muted text-muted-foreground hover:bg-muted/80"
         >
           {t("superadmin.quotesList.search")}
         </button>
@@ -141,7 +140,7 @@ export function SuperadminQuotesListClient() {
         <button
           type="button"
           onClick={() => setStatusFilter("")}
-          className={`rounded-sm px-3 py-1.5 text-sm font-medium ${!statusFilter ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
+          className={`rounded-lg px-3 py-1.5 text-sm font-medium ${!statusFilter ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
         >
           {t("superadmin.quotesList.all")}
         </button>
@@ -150,7 +149,7 @@ export function SuperadminQuotesListClient() {
             key={s}
             type="button"
             onClick={() => setStatusFilter(s)}
-            className={`rounded-sm px-3 py-1.5 text-sm font-medium ${statusFilter === s ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium ${statusFilter === s ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
           >
             {t(STATUS_KEYS[s] ?? s)}
           </button>
@@ -216,7 +215,7 @@ export function SuperadminQuotesListClient() {
                         <span
                           className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
                             q.status === "accepted"
-                              ? "bg-emerald-500/15 text-emerald-800 dark:text-emerald-200"
+                              ? "border border-primary/25 bg-primary/10 text-primary"
                               : q.status === "rejected"
                                 ? "border border-destructive/25 bg-destructive/10 text-destructive"
                                 : q.status === "sent"
@@ -257,13 +256,13 @@ export function SuperadminQuotesListClient() {
                   className="surface-card p-5 transition-colors hover:border-border"
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-primary/10">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
                       <FileText className="h-5 w-5 text-primary" />
                     </div>
                     <span
                       className={`inline-flex shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
                         q.status === "accepted"
-                          ? "bg-emerald-500/15 text-emerald-800 dark:text-emerald-200"
+                          ? "border border-primary/25 bg-primary/10 text-primary"
                           : q.status === "rejected"
                             ? "border border-destructive/25 bg-destructive/10 text-destructive"
                             : q.status === "sent"

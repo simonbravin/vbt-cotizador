@@ -37,7 +37,7 @@ export default async function SuperadminCertificateVerifyToolPage({
         />
         <button
           type="submit"
-          className="rounded-sm border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-muted/50"
+          className="rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-muted/50"
         >
           Abrir comprobacion
         </button>
@@ -50,13 +50,13 @@ export default async function SuperadminCertificateVerifyToolPage({
             <Link
               href={verifyHref}
               target="_blank"
-              className="rounded-sm border border-border px-3 py-1.5 hover:bg-muted/50"
+              className="rounded-lg border border-border px-3 py-1.5 hover:bg-muted/50"
             >
               Abrir verificacion publica
             </Link>
             <Link
               href="/superadmin/training/certificates"
-              className="rounded-sm border border-border px-3 py-1.5 hover:bg-muted/50"
+              className="rounded-lg border border-border px-3 py-1.5 hover:bg-muted/50"
             >
               Ir a lista de certificados
             </Link>

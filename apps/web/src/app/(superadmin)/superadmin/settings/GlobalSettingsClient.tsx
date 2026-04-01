@@ -128,7 +128,7 @@ export function GlobalSettingsClient() {
     <div className="space-y-8">
       {message && (
         <div
-          className={`rounded-sm border p-3 text-sm ${
+          className={`rounded-lg border p-3 text-sm ${
             message.type === "success" ? "border-alert-successBorder bg-alert-success text-foreground" : "border-alert-errorBorder bg-alert-error text-foreground"
           }`}
         >
@@ -139,7 +139,7 @@ export function GlobalSettingsClient() {
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="surface-card p-6">
           <div className="flex items-center gap-3">
-            <div className="rounded-sm bg-muted p-2">
+            <div className="rounded-lg bg-muted p-2">
               <DollarSign className="h-5 w-5 text-primary" />
             </div>
             <div>
@@ -158,7 +158,7 @@ export function GlobalSettingsClient() {
                 step={0.5}
                 value={marginMinPct}
                 onChange={(e) => setMarginMinPct(e.target.value)}
-                className="mt-1 w-full rounded-sm border border-input bg-background px-3 py-2 text-sm text-foreground"
+                className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground"
                 placeholder={t("superadmin.settings.placeholderEg15")}
               />
             </div>
@@ -172,7 +172,7 @@ export function GlobalSettingsClient() {
                 step={0.5}
                 value={marginMaxPct}
                 onChange={(e) => setMarginMaxPct(e.target.value)}
-                className="mt-1 w-full rounded-sm border border-input bg-background px-3 py-2 text-sm text-foreground"
+                className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground"
                 placeholder={t("superadmin.settings.placeholderEg20")}
               />
             </div>
@@ -184,7 +184,7 @@ export function GlobalSettingsClient() {
                 step={1}
                 value={entryFeeUsd}
                 onChange={(e) => setEntryFeeUsd(e.target.value)}
-                className="mt-1 w-full rounded-sm border border-input bg-background px-3 py-2 text-sm text-foreground"
+                className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground"
                 placeholder={t("superadmin.settings.placeholderZero")}
               />
             </div>
@@ -196,7 +196,7 @@ export function GlobalSettingsClient() {
                 step={1}
                 value={trainingFeeUsd}
                 onChange={(e) => setTrainingFeeUsd(e.target.value)}
-                className="mt-1 w-full rounded-sm border border-input bg-background px-3 py-2 text-sm text-foreground"
+                className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground"
                 placeholder={t("superadmin.settings.placeholderZero")}
               />
             </div>
@@ -209,7 +209,7 @@ export function GlobalSettingsClient() {
                 step={0.5}
                 value={visionLatamCommissionPct}
                 onChange={(e) => setVisionLatamCommissionPct(e.target.value)}
-                className="mt-1 w-full rounded-sm border border-input bg-background px-3 py-2 text-sm text-foreground"
+                className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground"
                 placeholder={t("superadmin.settings.placeholderEg20")}
               />
               <p className="mt-0.5 text-xs text-muted-foreground">{t("superadmin.settings.vlCommissionHelp")}</p>
@@ -225,7 +225,7 @@ export function GlobalSettingsClient() {
                     step={0.5}
                     value={rateS80}
                     onChange={(e) => setRateS80(e.target.value)}
-                    className="mt-1 w-full rounded-sm border border-input bg-background px-3 py-2 text-sm"
+                    className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
                     placeholder={t("superadmin.settings.placeholderEg37")}
                   />
                 </div>
@@ -237,7 +237,7 @@ export function GlobalSettingsClient() {
                     step={0.5}
                     value={rateS150}
                     onChange={(e) => setRateS150(e.target.value)}
-                    className="mt-1 w-full rounded-sm border border-input bg-background px-3 py-2 text-sm"
+                    className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
                     placeholder={t("superadmin.settings.placeholderEg67")}
                   />
                 </div>
@@ -249,7 +249,7 @@ export function GlobalSettingsClient() {
                     step={0.5}
                     value={rateS200}
                     onChange={(e) => setRateS200(e.target.value)}
-                    className="mt-1 w-full rounded-sm border border-input bg-background px-3 py-2 text-sm"
+                    className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
                     placeholder={t("superadmin.settings.placeholderEg85")}
                   />
                 </div>
@@ -260,7 +260,7 @@ export function GlobalSettingsClient() {
 
         <div className="surface-card p-6">
           <div className="flex items-center gap-3">
-            <div className="rounded-sm bg-muted p-2">
+            <div className="rounded-lg bg-muted p-2">
               <Eye className="h-5 w-5 text-primary" />
             </div>
             <div>
@@ -275,7 +275,7 @@ export function GlobalSettingsClient() {
                   type="checkbox"
                   checked={visibility[key] ?? true}
                   onChange={(e) => setVisibility((v) => ({ ...v, [key]: e.target.checked }))}
-                  className="h-4 w-4 rounded-sm border-input"
+                  className="h-4 w-4 rounded-lg border-input"
                 />
                 <span className="text-sm text-foreground">{t(labelKey)}</span>
               </label>
@@ -285,7 +285,7 @@ export function GlobalSettingsClient() {
 
         <div className="surface-card p-6">
           <div className="flex items-center gap-3">
-            <div className="rounded-sm bg-muted p-2">
+            <div className="rounded-lg bg-muted p-2">
               <Lock className="h-5 w-5 text-muted-foreground" />
             </div>
             <div>
@@ -298,7 +298,7 @@ export function GlobalSettingsClient() {
 
         <div className="surface-card p-6">
           <div className="flex items-center gap-3">
-            <div className="rounded-sm bg-primary/10 p-2">
+            <div className="rounded-lg bg-primary/10 p-2">
               <Building2 className="h-5 w-5 text-primary" />
             </div>
             <div>
@@ -317,7 +317,7 @@ export function GlobalSettingsClient() {
           type="button"
           onClick={handleSave}
           disabled={saving}
-          className="inline-flex items-center gap-2 rounded-sm border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-lg border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
         >
           {saving && <Loader2 className="h-4 w-4 animate-spin" />}
           {t("superadmin.settings.save")}

@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { CheckCircle, XCircle, User } from "lucide-react";
 import { useT } from "@/lib/i18n/context";
+import { cn } from "@/lib/utils";
+import { FilterSelect } from "@/components/ui/filter-select";
 
 const ROLES = ["SUPERADMIN", "ADMIN", "SALES", "VIEWER"] as const;
 
@@ -67,8 +69,8 @@ export function UsersClient({ canChangeRole }: { canChangeRole: boolean }) {
   };
 
   const STATUS_COLORS: Record<string, string> = {
-    PENDING: "bg-amber-500/15 text-amber-900 dark:text-amber-200",
-    ACTIVE: "bg-emerald-500/15 text-emerald-800 dark:text-emerald-200",
+    PENDING: "border border-border/80 bg-muted text-foreground",
+    ACTIVE: "border border-primary/25 bg-primary/10 text-primary",
     REJECTED: "border border-destructive/25 bg-destructive/10 text-destructive",
     SUSPENDED: "bg-muted text-muted-foreground",
   };
@@ -126,16 +128,17 @@ export function UsersClient({ canChangeRole }: { canChangeRole: boolean }) {
                   </td>
                   <td className="px-4 py-3">
                     {canChangeRole && u.status === "ACTIVE" ? (
-                      <select
+                      <FilterSelect
                         value={role === "—" ? "VIEWER" : role}
-                        onChange={(e) => { const v = e.target.value; if (v) setRole(u.id, v); }}
+                        onValueChange={(v) => v && setRole(u.id, v)}
+                        options={ROLES.map((r) => ({ value: r, label: t(ROLE_KEYS[r]) }))}
                         disabled={updatingRoleId === u.id}
-                        className={`text-xs px-2 py-1 rounded-full font-medium border-0 cursor-pointer ${ROLE_COLORS[role] ?? "bg-muted text-muted-foreground"}`}
-                      >
-                        {ROLES.map((r) => (
-                          <option key={r} value={r}>{t(ROLE_KEYS[r])}</option>
-                        ))}
-                      </select>
+                        aria-label={t("admin.users.role")}
+                        triggerClassName={cn(
+                          "h-8 max-w-[11rem] min-w-0 border-0 text-xs font-medium shadow-none rounded-full",
+                          ROLE_COLORS[role] ?? "bg-muted text-muted-foreground"
+                        )}
+                      />
                     ) : (
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${ROLE_COLORS[role] ?? "bg-muted text-muted-foreground"}`}>
                         {roleLabel(role)}
@@ -150,13 +153,13 @@ export function UsersClient({ canChangeRole }: { canChangeRole: boolean }) {
                       <div className="flex gap-2">
                         <button
                           onClick={() => approve(u.id)}
-                          className="inline-flex items-center gap-1 rounded-sm border border-primary/20 bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90"
+                          className="inline-flex items-center gap-1 rounded-lg border border-primary/20 bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90"
                         >
                           <CheckCircle className="w-3.5 h-3.5" /> {t("admin.users.approve")}
                         </button>
                         <button
                           onClick={() => reject(u.id)}
-                          className="inline-flex items-center gap-1 rounded-sm border border-destructive/30 bg-destructive/10 px-2.5 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/15"
+                          className="inline-flex items-center gap-1 rounded-lg border border-destructive/30 bg-destructive/10 px-2.5 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/15"
                         >
                           <XCircle className="w-3.5 h-3.5" /> {t("admin.users.reject")}
                         </button>

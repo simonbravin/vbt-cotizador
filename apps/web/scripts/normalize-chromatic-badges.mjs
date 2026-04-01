@@ -28,7 +28,7 @@ const REPLACEMENTS = [
   [/text-vbt-orange/g, "text-primary"],
   [/border-vbt-orange/g, "border-primary"],
   [/hover:bg-orange-50/g, "hover:bg-primary/10"],
-  [/border-orange-600\/30/g, "border-vbt-orange/30"],
+  [/border-orange-600\/30/g, "border-primary/30"],
   // Filled orange CTAs: add brand border (if not already present in string — idempotent-ish)
 ];
 

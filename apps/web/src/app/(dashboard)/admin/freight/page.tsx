@@ -5,6 +5,7 @@ import { Plus, Pencil, Ship, Search } from "lucide-react";
 import { useT } from "@/lib/i18n/context";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { FilterSelect } from "@/components/ui/filter-select";
 
 export default function FreightPage() {
   const t = useT();
@@ -57,12 +58,12 @@ export default function FreightPage() {
   };
 
   const getStatus = (p: { expiryDate?: string | null }) => {
-    if (!p.expiryDate) return { label: t("admin.freight.statusActive"), className: "bg-emerald-500/15 text-emerald-800 dark:text-emerald-200" };
+    if (!p.expiryDate) return { label: t("admin.freight.statusActive"), className: "border border-primary/25 bg-primary/10 text-primary" };
     const exp = new Date(p.expiryDate);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     exp.setHours(0, 0, 0, 0);
-    return exp < today ? { label: t("admin.freight.statusExpired"), className: "bg-amber-500/15 text-amber-900 dark:text-amber-200" } : { label: t("admin.freight.statusActive"), className: "bg-emerald-500/15 text-emerald-800 dark:text-emerald-200" };
+    return exp < today ? { label: t("admin.freight.statusExpired"), className: "border border-border/80 bg-muted text-foreground" } : { label: t("admin.freight.statusActive"), className: "border border-primary/25 bg-primary/10 text-primary" };
   };
 
   const save = async () => {
@@ -195,7 +196,7 @@ export default function FreightPage() {
                 <td className="px-4 py-3">
                   <button
                     onClick={() => openEdit(p)}
-                    className="p-1.5 text-muted-foreground/70 hover:text-muted-foreground rounded-sm"
+                    className="p-1.5 text-muted-foreground/70 hover:text-muted-foreground rounded-lg"
                   >
                     <Pencil className="w-3.5 h-3.5" />
                   </button>
@@ -208,10 +209,10 @@ export default function FreightPage() {
 
       {showAdd && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4">
-          <div className="m-4 w-full max-w-md rounded-sm border border-border/60 bg-background p-6">
+          <div className="m-4 w-full max-w-md rounded-lg border border-border/60 bg-background p-6">
             <h3 className="mb-4 text-lg font-semibold tracking-tight text-foreground">{editItem ? t("admin.freight.editTitle") : t("admin.freight.addTitle")}</h3>
             {saveError && (
-              <div className="mb-4 rounded-sm border border-destructive/25 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+              <div className="mb-4 rounded-lg border border-destructive/25 bg-destructive/5 px-3 py-2 text-sm text-destructive">
                 {saveError}
               </div>
             )}
@@ -237,14 +238,14 @@ export default function FreightPage() {
                 </div>
                 <div>
                   <label className="mb-1 block text-xs font-medium text-muted-foreground">{t("admin.taxes.countryLabel")}</label>
-                  <select
+                  <FilterSelect
                     value={form.countryId}
-                    onChange={(e) => setForm(p => ({ ...p, countryId: e.target.value }))}
-                    className="w-full rounded-sm border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  >
-                    <option value="">{t("admin.taxes.selectOption")}</option>
-                    {countries.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
+                    onValueChange={(v) => setForm((p) => ({ ...p, countryId: v }))}
+                    emptyOptionLabel={t("admin.taxes.selectOption")}
+                    options={countries.map((c) => ({ value: c.id, label: c.name }))}
+                    aria-label={t("admin.taxes.countryLabel")}
+                    triggerClassName="h-10 w-full min-w-0 max-w-full text-sm"
+                  />
                 </div>
                 <div>
                   <label className="mb-1 block text-xs font-medium text-muted-foreground">{t("admin.freight.costPerContainerUsd")}</label>
@@ -256,7 +257,7 @@ export default function FreightPage() {
                       step="100"
                       value={form.freightPerContainer || ""}
                       onChange={(e) => setForm(p => ({ ...p, freightPerContainer: parseFloat(e.target.value) || 0 }))}
-                      className="w-full rounded-sm border border-input bg-background py-2 pl-6 pr-3 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      className="w-full rounded-lg border border-input bg-background py-2 pl-6 pr-3 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                     />
                   </div>
                 </div>
@@ -266,7 +267,7 @@ export default function FreightPage() {
                     type="date"
                     value={form.expiryDate}
                     onChange={(e) => setForm(p => ({ ...p, expiryDate: e.target.value }))}
-                    className="w-full rounded-sm border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   />
                   <p className="text-xs text-muted-foreground mt-0.5">{t("admin.freight.carrierValidity")}</p>
                 </div>
@@ -277,7 +278,7 @@ export default function FreightPage() {
                     value={form.notes}
                     onChange={(e) => setForm(p => ({ ...p, notes: e.target.value }))}
                     placeholder={t("admin.freight.notesPlaceholder")}
-                    className="w-full rounded-sm border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   />
                 </div>
                 <div className="col-span-2 flex items-center gap-2">
@@ -286,19 +287,19 @@ export default function FreightPage() {
                     id="isDefault"
                     checked={form.isDefault}
                     onChange={(e) => setForm(p => ({ ...p, isDefault: e.target.checked }))}
-                    className="rounded-sm border-input"
+                    className="rounded-lg border-input"
                   />
                   <label htmlFor="isDefault" className="text-sm text-muted-foreground">{t("admin.freight.setDefault")}</label>
                 </div>
               </div>
             </div>
             <div className="mt-4 flex justify-end gap-3">
-              <button type="button" onClick={() => setShowAdd(false)} className="rounded-sm border border-border/60 px-4 py-2 text-sm text-foreground hover:bg-muted">{t("common.cancel")}</button>
+              <button type="button" onClick={() => setShowAdd(false)} className="rounded-lg border border-border/60 px-4 py-2 text-sm text-foreground hover:bg-muted">{t("common.cancel")}</button>
               <button
                 type="button"
                 onClick={save}
                 disabled={saving || !form.name || !form.countryId}
-                className="rounded-sm border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
+                className="rounded-lg border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
               >
                 {saving ? t("common.saving") : t("common.save")}
               </button>

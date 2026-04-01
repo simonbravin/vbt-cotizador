@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useT } from "@/lib/i18n/context";
+import { FilterSelect } from "@/components/ui/filter-select";
 
 export default function SettingsPage() {
   const t = useT();
@@ -63,7 +64,7 @@ export default function SettingsPage() {
   if (errorDetail && !settings) {
     return (
       <div className="max-w-2xl space-y-6">
-        <div className="rounded-sm border border-alert-errorBorder bg-alert-error p-4 text-sm text-foreground">
+        <div className="rounded-lg border border-alert-errorBorder bg-alert-error p-4 text-sm text-foreground">
           {t("admin.settings.failedToLoad")}: {errorDetail}
         </div>
       </div>
@@ -81,7 +82,7 @@ export default function SettingsPage() {
 
       {msg && (
         <div
-          className={`rounded-sm border p-3 text-sm ${
+          className={`rounded-lg border p-3 text-sm ${
             msg === "success"
               ? "border-alert-successBorder bg-alert-success text-foreground"
               : "border-alert-errorBorder bg-alert-error text-foreground"
@@ -100,13 +101,13 @@ export default function SettingsPage() {
           ].map(({ key, labelKey, opts }) => (
             <div key={key}>
               <label className="mb-1 block text-sm font-medium text-foreground">{t(labelKey)}</label>
-              <select
+              <FilterSelect
                 value={settings[key] ?? ""}
-                onChange={(e) => upd(key, e.target.value)}
-                className="input-native"
-              >
-                {opts.map((o) => <option key={o} value={o}>{o}</option>)}
-              </select>
+                onValueChange={(v) => upd(key, v)}
+                options={opts.map((o) => ({ value: o, label: o }))}
+                aria-label={t(labelKey)}
+                triggerClassName="h-10 w-full min-w-0 max-w-full text-sm"
+              />
             </div>
           ))}
         </div>
@@ -138,7 +139,7 @@ export default function SettingsPage() {
           <button
             onClick={save}
             disabled={saving}
-            className="rounded-sm border border-primary/20 bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
+            className="rounded-lg border border-primary/20 bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
           >
             {saving ? t("common.saving") : t("admin.settings.saveSettings")}
           </button>

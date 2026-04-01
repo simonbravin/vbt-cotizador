@@ -8,7 +8,16 @@ import { getInvoicedAmount } from "@/lib/sales";
 import { ArrowLeft, Download, FileText, Mail } from "lucide-react";
 import { useT } from "@/lib/i18n/context";
 import { Button } from "@/components/ui/button";
-import { DATE_INPUT_FILTER, NATIVE_SELECT_FILTER } from "@/lib/ui-filter-classes";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { DATE_INPUT_FILTER } from "@/lib/ui-filter-classes";
+
+const FILTER_ALL_VALUE = "__all__";
 
 type Statement = {
   client: { id: string; name: string };
@@ -179,32 +188,42 @@ export function StatementsClient({
       </Link>
 
       {fetchError ? (
-        <div className="rounded-sm border border-alert-warningBorder bg-alert-warning px-4 py-2 text-sm text-foreground">{fetchError}</div>
+        <div className="rounded-lg border border-alert-warningBorder bg-alert-warning px-4 py-2 text-sm text-foreground">{fetchError}</div>
       ) : null}
 
       <div className="flex flex-wrap gap-2 items-center">
-        <select
-          value={clientId}
-          onChange={(e) => setClientId(e.target.value)}
-          className={`${NATIVE_SELECT_FILTER} min-w-[160px]`}
-          aria-label={t("partner.sales.allClients")}
+        <Select
+          value={clientId || FILTER_ALL_VALUE}
+          onValueChange={(v) => setClientId(v === FILTER_ALL_VALUE ? "" : v)}
         >
-          <option value="">{t("partner.sales.allClients")}</option>
-          {clients.map((c) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </select>
-        <select
-          value={entityId}
-          onChange={(e) => setEntityId(e.target.value)}
-          className={`${NATIVE_SELECT_FILTER} min-w-[160px]`}
-          aria-label={t("partner.sales.allEntities")}
+          <SelectTrigger className="min-w-[160px] max-w-[min(100vw-2rem,320px)] border-border/80 bg-background" aria-label={t("partner.sales.allClients")}>
+            <SelectValue placeholder={t("partner.sales.allClients")} />
+          </SelectTrigger>
+          <SelectContent position="popper" align="start" sideOffset={6}>
+            <SelectItem value={FILTER_ALL_VALUE}>{t("partner.sales.allClients")}</SelectItem>
+            {clients.map((c) => (
+              <SelectItem key={c.id} value={c.id}>
+                {c.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={entityId || FILTER_ALL_VALUE}
+          onValueChange={(v) => setEntityId(v === FILTER_ALL_VALUE ? "" : v)}
         >
-          <option value="">{t("partner.sales.allEntities")}</option>
-          {data?.entities?.map((e) => (
-            <option key={e.id} value={e.id}>{e.name}</option>
-          ))}
-        </select>
+          <SelectTrigger className="min-w-[160px] max-w-[min(100vw-2rem,320px)] border-border/80 bg-background" aria-label={t("partner.sales.allEntities")}>
+            <SelectValue placeholder={t("partner.sales.allEntities")} />
+          </SelectTrigger>
+          <SelectContent position="popper" align="start" sideOffset={6}>
+            <SelectItem value={FILTER_ALL_VALUE}>{t("partner.sales.allEntities")}</SelectItem>
+            {(data?.entities ?? []).map((e) => (
+              <SelectItem key={e.id} value={e.id}>
+                {e.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <input
           type="date"
           value={from}
@@ -237,25 +256,25 @@ export function StatementsClient({
 
       {emailOpen && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/65 p-4" onClick={() => !emailSending && setEmailOpen(false)}>
-          <div className="mx-4 w-full max-w-md rounded-sm border border-border/60 bg-background p-5" onClick={(e) => e.stopPropagation()}>
+          <div className="mx-4 w-full max-w-md rounded-lg border border-border/60 bg-background p-5" onClick={(e) => e.stopPropagation()}>
             <h3 className="mb-3 font-semibold tracking-tight text-foreground">{t("partner.sales.emailStatementsTitle")}</h3>
             <p className="mb-3 text-sm text-muted-foreground">{t("partner.sales.emailStatementsHint")}</p>
             <div className="space-y-3">
               <div>
                 <label className="mb-1 block text-xs font-medium text-muted-foreground">{t("partner.sales.emailToLabel")}</label>
-                <input type="email" value={emailTo} onChange={(e) => setEmailTo(e.target.value)} placeholder={t("partner.sales.emailToPlaceholder")} className="w-full rounded-sm border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" />
+                <input type="email" value={emailTo} onChange={(e) => setEmailTo(e.target.value)} placeholder={t("partner.sales.emailToPlaceholder")} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" />
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-muted-foreground">{t("partner.sales.emailMessageLabel")}</label>
-                <textarea value={emailMessage} onChange={(e) => setEmailMessage(e.target.value)} rows={2} placeholder={t("partner.sales.emailMessagePlaceholder")} className="w-full resize-none rounded-sm border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" />
+                <textarea value={emailMessage} onChange={(e) => setEmailMessage(e.target.value)} rows={2} placeholder={t("partner.sales.emailMessagePlaceholder")} className="w-full resize-none rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" />
               </div>
-              {emailResult && <p className={`text-sm ${emailResult.type === "success" ? "text-emerald-700 dark:text-emerald-400" : "text-destructive"}`}>{emailResult.text}</p>}
+              {emailResult && <p className={`text-sm ${emailResult.type === "success" ? "text-primary" : "text-destructive"}`}>{emailResult.text}</p>}
             </div>
             <div className="mt-4 flex justify-end gap-2">
-              <button type="button" onClick={() => !emailSending && setEmailOpen(false)} className="rounded-sm px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted">
+              <button type="button" onClick={() => !emailSending && setEmailOpen(false)} className="rounded-lg px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted">
                 {t("common.cancel")}
               </button>
-              <button type="button" onClick={handleSendEmail} disabled={emailSending || !emailTo.trim()} className="rounded-sm border border-primary/20 bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50">
+              <button type="button" onClick={handleSendEmail} disabled={emailSending || !emailTo.trim()} className="rounded-lg border border-primary/20 bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50">
                 {emailSending ? t("partner.sales.sending") : t("partner.sales.send")}
               </button>
             </div>
@@ -264,7 +283,7 @@ export function StatementsClient({
         document.body
       )}
 
-      <div className="overflow-x-auto rounded-sm border border-border/60 bg-card">
+      <div className="overflow-x-auto rounded-lg border border-border/60 bg-card">
         {loading ? (
           <div className="p-8 text-center text-muted-foreground">{t("partner.sales.loading")}</div>
         ) : !data?.statements?.length ? (
@@ -272,7 +291,7 @@ export function StatementsClient({
         ) : (
           <div className="p-4 space-y-6">
             {data.statements.map((st) => (
-              <div key={st.client.id} className="border border-border/60 rounded-sm p-4">
+              <div key={st.client.id} className="border border-border/60 rounded-lg p-4">
                 <div className="flex justify-between items-center mb-3">
                   <h2 className="font-semibold text-foreground">{st.client.name}</h2>
                   <div className="text-sm">

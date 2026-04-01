@@ -13,7 +13,7 @@ type ViewLayoutToggleProps = {
 };
 
 const segmentClass =
-  "inline-flex items-center gap-1.5 rounded-sm px-3 py-2 text-sm font-medium transition-colors";
+  "inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[15px] font-medium tracking-[-0.02em] transition-colors";
 
 export function ViewLayoutToggle({ view, onViewChange, className }: ViewLayoutToggleProps) {
   const t = useT();
@@ -21,7 +21,7 @@ export function ViewLayoutToggle({ view, onViewChange, className }: ViewLayoutTo
   return (
     <div
       className={cn(
-        "inline-flex shrink-0 rounded-sm border border-border/60 bg-muted/30 p-0.5",
+        "inline-flex shrink-0 rounded-full border border-border/80 bg-filter p-1",
         className
       )}
       role="group"
@@ -35,7 +35,7 @@ export function ViewLayoutToggle({ view, onViewChange, className }: ViewLayoutTo
         className={cn(
           segmentClass,
           view === "table"
-            ? "bg-background text-foreground ring-1 ring-border/50"
+            ? "bg-background text-foreground shadow-sm"
             : "text-muted-foreground hover:text-foreground"
         )}
       >
@@ -50,7 +50,7 @@ export function ViewLayoutToggle({ view, onViewChange, className }: ViewLayoutTo
         className={cn(
           segmentClass,
           view === "cards"
-            ? "bg-background text-foreground ring-1 ring-border/50"
+            ? "bg-background text-foreground shadow-sm"
             : "text-muted-foreground hover:text-foreground"
         )}
       >

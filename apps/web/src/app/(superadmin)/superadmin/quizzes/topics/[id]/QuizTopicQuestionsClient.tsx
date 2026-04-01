@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useT } from "@/lib/i18n/context";
+import { FilterSelect } from "@/components/ui/filter-select";
 import { useToast } from "@/components/ui/use-toast";
 
 type Option = { id?: string; label: string; isCorrect: boolean; sortOrder?: number };
@@ -307,18 +308,20 @@ export function QuizTopicQuestionsClient({ topicId }: { topicId: string }) {
           value={newStem}
           onChange={(e) => setNewStem(e.target.value)}
         />
-        <select
-          className="input-native w-full max-w-xs"
+        <FilterSelect
           value={newStatus}
-          onChange={(e) => setNewStatus(e.target.value as "draft" | "published")}
-        >
-          <option value="draft">{t("superadmin.quizzes.status.draft")}</option>
-          <option value="published">{t("superadmin.quizzes.status.published")}</option>
-        </select>
+          onValueChange={(v) => setNewStatus(v as "draft" | "published")}
+          options={[
+            { value: "draft", label: t("superadmin.quizzes.status.draft") },
+            { value: "published", label: t("superadmin.quizzes.status.published") },
+          ]}
+          aria-label={t("superadmin.quizzes.colStatus")}
+          triggerClassName="h-10 w-full max-w-xs min-w-0 text-sm"
+        />
         {renderOptionEditors(newOptions, setNewOptions, "new")}
         <button
           type="submit"
-          className="rounded-sm bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+          className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
         >
           {t("superadmin.quizzes.questions.create")}
         </button>
@@ -332,7 +335,7 @@ export function QuizTopicQuestionsClient({ topicId }: { topicId: string }) {
               <button
                 type="button"
                 disabled={bulkLoading || questions.length === 0}
-                className="rounded-sm border border-border bg-background px-3 py-1.5 text-sm font-medium text-foreground disabled:opacity-50"
+                className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm font-medium text-foreground disabled:opacity-50"
                 onClick={() => void bulkSetStatus("published")}
               >
                 {t("superadmin.quizzes.questions.bulkPublishAll")}
@@ -340,7 +343,7 @@ export function QuizTopicQuestionsClient({ topicId }: { topicId: string }) {
               <button
                 type="button"
                 disabled={bulkLoading || questions.length === 0}
-                className="rounded-sm border border-border bg-background px-3 py-1.5 text-sm font-medium text-foreground disabled:opacity-50"
+                className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm font-medium text-foreground disabled:opacity-50"
                 onClick={() => void bulkSetStatus("draft")}
               >
                 {t("superadmin.quizzes.questions.bulkDraftAll")}
@@ -362,14 +365,16 @@ export function QuizTopicQuestionsClient({ topicId }: { topicId: string }) {
                       value={editStem}
                       onChange={(e) => setEditStem(e.target.value)}
                     />
-                    <select
-                      className="input-native w-full max-w-xs"
+                    <FilterSelect
                       value={editStatus}
-                      onChange={(e) => setEditStatus(e.target.value as "draft" | "published")}
-                    >
-                      <option value="draft">{t("superadmin.quizzes.status.draft")}</option>
-                      <option value="published">{t("superadmin.quizzes.status.published")}</option>
-                    </select>
+                      onValueChange={(v) => setEditStatus(v as "draft" | "published")}
+                      options={[
+                        { value: "draft", label: t("superadmin.quizzes.status.draft") },
+                        { value: "published", label: t("superadmin.quizzes.status.published") },
+                      ]}
+                      aria-label={t("superadmin.quizzes.colStatus")}
+                      triggerClassName="h-10 w-full max-w-xs min-w-0 text-sm"
+                    />
                     {renderOptionEditors(editOptions, setEditOptions, `edit-${q.id}`)}
                     <div className="flex gap-2">
                       <button
@@ -397,19 +402,24 @@ export function QuizTopicQuestionsClient({ topicId }: { topicId: string }) {
                         <span className="text-muted-foreground whitespace-nowrap">
                           {t("superadmin.quizzes.questions.rowStatusLabel")}
                         </span>
-                        <select
-                          className="input-native text-sm min-w-[9rem]"
+                        <FilterSelect
                           value={q.status === "published" ? "published" : "draft"}
                           disabled={rowStatusBusyId === q.id}
-                          onChange={(e) => {
-                            const v = e.target.value as "draft" | "published";
-                            void quickSetRowStatus(q.id, v, q.status === "published" ? "published" : "draft");
+                          onValueChange={(v) => {
+                            const next = v as "draft" | "published";
+                            void quickSetRowStatus(
+                              q.id,
+                              next,
+                              q.status === "published" ? "published" : "draft"
+                            );
                           }}
+                          options={[
+                            { value: "draft", label: t("superadmin.quizzes.status.draft") },
+                            { value: "published", label: t("superadmin.quizzes.status.published") },
+                          ]}
                           aria-label={t("superadmin.quizzes.questions.rowStatusLabel")}
-                        >
-                          <option value="draft">{t("superadmin.quizzes.status.draft")}</option>
-                          <option value="published">{t("superadmin.quizzes.status.published")}</option>
-                        </select>
+                          triggerClassName="h-9 min-w-[9rem] max-w-[min(100vw-2rem,12rem)] text-sm"
+                        />
                       </label>
                       <button
                         type="button"

@@ -102,11 +102,11 @@ export function SuperadminSidebar({ userDisplayName, hasAvatar, profileHref }: S
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
 
   return (
-    <div className="w-64 bg-header flex flex-col h-full flex-shrink-0 border-r border-header-foreground/15">
-      <div className="box-border h-14 flex-shrink-0 border-b border-header-foreground/15 px-3 py-0.5 flex items-center justify-center">
+    <div className="flex h-full w-64 flex-shrink-0 flex-col border-r border-header-foreground/10 bg-header">
+      <div className="box-border flex h-12 flex-shrink-0 items-center justify-center border-b border-header-foreground/10 px-3 py-0.5">
         <Link
           href="/superadmin/dashboard"
-          className="flex max-h-full w-full items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-header-foreground/35 focus-visible:ring-offset-2 focus-visible:ring-offset-header rounded-sm"
+          className="flex max-h-full w-full items-center justify-center rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-header-foreground/35 focus-visible:ring-offset-2 focus-visible:ring-offset-header"
           aria-label={t("nav.superadmin.dashboard")}
         >
           <Image
@@ -115,13 +115,13 @@ export function SuperadminSidebar({ userDisplayName, hasAvatar, profileHref }: S
             width={240}
             height={56}
             draggable={false}
-            className="max-h-[calc(3.5rem-0.25rem)] h-auto w-auto max-w-full object-contain object-center select-none [-webkit-user-drag:none]"
+            className="max-h-[calc(3rem-0.25rem)] h-auto w-auto max-w-full object-contain object-center select-none [-webkit-user-drag:none]"
             priority
           />
         </Link>
       </div>
-      <nav className="flex-1 px-3 py-4 overflow-y-auto space-y-0.5">
-        <p className="px-3 py-1.5 text-xs font-medium text-header-foreground/50 uppercase tracking-wider">
+      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-5">
+        <p className="px-3 py-2 text-micro font-semibold uppercase tracking-[0.5px] text-header-foreground/45">
           Platform
         </p>
         {superadminNavigation.map((item) => {
@@ -136,10 +136,10 @@ export function SuperadminSidebar({ userDisplayName, hasAvatar, profileHref }: S
                   type="button"
                   onClick={() => toggle(item.labelKey)}
                   className={cn(
-                    "w-full flex items-center gap-2.5 px-3 py-2 rounded-sm text-sm tracking-wide transition-colors border border-transparent",
+                    "flex w-full items-center gap-2.5 rounded-lg border border-transparent px-3 py-2.5 text-left text-[15px] tracking-[-0.02em] transition-colors",
                     hasActiveChild
-                      ? "text-header-foreground bg-header-foreground/10 border-header-foreground/10"
-                      : "text-header-foreground/70 hover:text-header-foreground hover:bg-header-foreground/5"
+                      ? "bg-header-foreground/10 text-header-foreground"
+                      : "text-header-foreground/75 hover:bg-header-foreground/5 hover:text-header-foreground"
                   )}
                 >
                   <item.icon className="w-4 h-4 flex-shrink-0" />
@@ -151,16 +151,16 @@ export function SuperadminSidebar({ userDisplayName, hasAvatar, profileHref }: S
                   )}
                 </button>
                 {isOpen && (
-                  <div className="ml-4 mt-0.5 space-y-0.5 border-l border-header-foreground/20 pl-3">
+                  <div className="ml-3 mt-1 space-y-1 border-l border-header-foreground/15 pl-3">
                     {item.children.map((child) => (
                       <Link
                         key={child.href}
                         href={child.href!}
                         className={cn(
-                          "flex items-center gap-2.5 px-3 py-2 rounded-sm text-sm transition-colors",
+                          "flex items-center gap-2.5 rounded-lg px-3 py-2 text-[14px] transition-colors",
                           child.href && isActive(child.href)
-                            ? "text-header-foreground bg-header-foreground/10 border border-header-foreground/10"
-                            : "text-header-foreground/60 hover:text-header-foreground hover:bg-header-foreground/5"
+                            ? "bg-header-foreground/10 text-header-foreground"
+                            : "text-header-foreground/60 hover:bg-header-foreground/5 hover:text-header-foreground"
                         )}
                       >
                         <child.icon className="w-3.5 h-3.5 flex-shrink-0" />
@@ -177,10 +177,10 @@ export function SuperadminSidebar({ userDisplayName, hasAvatar, profileHref }: S
               key={item.href}
               href={item.href!}
               className={cn(
-                "flex items-center gap-2.5 px-3 py-2 rounded-sm text-sm tracking-wide transition-colors border border-transparent",
+                "flex items-center gap-2.5 rounded-lg border border-transparent px-3 py-2.5 text-[15px] font-medium tracking-[-0.02em] transition-colors",
                 isActive(item.href!)
-                  ? "text-header-foreground bg-header-foreground/12 font-medium border-header-foreground/15"
-                  : "text-header-foreground/70 hover:text-header-foreground hover:bg-header-foreground/5"
+                  ? "bg-header-foreground/12 text-header-foreground"
+                  : "text-header-foreground/75 hover:bg-header-foreground/5 hover:text-header-foreground"
               )}
             >
               <item.icon className="w-4 h-4 flex-shrink-0" />
@@ -192,8 +192,8 @@ export function SuperadminSidebar({ userDisplayName, hasAvatar, profileHref }: S
       {userDisplayName?.trim() && profileHref ? (
         <SidebarUserFooter displayName={userDisplayName.trim()} role="SUPERADMIN" hasAvatar={hasAvatar} profileHref={profileHref} />
       ) : null}
-      <div className="px-4 py-3 border-t border-header-foreground/10">
-        <p className="text-header-foreground/30 text-xs text-center">{t("sidebar.superadminPortal")}</p>
+      <div className="border-t border-header-foreground/10 px-4 py-4">
+        <p className="text-center text-micro text-header-foreground/40">{t("sidebar.superadminPortal")}</p>
       </div>
     </div>
   );

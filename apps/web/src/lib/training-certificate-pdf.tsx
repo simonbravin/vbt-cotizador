@@ -1,88 +1,14 @@
 import React from "react";
-import { Document, Page, Text, View, StyleSheet, Image, pdf, Svg, Line } from "@react-pdf/renderer";
+import { Document, Page, Text, View, StyleSheet, Image, pdf } from "@react-pdf/renderer";
 import { CERTIFICATE_AUTHORIZED_BY, CERTIFICATE_ISSUED_BY } from "@/lib/certificate-signers";
-
-/**
- * Coordenadas del viewBox SVG (unidades lógicas). Debe coincidir con el aspecto A4 apaisado
- * para que la cuadrícula estire bien con preserveAspectRatio="none".
- * ~297×210 mm → 841.89×595.28 pt (ISO).
- */
-const PAGE_W = 841.89;
-const PAGE_H = 595.28;
-const GRID_MINOR_PT = 17;
-const GRID_MAJOR_EVERY = 4;
-
-function CertificateBlueprintGrid() {
-  const vert: React.ReactNode[] = [];
-  for (let i = 1; i * GRID_MINOR_PT < PAGE_W; i++) {
-    const x = i * GRID_MINOR_PT;
-    const major = i % GRID_MAJOR_EVERY === 0;
-    vert.push(
-      <Line
-        key={`gv${i}`}
-        x1={x}
-        y1={0}
-        x2={x}
-        y2={PAGE_H}
-        stroke="#0f172a"
-        strokeOpacity={major ? 0.07 : 0.035}
-        strokeWidth={0.35}
-      />
-    );
-  }
-  const horiz: React.ReactNode[] = [];
-  for (let j = 1; j * GRID_MINOR_PT < PAGE_H; j++) {
-    const y = j * GRID_MINOR_PT;
-    const major = j % GRID_MAJOR_EVERY === 0;
-    horiz.push(
-      <Line
-        key={`gh${j}`}
-        x1={0}
-        y1={y}
-        x2={PAGE_W}
-        y2={y}
-        stroke="#0f172a"
-        strokeOpacity={major ? 0.07 : 0.035}
-        strokeWidth={0.35}
-      />
-    );
-  }
-  /**
-   * `fixed` saca el nodo del flujo de yoga: si no, un View de ~595pt de alto + el contenido
-   * supera la hoja y react-pdf abre una segunda página. El SVG al 100% cubre todo el box de la página.
-   */
-  return (
-    <View style={gridStyles.wrap} fixed>
-      <Svg
-        width="100%"
-        height="100%"
-        viewBox={`0 0 ${PAGE_W} ${PAGE_H}`}
-        preserveAspectRatio="none"
-      >
-        {vert}
-        {horiz}
-      </Svg>
-    </View>
-  );
-}
-
-const gridStyles = StyleSheet.create({
-  wrap: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-});
 
 const styles = StyleSheet.create({
   page: {
     padding: 40,
     fontSize: 9,
     fontFamily: "Helvetica",
-    color: "#0f172a",
-    backgroundColor: "#ffffff",
+    color: "#1d1d1f",
+    backgroundColor: "#f5f5f7",
     flexDirection: "column",
   },
   pageBody: {
@@ -94,61 +20,62 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "flex-start",
     borderBottomWidth: 1,
-    borderBottomColor: "#64748b",
+    borderBottomColor: "#d2d2d7",
     paddingBottom: 14,
     marginBottom: 18,
   },
   brandBlock: { flexDirection: "row", alignItems: "center" },
   logo: { width: 56, height: 64, objectFit: "contain" },
-  logoPlaceholder: { width: 56, height: 64, borderWidth: 1, borderColor: "#0c4a6e" },
+  logoPlaceholder: { width: 56, height: 64, borderWidth: 1, borderColor: "#d2d2d7" },
   brandText: { marginLeft: 10, maxWidth: 200 },
-  brandSmall: { fontSize: 7, letterSpacing: 1.2, textTransform: "uppercase", color: "#475569" },
+  brandSmall: { fontSize: 7, letterSpacing: 0.8, textTransform: "uppercase", color: "#6e6e73" },
   brandName: { fontSize: 10, fontFamily: "Helvetica-Bold", marginTop: 2 },
   titleBlock: { alignItems: "flex-end", flex: 1 },
   docTitle: {
     fontSize: 15,
-    fontFamily: "Times-Bold",
-    letterSpacing: 0.5,
-    color: "#0c4a6e",
+    fontFamily: "Helvetica-Bold",
+    letterSpacing: -0.2,
+    color: "#1d1d1f",
     textAlign: "right",
   },
   docSub: {
     fontSize: 7,
-    letterSpacing: 1,
+    letterSpacing: 0.6,
     textTransform: "uppercase",
-    color: "#64748b",
+    color: "#6e6e73",
     marginTop: 4,
     textAlign: "right",
   },
   recipientLabel: {
     fontSize: 7,
-    letterSpacing: 1.2,
+    letterSpacing: 0.8,
     textTransform: "uppercase",
-    color: "#64748b",
+    color: "#6e6e73",
     marginBottom: 4,
   },
   recipientName: {
     fontSize: 22,
-    fontFamily: "Times-Bold",
+    fontFamily: "Helvetica-Bold",
     marginBottom: 14,
     paddingBottom: 10,
     borderBottomWidth: 2,
-    borderBottomColor: "#0c4a6e",
+    borderBottomColor: "#0071e3",
     maxWidth: "85%",
   },
-  statement: { fontSize: 10, color: "#334155", marginBottom: 6, lineHeight: 1.35 },
-  statement2: { fontSize: 9, color: "#64748b", marginBottom: 12, lineHeight: 1.35 },
+  statement: { fontSize: 10, color: "#1d1d1f", marginBottom: 6, lineHeight: 1.35 },
+  statement2: { fontSize: 9, color: "#6e6e73", marginBottom: 12, lineHeight: 1.35 },
   grid: {
     borderWidth: 1,
-    borderColor: "#94a3b8",
+    borderColor: "#d2d2d7",
     marginBottom: 14,
+    backgroundColor: "#ffffff",
   },
   gridRow: { flexDirection: "row" },
   cell: {
     width: "50%",
     borderRightWidth: 1,
     borderBottomWidth: 1,
-    borderColor: "#94a3b8",
+    borderColor: "#d2d2d7",
     padding: 10,
     minHeight: 44,
   },
@@ -157,28 +84,28 @@ const styles = StyleSheet.create({
   cellBottomRight: { borderRightWidth: 0, borderBottomWidth: 0 },
   cellLabel: {
     fontSize: 6.5,
-    letterSpacing: 1,
+    letterSpacing: 0.6,
     textTransform: "uppercase",
-    color: "#64748b",
+    color: "#6e6e73",
     marginBottom: 3,
   },
-  cellValue: { fontSize: 10, fontFamily: "Helvetica-Bold", color: "#0f172a" },
-  cellValueMono: { fontSize: 10, fontFamily: "Courier", color: "#0f172a" },
+  cellValue: { fontSize: 10, fontFamily: "Helvetica-Bold", color: "#1d1d1f" },
+  cellValueMono: { fontSize: 10, fontFamily: "Helvetica", color: "#1d1d1f" },
   footer: {
     marginTop: "auto",
     borderTopWidth: 1,
-    borderTopColor: "#64748b",
+    borderTopColor: "#d2d2d7",
     paddingTop: 12,
   },
   sigRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 10 },
   sigCol: { width: "38%" },
-  sigLine: { borderBottomWidth: 1, borderBottomColor: "#0f172a", height: 22, marginBottom: 4 },
-  sigName: { fontSize: 9, fontFamily: "Helvetica-Bold", color: "#0f172a", marginBottom: 2 },
-  sigTitle: { fontSize: 8, color: "#475569", marginBottom: 4 },
-  sigLabel: { fontSize: 7, letterSpacing: 0.8, textTransform: "uppercase", color: "#64748b" },
-  legal: { fontSize: 7, letterSpacing: 1, textTransform: "uppercase", color: "#64748b", textAlign: "center", marginBottom: 6 },
+  sigLine: { borderBottomWidth: 1, borderBottomColor: "#1d1d1f", height: 22, marginBottom: 4 },
+  sigName: { fontSize: 9, fontFamily: "Helvetica-Bold", color: "#1d1d1f", marginBottom: 2 },
+  sigTitle: { fontSize: 8, color: "#6e6e73", marginBottom: 4 },
+  sigLabel: { fontSize: 7, letterSpacing: 0.6, textTransform: "uppercase", color: "#6e6e73" },
+  legal: { fontSize: 7, letterSpacing: 0.6, textTransform: "uppercase", color: "#6e6e73", textAlign: "center", marginBottom: 6 },
   metaRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end" },
-  certCodes: { fontSize: 7, fontFamily: "Courier", color: "#64748b", maxWidth: "70%" },
+  certCodes: { fontSize: 7, fontFamily: "Helvetica", color: "#6e6e73", maxWidth: "70%" },
   qr: { width: 64, height: 64 },
 });
 
@@ -202,7 +129,6 @@ function CertificateDoc(props: TrainingCertificatePdfInput) {
   return (
     <Document>
       <Page wrap={false} size="A4" orientation="landscape" style={styles.page}>
-        <CertificateBlueprintGrid />
         <View style={styles.pageBody}>
           <View style={styles.header}>
             <View style={styles.brandBlock}>

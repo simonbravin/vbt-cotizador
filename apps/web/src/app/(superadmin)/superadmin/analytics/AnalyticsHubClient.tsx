@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Building2, FileText, TrendingUp, BarChart3, Download } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { useT } from "@/lib/i18n/context";
+import { FilterSelect } from "@/components/ui/filter-select";
 
 type Pipeline = {
   projects_total: number;
@@ -167,20 +168,20 @@ export function AnalyticsHubClient() {
   if (loading && !pipeline) {
     return (
       <div className="space-y-6">
-        <div className="h-12 rounded-sm bg-muted animate-pulse w-96" />
+        <div className="h-12 rounded-lg bg-muted animate-pulse w-96" />
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-24 rounded-sm bg-muted animate-pulse" />
+            <div key={i} className="h-24 rounded-lg bg-muted animate-pulse" />
           ))}
         </div>
-        <div className="h-64 rounded-sm bg-muted animate-pulse" />
+        <div className="h-64 rounded-lg bg-muted animate-pulse" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="rounded-sm border border-alert-warningBorder bg-alert-warning p-6 text-foreground">
+      <div className="rounded-lg border border-alert-warningBorder bg-alert-warning p-6 text-foreground">
         <p className="font-medium">{error}</p>
       </div>
     );
@@ -195,7 +196,7 @@ export function AnalyticsHubClient() {
             type="date"
             value={filters.dateFrom}
             onChange={(e) => setFilters((f) => ({ ...f, dateFrom: e.target.value }))}
-            className="rounded-sm border border-input bg-background px-3 py-2 text-sm text-foreground"
+            className="rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground"
           />
         </div>
         <div>
@@ -204,21 +205,19 @@ export function AnalyticsHubClient() {
             type="date"
             value={filters.dateTo}
             onChange={(e) => setFilters((f) => ({ ...f, dateTo: e.target.value }))}
-            className="rounded-sm border border-input bg-background px-3 py-2 text-sm text-foreground"
+            className="rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground"
           />
         </div>
         <div>
           <label className="block text-xs font-medium text-muted-foreground mb-1">{t("superadmin.analytics.filterPartner")}</label>
-          <select
+          <FilterSelect
             value={filters.partnerId}
-            onChange={(e) => setFilters((f) => ({ ...f, partnerId: e.target.value }))}
-            className="rounded-sm border border-input bg-background px-3 py-2 text-sm text-foreground min-w-[180px]"
-          >
-            <option value="">{t("superadmin.analytics.allPartners")}</option>
-            {partners.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
+            onValueChange={(v) => setFilters((f) => ({ ...f, partnerId: v }))}
+            emptyOptionLabel={t("superadmin.analytics.allPartners")}
+            options={partners.map((p) => ({ value: p.id, label: p.name }))}
+            aria-label={t("superadmin.analytics.filterPartner")}
+            triggerClassName="h-10 min-w-[180px] max-w-[min(100vw-2rem,280px)] text-sm"
+          />
         </div>
         <div>
           <label className="block text-xs font-medium text-muted-foreground mb-1">{t("superadmin.analytics.filterCountry")}</label>
@@ -227,12 +226,12 @@ export function AnalyticsHubClient() {
             placeholder={t("superadmin.analytics.filterCountryPlaceholder")}
             value={filters.country}
             onChange={(e) => setFilters((f) => ({ ...f, country: e.target.value.trim() }))}
-            className="rounded-sm border border-input bg-background px-3 py-2 text-sm text-foreground w-24"
+            className="rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground w-24"
           />
         </div>
         <button
           type="submit"
-          className="rounded-sm bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
         >
           {t("superadmin.analytics.applyFilters")}
         </button>
@@ -246,19 +245,19 @@ export function AnalyticsHubClient() {
         </div>
         <div className="p-5">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
-            <div className="rounded-sm border border-border bg-muted/50 p-4">
+            <div className="rounded-lg border border-border bg-muted/50 p-4">
               <p className="text-sm font-medium text-muted-foreground">{t("superadmin.analytics.metricProjects")}</p>
               <p className="text-2xl font-semibold text-foreground">{pipeline?.projects_total ?? 0}</p>
             </div>
-            <div className="rounded-sm border border-border bg-muted/50 p-4">
+            <div className="rounded-lg border border-border bg-muted/50 p-4">
               <p className="text-sm font-medium text-muted-foreground">{t("superadmin.analytics.metricQuotes")}</p>
               <p className="text-2xl font-semibold text-foreground">{pipeline?.quotes_total ?? 0}</p>
             </div>
-            <div className="rounded-sm border border-border bg-muted/50 p-4">
+            <div className="rounded-lg border border-border bg-muted/50 p-4">
               <p className="text-sm font-medium text-muted-foreground">{t("superadmin.analytics.pipelineValue")}</p>
               <p className="text-2xl font-semibold text-foreground">{formatCurrency(pipeline?.quotes_value_pipeline ?? 0)}</p>
             </div>
-            <div className="rounded-sm border border-border bg-muted/50 p-4">
+            <div className="rounded-lg border border-border bg-muted/50 p-4">
               <p className="text-sm font-medium text-muted-foreground">{t("superadmin.analytics.wonLost")}</p>
               <p className="text-xl font-semibold text-foreground">
                 {formatCurrency(pipeline?.quotes_value_won ?? 0)} / {formatCurrency(pipeline?.quotes_value_lost ?? 0)}
@@ -312,21 +311,21 @@ export function AnalyticsHubClient() {
             <h2 className="text-lg font-semibold text-foreground">{t("superadmin.analytics.quoteAnalyticsSection")}</h2>
           </div>
           <div className="p-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-sm border border-border p-4">
+            <div className="rounded-lg border border-border p-4">
               <p className="text-xs font-medium text-muted-foreground">{t("superadmin.analytics.quoteFlowCounts")}</p>
               <p className="text-lg font-semibold text-foreground mt-1">
                 {quoteAnalytics.quotes_created} / {quoteAnalytics.quotes_sent} / {quoteAnalytics.quotes_accepted} / {quoteAnalytics.quotes_rejected} / {quoteAnalytics.quotes_archived ?? 0}
               </p>
             </div>
-            <div className="rounded-sm border border-border p-4">
+            <div className="rounded-lg border border-border p-4">
               <p className="text-xs font-medium text-muted-foreground">{t("superadmin.analytics.conversionRate")}</p>
               <p className="text-lg font-semibold text-foreground mt-1">{quoteAnalytics.conversion_rate}%</p>
             </div>
-            <div className="rounded-sm border border-border p-4">
+            <div className="rounded-lg border border-border p-4">
               <p className="text-xs font-medium text-muted-foreground">{t("superadmin.analytics.avgQuoteValue")}</p>
               <p className="text-lg font-semibold text-foreground mt-1">{formatCurrency(quoteAnalytics.average_quote_value)}</p>
             </div>
-            <div className="rounded-sm border border-border p-4">
+            <div className="rounded-lg border border-border p-4">
               <p className="text-xs font-medium text-muted-foreground">{t("superadmin.analytics.avgSalesCycleDays")}</p>
               <p className="text-lg font-semibold text-foreground mt-1">{quoteAnalytics.average_sales_cycle_days}</p>
             </div>
@@ -392,27 +391,27 @@ export function AnalyticsHubClient() {
             <button
               type="button"
               onClick={() => setLeaderboardSort("revenue")}
-              className={`rounded-sm px-3 py-1.5 text-sm font-medium ${leaderboardSort === "revenue" ? "bg-primary text-primary-foreground" : "bg-muted text-foreground hover:bg-muted/80"}`}
+              className={`rounded-lg px-3 py-1.5 text-sm font-medium ${leaderboardSort === "revenue" ? "bg-primary text-primary-foreground" : "bg-muted text-foreground hover:bg-muted/80"}`}
             >
               {t("superadmin.analytics.sortByRevenue")}
             </button>
             <button
               type="button"
               onClick={() => setLeaderboardSort("quotes_accepted")}
-              className={`rounded-sm px-3 py-1.5 text-sm font-medium ${leaderboardSort === "quotes_accepted" ? "bg-primary text-primary-foreground" : "bg-muted text-foreground hover:bg-muted/80"}`}
+              className={`rounded-lg px-3 py-1.5 text-sm font-medium ${leaderboardSort === "quotes_accepted" ? "bg-primary text-primary-foreground" : "bg-muted text-foreground hover:bg-muted/80"}`}
             >
               {t("superadmin.analytics.sortByQuotesAccepted")}
             </button>
             <span className="text-muted-foreground mx-1">|</span>
             <a
               href={`/api/saas/analytics/export?type=leaderboard&format=csv&sort=${leaderboardSort}${filters.dateFrom ? `&dateFrom=${filters.dateFrom}` : ""}${filters.dateTo ? `&dateTo=${filters.dateTo}` : ""}`}
-              className="inline-flex items-center gap-1 rounded-sm px-3 py-1.5 text-sm font-medium border border-border text-foreground hover:bg-muted"
+              className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium border border-border text-foreground hover:bg-muted"
             >
               <Download className="h-4 w-4" /> {t("superadmin.analytics.exportCsv")}
             </a>
             <a
               href={`/api/saas/analytics/export?type=leaderboard&format=xlsx&sort=${leaderboardSort}${filters.dateFrom ? `&dateFrom=${filters.dateFrom}` : ""}${filters.dateTo ? `&dateTo=${filters.dateTo}` : ""}`}
-              className="inline-flex items-center gap-1 rounded-sm px-3 py-1.5 text-sm font-medium border border-border text-foreground hover:bg-muted"
+              className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium border border-border text-foreground hover:bg-muted"
             >
               <Download className="h-4 w-4" /> {t("superadmin.analytics.exportExcel")}
             </a>

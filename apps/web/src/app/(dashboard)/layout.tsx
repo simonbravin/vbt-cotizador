@@ -81,7 +81,7 @@ export default async function DashboardLayout({
 
     const moduleVisibility = await resolvePartnerModuleVisibility(prisma, effectiveOrgId);
     return (
-      <div className="flex h-screen bg-muted overflow-hidden">
+      <div className="flex h-screen bg-background overflow-hidden">
         <Sidebar
           role={safeUser.role}
           userDisplayName={safeUser.name?.trim() || "Usuario"}
@@ -89,9 +89,9 @@ export default async function DashboardLayout({
           profileHref="/profile"
           moduleVisibility={moduleVisibility}
         />
-        <div className="flex-1 flex flex-col overflow-hidden min-w-0 border-l border-border/60">
+        <div className="flex-1 flex flex-col overflow-hidden min-w-0 border-l border-header-foreground/10">
           <TopBar activeOrgName={safeUser.activeOrgName} />
-          <main className="app-main-scroll flex-1 overflow-y-auto blueprint-canvas bg-background">{children}</main>
+          <main className="app-main-scroll flex-1 overflow-y-auto bg-background">{children}</main>
         </div>
       </div>
     );

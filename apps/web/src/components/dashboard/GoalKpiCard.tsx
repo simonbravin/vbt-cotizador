@@ -34,14 +34,16 @@ export function GoalKpiCard() {
 
   if (loading) {
     return (
-      <div className="bg-background rounded-sm p-5 border border-border/60">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 bg-muted border border-border/60 rounded-sm flex items-center justify-center">
-            <Target className="w-5 h-5 text-primary" />
+      <div className="rounded-lg border border-border/80 bg-card p-6">
+        <div className="mb-4 flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-border/80 bg-muted">
+            <Target className="h-5 w-5 text-primary" />
           </div>
-          <span className="text-muted-foreground text-xs font-mono uppercase tracking-wider">{t("dashboard.goalTitle")}</span>
+          <span className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">
+            {t("dashboard.goalTitle")}
+          </span>
         </div>
-        <div className="h-8 bg-muted rounded-sm animate-pulse border border-border/60" />
+        <div className="h-8 animate-pulse rounded-lg border border-border/80 bg-muted" />
       </div>
     );
   }
@@ -53,31 +55,33 @@ export function GoalKpiCard() {
   const exceeded = hasTarget && ytd >= target;
 
   return (
-    <div className="bg-background rounded-sm p-5 border border-border/60">
-      <div className="flex items-center gap-3 mb-3 border-b border-border/60 pb-3">
-        <div className="w-10 h-10 bg-muted border border-border/60 rounded-sm flex items-center justify-center">
-          <Target className="w-5 h-5 text-primary" />
+    <div className="rounded-lg border border-border/80 bg-card p-6">
+      <div className="mb-4 flex items-center gap-3 border-b border-border/80 pb-4">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-border/80 bg-muted">
+          <Target className="h-5 w-5 text-primary" />
         </div>
-        <span className="text-muted-foreground text-xs font-mono font-semibold uppercase tracking-[0.12em]">{t("dashboard.goalTitle")}</span>
+        <span className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">
+          {t("dashboard.goalTitle")}
+        </span>
       </div>
       {!hasTarget ? (
         <>
-          <p className="text-3xl font-bold text-foreground font-mono tabular-nums tracking-tight">{formatCurrency(ytd)}</p>
-          <p className="text-muted-foreground text-sm mt-1">{t("dashboard.goalNoTarget")}</p>
+          <p className="text-3xl font-semibold tabular-nums tracking-tight text-foreground">{formatCurrency(ytd)}</p>
+          <p className="mt-2 text-caption text-muted-foreground">{t("dashboard.goalNoTarget")}</p>
         </>
       ) : (
         <>
-          <p className="text-3xl font-bold text-foreground font-mono tabular-nums tracking-tight">
+          <p className="text-3xl font-semibold tabular-nums tracking-tight text-foreground">
             {formatCurrency(ytd)}{" "}
-            <span className="text-muted-foreground font-medium text-xl">/ {formatCurrency(target)}</span>
+            <span className="text-xl font-medium text-muted-foreground">/ {formatCurrency(target)}</span>
           </p>
-          <div className="mt-3 h-2 w-full bg-muted border border-border/60 rounded-sm overflow-hidden">
+          <div className="mt-4 h-2 w-full overflow-hidden rounded-full border border-border/60 bg-muted">
             <div
-              className={`h-full transition-all ${exceeded ? "bg-primary" : "bg-vbt-orange"}`}
+              className={`h-full transition-all ${exceeded ? "bg-primary" : "bg-primary/45"}`}
               style={{ width: `${percent}%` }}
             />
           </div>
-          <p className="text-muted-foreground mt-2 font-mono text-xs uppercase tracking-wide">
+          <p className="mt-3 text-micro uppercase tracking-wide text-muted-foreground">
             {exceeded ? t("dashboard.goalReached") : t("dashboard.goalProgress", { percent: percent.toFixed(0) })}
           </p>
         </>

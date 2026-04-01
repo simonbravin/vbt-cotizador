@@ -146,7 +146,7 @@ function InviteAcceptContent() {
           </p>
 
           {submitError && (
-            <div className="mb-4 p-3 rounded-sm border border-destructive/30 bg-destructive/10 text-sm text-destructive">
+            <div className="mb-4 p-3 rounded-lg border border-destructive/30 bg-destructive/10 text-sm text-destructive">
               {submitError}
             </div>
           )}

@@ -7,8 +7,9 @@ import { getInvoicedAmount } from "@/lib/sales";
 import { Plus, ShoppingCart, Bell, Download, Search } from "lucide-react";
 import { useT } from "@/lib/i18n/context";
 import { Button } from "@/components/ui/button";
+import { FilterSelect } from "@/components/ui/filter-select";
 import { Input } from "@/components/ui/input";
-import { DATE_INPUT_FILTER, NATIVE_SELECT_FILTER } from "@/lib/ui-filter-classes";
+import { DATE_INPUT_FILTER } from "@/lib/ui-filter-classes";
 
 type Sale = {
   id: string;
@@ -153,7 +154,7 @@ export function SalesClient() {
           </a>
         </Button>
         {dueCount > 0 && (
-          <Button variant="outline" asChild className="border-amber-500/40 bg-amber-500/10 text-amber-950 hover:bg-amber-500/15 dark:text-amber-200 gap-2">
+          <Button variant="outline" asChild className="gap-2 border-border/80 bg-muted/50 text-foreground hover:bg-muted">
             <Link href="/sales/statements">
               <Bell className="w-4 h-4" /> {t("partner.sales.paymentsDue", { count: dueCount })}
             </Link>
@@ -173,41 +174,33 @@ export function SalesClient() {
             aria-label={t("partner.sales.searchPlaceholder")}
           />
         </div>
-        <select
+        <FilterSelect
           value={status}
-          onChange={(e) => setStatus(e.target.value)}
-          className={NATIVE_SELECT_FILTER}
+          onValueChange={setStatus}
+          emptyOptionLabel={t("partner.sales.allStatuses")}
+          options={statusOptions}
           aria-label={t("partner.sales.allStatuses")}
-        >
-          <option value="">{t("partner.sales.allStatuses")}</option>
-          {statusOptions.map(({ value: v, label: l }) => (
-            <option key={v} value={v}>{l}</option>
-          ))}
-        </select>
-        <select
+        />
+        <FilterSelect
           value={clientId}
-          onChange={(e) => setClientId(e.target.value)}
-          className={NATIVE_SELECT_FILTER}
+          onValueChange={setClientId}
+          emptyOptionLabel={t("partner.sales.allClients")}
+          options={clients.map((c) => ({ value: c.id, label: c.name }))}
           aria-label={t("partner.sales.allClients")}
-        >
-          <option value="">{t("partner.sales.allClients")}</option>
-          {clients.map((c) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </select>
-        <select
+        />
+        <FilterSelect
           value={projectId}
-          onChange={(e) => setProjectId(e.target.value)}
-          className={NATIVE_SELECT_FILTER}
+          onValueChange={setProjectId}
+          emptyOptionLabel={t("partner.sales.allProjects")}
+          options={projects.map((p) => ({
+            value: p.id,
+            label:
+              (p as { projectName?: string; name?: string }).projectName ??
+              (p as { name?: string }).name ??
+              p.id.slice(0, 8),
+          }))}
           aria-label={t("partner.sales.allProjects")}
-        >
-          <option value="">{t("partner.sales.allProjects")}</option>
-          {projects.map((p) => (
-            <option key={p.id} value={p.id}>
-              {(p as { projectName?: string; name?: string }).projectName ?? (p as { name?: string }).name ?? p.id.slice(0, 8)}
-            </option>
-          ))}
-        </select>
+        />
         <input
           type="date"
           value={from}
@@ -270,11 +263,11 @@ export function SalesClient() {
                   <td className="px-2 py-2 text-center text-foreground font-medium">{(s.invoicedBasis || "DDP").toUpperCase()}</td>
                   <td className="px-2 py-2">
                     <span
-                      className={`inline-flex px-2 py-0.5 rounded-sm text-xs font-medium ${
-                        s.status === "PAID" ? "bg-emerald-500/15 text-emerald-800 dark:text-emerald-200" :
-                        s.status === "DUE" ? "bg-amber-500/15 text-amber-900 dark:text-amber-200" :
+                      className={`inline-flex px-2 py-0.5 rounded-lg text-xs font-medium ${
+                        s.status === "PAID" ? "border border-primary/25 bg-primary/10 text-primary" :
+                        s.status === "DUE" ? "border border-border/80 bg-muted text-foreground" :
                         s.status === "CANCELLED" ? "bg-muted text-muted-foreground" :
-                        s.status === "PARTIALLY_PAID" ? "bg-amber-500/15 text-amber-900 dark:text-amber-200" :
+                        s.status === "PARTIALLY_PAID" ? "border border-border/80 bg-muted text-foreground" :
                         "bg-primary/10 text-primary"
                       }`}
                     >

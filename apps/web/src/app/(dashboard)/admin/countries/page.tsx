@@ -47,7 +47,7 @@ export default function CountriesPage() {
         <button
           type="button"
           onClick={() => setShowAdd(true)}
-          className="inline-flex items-center gap-2 rounded-sm border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
+          className="inline-flex items-center gap-2 rounded-lg border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
         >
           <Plus className="w-4 h-4" /> {t("admin.countries.add")}
         </button>
@@ -61,7 +61,7 @@ export default function CountriesPage() {
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-primary/10">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
                   <Globe className="h-5 w-5 text-primary" />
                 </div>
                 <div>
@@ -71,7 +71,7 @@ export default function CountriesPage() {
               </div>
               <button
                 onClick={() => toggle(c.id, c.isActive)}
-                className={`rounded-sm px-2 py-1 text-xs font-medium ${c.isActive ? "bg-emerald-500/15 text-emerald-800 dark:text-emerald-200" : "bg-muted text-muted-foreground"}`}
+                className={`rounded-lg px-2 py-1 text-xs font-medium ${c.isActive ? "border border-primary/25 bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}
               >
                 {c.isActive ? t("admin.countries.active") : t("admin.countries.inactive")}
               </button>
@@ -108,10 +108,10 @@ export default function CountriesPage() {
               </div>
             </div>
             <div className="flex gap-3 justify-end mt-4">
-              <button type="button" onClick={() => setShowAdd(false)} className="rounded-sm border border-border bg-background px-4 py-2 text-sm text-foreground hover:bg-muted/40">
+              <button type="button" onClick={() => setShowAdd(false)} className="rounded-lg border border-border bg-background px-4 py-2 text-sm text-foreground hover:bg-muted/40">
                 {t("common.cancel")}
               </button>
-              <button type="button" onClick={addCountry} disabled={adding} className="rounded-sm border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50">
+              <button type="button" onClick={addCountry} disabled={adding} className="rounded-lg border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50">
                 {adding ? t("admin.countries.adding") : t("common.add")}
               </button>
             </div>

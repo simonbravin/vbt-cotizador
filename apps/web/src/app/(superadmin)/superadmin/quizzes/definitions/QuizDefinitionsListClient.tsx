@@ -45,7 +45,7 @@ export function QuizDefinitionsListClient() {
         </Link>
         <Link
           href="/superadmin/quizzes/definitions/new"
-          className="inline-flex rounded-sm bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
+          className="inline-flex rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
         >
           {t("superadmin.quizzes.definitions.new")}
         </Link>

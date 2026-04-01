@@ -31,11 +31,11 @@ export function SidebarUserFooter({
   const roleLabel = role.replaceAll("_", " ").toUpperCase();
 
   return (
-    <div className="px-3 py-2.5 border-t border-header-foreground/10">
+    <div className="border-t border-header-foreground/10 px-3 py-3">
       <div className="flex items-start gap-2.5">
         <Link
           href={profileHref}
-          className="relative h-9 w-9 shrink-0 rounded-full bg-header-foreground/15 overflow-hidden flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-header-foreground/35"
+          className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-header-foreground/15 outline-none focus-visible:ring-2 focus-visible:ring-header-foreground/35"
           title={t("nav.settings.profile")}
         >
           {hasAvatar && !avatarFailed ? (
@@ -53,13 +53,13 @@ export function SidebarUserFooter({
         <div className="min-w-0 flex-1">
           <Link
             href={profileHref}
-            className="block text-left text-xs text-header-foreground/90 font-medium truncate hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-header-foreground/35 rounded-sm"
+            className="block truncate text-left text-caption font-medium text-header-foreground/90 hover:underline focus-visible:rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-header-foreground/35"
             title={displayName}
           >
             {displayName}
           </Link>
           <span
-            className={`inline-block mt-1 text-[10px] px-1.5 py-0.5 rounded-sm font-medium uppercase tracking-wide ${ROLE_COLORS[role] ?? ROLE_BADGE_FALLBACK}`}
+            className={`mt-1 inline-block rounded-md px-2 py-0.5 text-micro font-medium uppercase tracking-wide ${ROLE_COLORS[role] ?? ROLE_BADGE_FALLBACK}`}
           >
             {roleLabel}
           </span>
@@ -67,7 +67,7 @@ export function SidebarUserFooter({
         <button
           type="button"
           onClick={() => signOut({ callbackUrl: "/login" })}
-          className="shrink-0 p-1.5 text-header-foreground/70 hover:text-header-foreground rounded-sm hover:bg-header-foreground/10 transition-colors"
+          className="shrink-0 rounded-lg p-1.5 text-header-foreground/70 transition-colors hover:bg-header-foreground/10 hover:text-header-foreground"
           title={t("topbar.signOut")}
         >
           <LogOut className="w-4 h-4" />

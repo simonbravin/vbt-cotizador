@@ -7,6 +7,7 @@ import { formatCurrency } from "@/lib/utils";
 import { INVOICED_BASIS_OPTIONS } from "@/lib/sales";
 import { saasQuoteRowToLegacySaleShape, type LegacySaleQuoteRow } from "@/lib/saas-quote-legacy-sale-shape";
 import { useT } from "@/lib/i18n/context";
+import { FilterSelect } from "@/components/ui/filter-select";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 
 type Client = { id: string; name: string };
@@ -220,7 +221,7 @@ export function NewSaleClient({
       </div>
 
       {error && (
-        <div className="rounded-sm border border-alert-errorBorder bg-alert-error p-3 text-sm text-foreground">
+        <div className="rounded-lg border border-alert-errorBorder bg-alert-error p-3 text-sm text-foreground">
           {error}
         </div>
       )}
@@ -230,46 +231,46 @@ export function NewSaleClient({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">{t("partner.sales.new.clientLabel")}</label>
-            <select
+            <FilterSelect
               value={clientId}
-              onChange={(e) => { setClientId(e.target.value); setProjectId(""); }}
-              className="w-full px-3 py-2 border border-input rounded-sm text-sm"
-              required
-            >
-              <option value="">{t("partner.sales.new.selectClient")}</option>
-              {clients.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
+              onValueChange={(v) => {
+                setClientId(v);
+                setProjectId("");
+              }}
+              emptyOptionLabel={t("partner.sales.new.selectClient")}
+              options={clients.map((c) => ({ value: c.id, label: c.name }))}
+              aria-label={t("partner.sales.new.clientLabel")}
+              triggerClassName="h-10 w-full min-w-0 max-w-full text-sm"
+            />
           </div>
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">{t("partner.sales.new.projectLabel")}</label>
-            <select
+            <FilterSelect
               value={projectId}
-              onChange={(e) => setProjectId(e.target.value)}
-              className="w-full px-3 py-2 border border-input rounded-sm text-sm"
-              required
-            >
-              <option value="">{t("partner.sales.new.selectProject")}</option>
-              {projectsForClient.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {(p as { projectName?: string; name?: string }).projectName ?? p.name ?? p.id.slice(0, 8)}
-                </option>
-              ))}
-            </select>
+              onValueChange={setProjectId}
+              emptyOptionLabel={t("partner.sales.new.selectProject")}
+              options={projectsForClient.map((p) => ({
+                value: p.id,
+                label:
+                  (p as { projectName?: string; name?: string }).projectName ?? p.name ?? p.id.slice(0, 8),
+              }))}
+              aria-label={t("partner.sales.new.projectLabel")}
+              triggerClassName="h-10 w-full min-w-0 max-w-full text-sm"
+            />
           </div>
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">{t("partner.sales.new.quoteOptional")}</label>
-            <select
+            <FilterSelect
               value={quoteId}
-              onChange={(e) => setQuoteId(e.target.value)}
-              className="w-full px-3 py-2 border border-input rounded-sm text-sm"
-            >
-              <option value="">{t("partner.sales.new.quoteNoneManual")}</option>
-              {quotes.map((q) => (
-                <option key={q.id} value={q.id}>{q.quoteNumber ?? q.id.slice(0, 8)} – {formatCurrency(q.landedDdpUsd)}</option>
-              ))}
-            </select>
+              onValueChange={setQuoteId}
+              emptyOptionLabel={t("partner.sales.new.quoteNoneManual")}
+              options={quotes.map((q) => ({
+                value: q.id,
+                label: `${q.quoteNumber ?? q.id.slice(0, 8)} – ${formatCurrency(q.landedDdpUsd)}`,
+              }))}
+              aria-label={t("partner.sales.new.quoteOptional")}
+              triggerClassName="h-10 w-full min-w-0 max-w-full text-sm"
+            />
           </div>
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">{t("partner.sales.new.quantity")}</label>
@@ -278,31 +279,31 @@ export function NewSaleClient({
               min={1}
               value={quantity}
               onChange={(e) => setQuantity(parseInt(e.target.value, 10) || 1)}
-              className="w-full px-3 py-2 border border-input rounded-sm text-sm"
+              className="w-full px-3 py-2 border border-input rounded-lg text-sm"
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">{t("partner.sales.colStatus")}</label>
-            <select
+            <FilterSelect
               value={status}
-              onChange={(e) => setStatus(e.target.value as "DRAFT" | "CONFIRMED")}
-              className="w-full px-3 py-2 border border-input rounded-sm text-sm"
-            >
-              <option value="DRAFT">{t("partner.sales.status.DRAFT")}</option>
-              <option value="CONFIRMED">{t("partner.sales.status.CONFIRMED")}</option>
-            </select>
+              onValueChange={(v) => setStatus(v as "DRAFT" | "CONFIRMED")}
+              options={[
+                { value: "DRAFT", label: t("partner.sales.status.DRAFT") },
+                { value: "CONFIRMED", label: t("partner.sales.status.CONFIRMED") },
+              ]}
+              aria-label={t("partner.sales.colStatus")}
+              triggerClassName="h-10 w-full min-w-0 max-w-full text-sm"
+            />
           </div>
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">{t("partner.sales.new.salesConditionLabel")}</label>
-            <select
+            <FilterSelect
               value={invoicedBasis}
-              onChange={(e) => setInvoicedBasis(e.target.value as "EXW" | "FOB" | "CIF" | "DDP")}
-              className="w-full px-3 py-2 border border-input rounded-sm text-sm"
-            >
-              {INVOICED_BASIS_OPTIONS.map((b) => (
-                <option key={b} value={b}>{b}</option>
-              ))}
-            </select>
+              onValueChange={(v) => setInvoicedBasis(v as "EXW" | "FOB" | "CIF" | "DDP")}
+              options={INVOICED_BASIS_OPTIONS.map((b) => ({ value: b, label: b }))}
+              aria-label={t("partner.sales.new.salesConditionLabel")}
+              triggerClassName="h-10 w-full min-w-0 max-w-full text-sm"
+            />
             <p className="text-xs text-muted-foreground mt-0.5">{t("partner.sales.new.salesConditionHelp")}</p>
           </div>
         </div>
@@ -326,7 +327,7 @@ export function NewSaleClient({
             <div key={labelKey}>
               <label className="block text-sm font-medium text-foreground mb-1">{t(labelKey)}</label>
               {isCurrency ? (
-                <div className="relative rounded-sm border border-input">
+                <div className="relative rounded-lg border border-input">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">$</span>
                   <input
                     type="number"
@@ -334,7 +335,7 @@ export function NewSaleClient({
                     step={0.01}
                     value={typeof val === "number" ? Number(val.toFixed(2)) : ""}
                     onChange={(e) => (setter as (n: number) => void)(e.target.value === "" ? 0 : parseFloat(e.target.value) || 0)}
-                    className="w-full pl-7 pr-3 py-2 rounded-sm border-0 text-sm bg-transparent"
+                    className="w-full pl-7 pr-3 py-2 rounded-lg border-0 text-sm bg-transparent"
                   />
                 </div>
               ) : (
@@ -344,7 +345,7 @@ export function NewSaleClient({
                   step={0.1}
                   value={typeof val === "number" ? Number(val.toFixed(2)) : ""}
                   onChange={(e) => (setter as (n: number) => void)(e.target.value === "" ? 0 : parseFloat(e.target.value) || 0)}
-                  className="w-full px-3 py-2 border border-input rounded-sm text-sm"
+                  className="w-full px-3 py-2 border border-input rounded-lg text-sm"
                 />
               )}
             </div>
@@ -355,7 +356,7 @@ export function NewSaleClient({
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            className="w-full px-3 py-2 border border-input rounded-sm text-sm"
+            className="w-full px-3 py-2 border border-input rounded-lg text-sm"
             rows={2}
           />
         </div>
@@ -367,7 +368,7 @@ export function NewSaleClient({
           <button
             type="button"
             onClick={() => setInvoices((prev) => [...prev, { entityId: "", amountUsd: 0, dueDate: "", sequence: prev.length + 1, referenceNumber: "", notes: "" }])}
-            className="inline-flex items-center gap-1 px-2 py-1 text-sm font-medium text-primary hover:bg-primary/10 rounded-sm"
+            className="inline-flex items-center gap-1 px-2 py-1 text-sm font-medium text-primary hover:bg-primary/10 rounded-lg"
           >
             <Plus className="w-4 h-4" /> {t("partner.sales.new.addLine")}
           </button>
@@ -391,19 +392,19 @@ export function NewSaleClient({
         ) : (
           <ul className="space-y-3">
             {invoices.map((inv, idx) => (
-              <li key={idx} className="flex flex-wrap items-end gap-2 p-3 bg-muted/30 rounded-sm">
+              <li key={idx} className="flex flex-wrap items-end gap-2 p-3 bg-muted/30 rounded-lg">
                 <div className="min-w-[140px] flex-1">
                   <label className="block text-xs font-medium text-muted-foreground mb-0.5">{t("partner.sales.new.entity")}</label>
-                  <select
+                  <FilterSelect
                     value={inv.entityId}
-                    onChange={(e) => setInvoices((prev) => prev.map((p, i) => (i === idx ? { ...p, entityId: e.target.value } : p)))}
-                    className="w-full px-2 py-1.5 border border-input rounded-sm text-sm"
-                  >
-                    <option value="">{t("partner.sales.new.selectEntity")}</option>
-                    {entities.map((e) => (
-                      <option key={e.id} value={e.id}>{e.name}</option>
-                    ))}
-                  </select>
+                    onValueChange={(v) =>
+                      setInvoices((prev) => prev.map((p, i) => (i === idx ? { ...p, entityId: v } : p)))
+                    }
+                    emptyOptionLabel={t("partner.sales.new.selectEntity")}
+                    options={entities.map((e) => ({ value: e.id, label: e.name }))}
+                    aria-label={t("partner.sales.new.entity")}
+                    triggerClassName="h-9 w-full min-w-0 max-w-full text-sm"
+                  />
                 </div>
                 <div className="w-24">
                   <label className="block text-xs font-medium text-muted-foreground mb-0.5">{t("partner.sales.new.amountUsd")}</label>
@@ -413,7 +414,7 @@ export function NewSaleClient({
                     step={0.01}
                     value={inv.amountUsd === 0 ? "" : inv.amountUsd}
                     onChange={(e) => setInvoices((prev) => prev.map((p, i) => (i === idx ? { ...p, amountUsd: parseFloat(e.target.value) || 0 } : p)))}
-                    className="w-full px-2 py-1.5 border border-input rounded-sm text-sm"
+                    className="w-full px-2 py-1.5 border border-input rounded-lg text-sm"
                   />
                 </div>
                 <div className="w-36">
@@ -422,7 +423,7 @@ export function NewSaleClient({
                     type="date"
                     value={inv.dueDate}
                     onChange={(e) => setInvoices((prev) => prev.map((p, i) => (i === idx ? { ...p, dueDate: e.target.value } : p)))}
-                    className="w-full px-2 py-1.5 border border-input rounded-sm text-sm"
+                    className="w-full px-2 py-1.5 border border-input rounded-lg text-sm"
                   />
                 </div>
                 <div className="w-16">
@@ -432,7 +433,7 @@ export function NewSaleClient({
                     min={1}
                     value={inv.sequence}
                     onChange={(e) => setInvoices((prev) => prev.map((p, i) => (i === idx ? { ...p, sequence: parseInt(e.target.value, 10) || 1 } : p)))}
-                    className="w-full px-2 py-1.5 border border-input rounded-sm text-sm"
+                    className="w-full px-2 py-1.5 border border-input rounded-lg text-sm"
                   />
                 </div>
                 <div className="min-w-[120px] flex-1">
@@ -441,7 +442,7 @@ export function NewSaleClient({
                     type="text"
                     value={inv.referenceNumber}
                     onChange={(e) => setInvoices((prev) => prev.map((p, i) => (i === idx ? { ...p, referenceNumber: e.target.value } : p)))}
-                    className="w-full px-2 py-1.5 border border-input rounded-sm text-sm"
+                    className="w-full px-2 py-1.5 border border-input rounded-lg text-sm"
                     placeholder={t("partner.sales.new.externalInvoicePlaceholder")}
                   />
                 </div>
@@ -451,14 +452,14 @@ export function NewSaleClient({
                     type="text"
                     value={inv.notes}
                     onChange={(e) => setInvoices((prev) => prev.map((p, i) => (i === idx ? { ...p, notes: e.target.value } : p)))}
-                    className="w-full px-2 py-1.5 border border-input rounded-sm text-sm"
+                    className="w-full px-2 py-1.5 border border-input rounded-lg text-sm"
                     placeholder={t("partner.sales.new.lineNotesPlaceholder")}
                   />
                 </div>
                 <button
                   type="button"
                   onClick={() => setInvoices((prev) => prev.filter((_, i) => i !== idx))}
-                  className="p-1.5 text-muted-foreground/70 hover:text-red-600 rounded-sm"
+                  className="p-1.5 text-muted-foreground/70 hover:text-destructive rounded-lg"
                   title={t("partner.sales.new.removeLineTitle")}
                 >
                   <Trash2 className="w-4 h-4" />
@@ -473,11 +474,11 @@ export function NewSaleClient({
         <button
           type="submit"
           disabled={saving}
-          className="rounded-sm border border-vbt-orange/30 bg-vbt-orange px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
+          className="rounded-full border border-transparent bg-primary px-5 py-2.5 text-[17px] font-normal text-primary-foreground hover:opacity-[0.88] disabled:opacity-50"
         >
           {saving ? t("common.saving") : t("partner.sales.new.createSale")}
         </button>
-        <Link href={cancelHref} className="px-4 py-2 border border-border/60 rounded-sm text-sm font-medium text-foreground hover:bg-muted/40">
+        <Link href={cancelHref} className="px-4 py-2 border border-border/60 rounded-lg text-sm font-medium text-foreground hover:bg-muted/40">
           {t("common.cancel")}
         </Link>
       </div>

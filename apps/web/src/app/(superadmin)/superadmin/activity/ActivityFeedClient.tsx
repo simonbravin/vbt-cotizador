@@ -87,7 +87,7 @@ export function ActivityFeedClient() {
       <div className="surface-card-overflow">
         <div className="p-6 space-y-4">
           {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="h-14 rounded-sm bg-muted animate-pulse" />
+            <div key={i} className="h-14 rounded-lg bg-muted animate-pulse" />
           ))}
         </div>
       </div>
@@ -96,7 +96,7 @@ export function ActivityFeedClient() {
 
   if (error) {
     return (
-      <div className="rounded-sm border border-alert-warningBorder bg-alert-warning p-6 text-foreground">
+      <div className="rounded-lg border border-alert-warningBorder bg-alert-warning p-6 text-foreground">
         <p className="font-medium">{error}</p>
       </div>
     );
@@ -116,7 +116,7 @@ export function ActivityFeedClient() {
               type="date"
               value={exportFrom}
               onChange={(e) => setExportFrom(e.target.value)}
-              className="rounded-sm border border-input bg-background px-2 py-1.5 text-sm text-foreground"
+              className="rounded-lg border border-input bg-background px-2 py-1.5 text-sm text-foreground"
             />
           </label>
           <label className="flex flex-col gap-1 text-xs text-muted-foreground">
@@ -125,12 +125,12 @@ export function ActivityFeedClient() {
               type="date"
               value={exportTo}
               onChange={(e) => setExportTo(e.target.value)}
-              className="rounded-sm border border-input bg-background px-2 py-1.5 text-sm text-foreground"
+              className="rounded-lg border border-input bg-background px-2 py-1.5 text-sm text-foreground"
             />
           </label>
           <a
             href={exportHref}
-            className="inline-flex items-center gap-1.5 rounded-sm border border-border bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-muted/80"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-muted/80"
           >
             <Download className="h-4 w-4" />
             {t("superadmin.activity.exportCsv")}

@@ -9,6 +9,7 @@ import { getInvoicedAmount } from "@/lib/sales";
 import { ArrowLeft, Plus, Pencil, Trash2 } from "lucide-react";
 import { useT } from "@/lib/i18n/context";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { FilterSelect } from "@/components/ui/filter-select";
 
 const DUE_SOON_DAYS = 7;
 
@@ -354,24 +355,24 @@ export function SaleDetailClient({
             <ArrowLeft className="w-4 h-4" /> {t("partner.sales.backToSales")}
           </Link>
           {resolvedEditHref && sale.status !== "CANCELLED" && sale.status !== "PAID" && (
-            <Link href={resolvedEditHref} className="inline-flex items-center gap-1 px-2 py-1 border border-border/60 rounded-sm text-sm font-medium text-foreground hover:bg-muted/40">
+            <Link href={resolvedEditHref} className="inline-flex items-center gap-1 px-2 py-1 border border-border/60 rounded-lg text-sm font-medium text-foreground hover:bg-muted/40">
               <Pencil className="w-4 h-4" /> {t("common.edit")}
             </Link>
           )}
           <button
             type="button"
             onClick={() => setDeleteSaleOpen(true)}
-            className="inline-flex items-center gap-1 rounded-sm border border-destructive/30 px-2 py-1 text-sm font-medium text-destructive hover:bg-destructive/10"
+            className="inline-flex items-center gap-1 rounded-lg border border-destructive/30 px-2 py-1 text-sm font-medium text-destructive hover:bg-destructive/10"
           >
             <Trash2 className="w-4 h-4" /> {t("partner.sales.deleteSale")}
           </button>
         </div>
         <span
-          className={`inline-flex px-2 py-1 rounded-sm text-sm font-medium ${
-            sale.status === "PAID" ? "bg-emerald-500/15 text-emerald-800 dark:text-emerald-200" :
-            sale.status === "DUE" ? "bg-amber-500/15 text-amber-900 dark:text-amber-200" :
+          className={`inline-flex px-2 py-1 rounded-lg text-sm font-medium ${
+            sale.status === "PAID" ? "border border-primary/25 bg-primary/10 text-primary" :
+            sale.status === "DUE" ? "border border-border/80 bg-muted text-foreground" :
             sale.status === "CANCELLED" ? "bg-muted text-muted-foreground" :
-            sale.status === "PARTIALLY_PAID" ? "bg-amber-500/15 text-amber-900 dark:text-amber-200" : "bg-primary/10 text-primary"
+            sale.status === "PARTIALLY_PAID" ? "border border-border/80 bg-muted text-foreground" : "bg-primary/10 text-primary"
           }`}
         >
           {t(`partner.sales.status.${sale.status}`)}
@@ -429,7 +430,7 @@ export function SaleDetailClient({
                 <button
                   type="button"
                   onClick={openAddInvoice}
-                  className="inline-flex items-center gap-1 rounded-sm border border-vbt-orange/30 bg-vbt-orange px-2 py-1 text-sm font-semibold text-white hover:opacity-90"
+                  className="inline-flex items-center gap-1 rounded-full border border-transparent bg-primary px-3 py-1.5 text-[15px] font-normal text-primary-foreground hover:opacity-[0.88]"
                 >
                   <Plus className="w-4 h-4" /> {t("partner.sales.new.addLine")}
                 </button>
@@ -459,20 +460,20 @@ export function SaleDetailClient({
                       </div>
                       <div className="flex items-center gap-2">
                         {dueStatus === "overdue" && (
-                          <span className="rounded-sm border border-destructive/25 bg-destructive/10 px-1.5 py-0.5 text-xs font-medium text-destructive">{t("partner.sales.detail.invoiceOverdue")}</span>
+                          <span className="rounded-lg border border-destructive/25 bg-destructive/10 px-1.5 py-0.5 text-xs font-medium text-destructive">{t("partner.sales.detail.invoiceOverdue")}</span>
                         )}
                         {dueStatus === "due_soon" && (
-                          <span className="px-1.5 py-0.5 rounded-sm text-xs font-medium bg-amber-500/15 text-amber-900 dark:text-amber-200">{t("partner.sales.detail.invoiceDueSoon")}</span>
+                          <span className="rounded-md border border-border/80 bg-muted px-1.5 py-0.5 text-micro font-medium text-foreground">{t("partner.sales.detail.invoiceDueSoon")}</span>
                         )}
                         {sale.invoiceStatusByEntity?.[inv.entityId] && (
                           <span className="text-xs text-muted-foreground">{sale.invoiceStatusByEntity[inv.entityId].status}</span>
                         )}
                         {sale.status !== "CANCELLED" && (
                           <>
-                            <button type="button" onClick={() => openEditInvoice(inv)} className="p-1 text-muted-foreground/70 hover:text-primary rounded-sm" title={t("common.edit")}>
+                            <button type="button" onClick={() => openEditInvoice(inv)} className="p-1 text-muted-foreground/70 hover:text-primary rounded-lg" title={t("common.edit")}>
                               <Pencil className="w-4 h-4" />
                             </button>
-                            <button type="button" onClick={() => setDeleteInvoiceId(inv.id)} className="p-1 text-muted-foreground/70 hover:text-destructive rounded-sm" title={t("partner.sales.detail.removeInvoiceTitle")}>
+                            <button type="button" onClick={() => setDeleteInvoiceId(inv.id)} className="p-1 text-muted-foreground/70 hover:text-destructive rounded-lg" title={t("partner.sales.detail.removeInvoiceTitle")}>
                               <Trash2 className="w-4 h-4" />
                             </button>
                           </>
@@ -492,7 +493,7 @@ export function SaleDetailClient({
                 <button
                   type="button"
                   onClick={() => setPaymentOpen(true)}
-                  className="inline-flex items-center gap-1 rounded-sm border border-vbt-orange/30 bg-vbt-orange px-2 py-1 text-sm font-semibold text-white hover:opacity-90"
+                  className="inline-flex items-center gap-1 rounded-full border border-transparent bg-primary px-3 py-1.5 text-[15px] font-normal text-primary-foreground hover:opacity-[0.88]"
                 >
                   <Plus className="w-4 h-4" /> {t("partner.sales.detail.addPayment")}
                 </button>
@@ -521,7 +522,7 @@ export function SaleDetailClient({
                       <button
                         type="button"
                         onClick={() => setDeletePaymentId(p.id)}
-                        className="p-1 text-muted-foreground/70 hover:text-destructive rounded-sm"
+                        className="p-1 text-muted-foreground/70 hover:text-destructive rounded-lg"
                         title={t("partner.sales.detail.removePaymentTitle")}
                       >
                         <Trash2 className="w-4 h-4" />
@@ -537,29 +538,26 @@ export function SaleDetailClient({
 
       {paymentOpen && typeof document !== "undefined" && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/65 p-4" onClick={(e) => e.target === e.currentTarget && setPaymentOpen(false)}>
-          <div className="w-full max-w-md rounded-sm border border-border/60 bg-background p-6" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-md rounded-lg border border-border/60 bg-background p-6" onClick={(e) => e.stopPropagation()}>
             <h3 className="mb-4 font-semibold tracking-tight text-foreground">{t("partner.sales.detail.addPaymentTitle")}</h3>
             <form onSubmit={handleAddPayment} className="space-y-4">
               {payError && <p className="text-sm text-destructive">{payError}</p>}
               <div>
                 <label className="mb-1 block text-xs font-medium text-muted-foreground">{t("partner.sales.payment.entityRequired")}</label>
-                <select
+                <FilterSelect
                   value={payEntityId}
-                  onChange={(e) => setPayEntityId(e.target.value)}
-                  className="w-full rounded-sm border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  required
-                >
-                  <option value="">{t("partner.sales.new.selectEntity")}</option>
-                  {entities.filter((e) => e.isActive !== false).length === 0 ? (
-                    <option value="" disabled>{t("partner.sales.payment.noEntitiesHint")}</option>
-                  ) : (
-                    entities
-                      .filter((e) => e.isActive !== false)
-                      .map((e) => (
-                        <option key={e.id} value={e.id}>{e.name}</option>
-                      ))
-                  )}
-                </select>
+                  onValueChange={setPayEntityId}
+                  emptyOptionLabel={t("partner.sales.new.selectEntity")}
+                  options={entities
+                    .filter((e) => e.isActive !== false)
+                    .map((e) => ({ value: e.id, label: e.name }))}
+                  aria-label={t("partner.sales.payment.entityRequired")}
+                  triggerClassName="h-10 w-full min-w-0 max-w-full text-sm"
+                  disabled={entities.filter((e) => e.isActive !== false).length === 0}
+                />
+                {entities.filter((e) => e.isActive !== false).length === 0 ? (
+                  <p className="mt-1 text-xs text-muted-foreground">{t("partner.sales.payment.noEntitiesHint")}</p>
+                ) : null}
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-muted-foreground">{t("partner.sales.payment.amountUsdRequired")}</label>
@@ -569,7 +567,7 @@ export function SaleDetailClient({
                   step="0.01"
                   value={payAmountUsd}
                   onChange={(e) => setPayAmountUsd(e.target.value)}
-                  className="w-full rounded-sm border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   required
                 />
               </div>
@@ -580,7 +578,7 @@ export function SaleDetailClient({
                   step="0.01"
                   value={payAmountLocal}
                   onChange={(e) => setPayAmountLocal(e.target.value)}
-                  className="w-full rounded-sm border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   placeholder={t("partner.sales.payment.amountLocalPlaceholder")}
                 />
               </div>
@@ -591,7 +589,7 @@ export function SaleDetailClient({
                   step="0.01"
                   value={payExchangeRate}
                   onChange={(e) => setPayExchangeRate(e.target.value)}
-                  className="w-full rounded-sm border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   placeholder={t("partner.sales.payment.exchangeRatePlaceholder")}
                 />
               </div>
@@ -601,7 +599,7 @@ export function SaleDetailClient({
                   type="datetime-local"
                   value={payPaidAt}
                   onChange={(e) => setPayPaidAt(e.target.value)}
-                  className="w-full rounded-sm border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 />
               </div>
               <div>
@@ -610,14 +608,14 @@ export function SaleDetailClient({
                   type="text"
                   value={payNotes}
                   onChange={(e) => setPayNotes(e.target.value)}
-                  className="w-full rounded-sm border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 />
               </div>
               <div className="flex gap-2 pt-2">
-                <button type="submit" disabled={submitting} className="rounded-sm border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50">
+                <button type="submit" disabled={submitting} className="rounded-lg border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50">
                   {submitting ? t("common.saving") : t("common.save")}
                 </button>
-                <button type="button" onClick={() => { setPaymentOpen(false); setPayError(null); }} className="rounded-sm border border-border/60 px-4 py-2 text-sm font-medium text-foreground hover:bg-muted">
+                <button type="button" onClick={() => { setPaymentOpen(false); setPayError(null); }} className="rounded-lg border border-border/60 px-4 py-2 text-sm font-medium text-foreground hover:bg-muted">
                   {t("common.cancel")}
                 </button>
               </div>
@@ -657,7 +655,7 @@ export function SaleDetailClient({
 
       {invoiceModalMode && typeof document !== "undefined" && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/65 p-4" onClick={(e) => e.target === e.currentTarget && !invSubmitting && setInvoiceModalMode(null)}>
-          <div className="w-full max-w-md rounded-sm border border-border/60 bg-background p-6" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-md rounded-lg border border-border/60 bg-background p-6" onClick={(e) => e.stopPropagation()}>
             <h3 className="mb-4 font-semibold tracking-tight text-foreground">
               {invoiceModalMode === "add" ? t("partner.sales.detail.invoiceModalAdd") : t("partner.sales.detail.invoiceModalEdit")}
             </h3>
@@ -672,38 +670,43 @@ export function SaleDetailClient({
               {invError && <p className="text-sm text-destructive">{invError}</p>}
               <div>
                 <label className="mb-1 block text-xs font-medium text-muted-foreground">{t("partner.sales.payment.entityRequired")}</label>
-                <select value={invEntityId} onChange={(e) => setInvEntityId(e.target.value)} className="w-full rounded-sm border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" required>
-                  <option value="">{t("partner.sales.new.selectEntity")}</option>
-                  {entities.filter((e) => e.isActive !== false).map((ent) => (
-                    <option key={ent.id} value={ent.id}>{ent.name}</option>
-                  ))}
-                </select>
+                <FilterSelect
+                  value={invEntityId}
+                  onValueChange={setInvEntityId}
+                  emptyOptionLabel={t("partner.sales.new.selectEntity")}
+                  options={entities
+                    .filter((e) => e.isActive !== false)
+                    .map((ent) => ({ value: ent.id, label: ent.name }))}
+                  aria-label={t("partner.sales.payment.entityRequired")}
+                  triggerClassName="h-10 w-full min-w-0 max-w-full text-sm"
+                  disabled={entities.filter((e) => e.isActive !== false).length === 0}
+                />
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-muted-foreground">{t("partner.sales.payment.amountUsdRequired")}</label>
-                <input type="number" min="0" step="0.01" value={invAmountUsd} onChange={(e) => setInvAmountUsd(e.target.value)} className="w-full rounded-sm border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" required />
+                <input type="number" min="0" step="0.01" value={invAmountUsd} onChange={(e) => setInvAmountUsd(e.target.value)} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" required />
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-muted-foreground">{t("partner.sales.new.dueDate")}</label>
-                <input type="date" value={invDueDate} onChange={(e) => setInvDueDate(e.target.value)} className="w-full rounded-sm border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" />
+                <input type="date" value={invDueDate} onChange={(e) => setInvDueDate(e.target.value)} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" />
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-muted-foreground">{t("partner.sales.detail.sequenceLabel")}</label>
-                <input type="number" min={1} value={invSequence} onChange={(e) => setInvSequence(parseInt(e.target.value, 10) || 1)} className="w-full rounded-sm border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" />
+                <input type="number" min={1} value={invSequence} onChange={(e) => setInvSequence(parseInt(e.target.value, 10) || 1)} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" />
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-muted-foreground">{t("partner.sales.detail.referenceNumber")}</label>
-                <input type="text" value={invReferenceNumber} onChange={(e) => setInvReferenceNumber(e.target.value)} className="w-full rounded-sm border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" placeholder={t("partner.sales.new.externalInvoicePlaceholder")} />
+                <input type="text" value={invReferenceNumber} onChange={(e) => setInvReferenceNumber(e.target.value)} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" placeholder={t("partner.sales.new.externalInvoicePlaceholder")} />
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-muted-foreground">{t("common.notes")}</label>
-                <input type="text" value={invNotes} onChange={(e) => setInvNotes(e.target.value)} className="w-full rounded-sm border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" />
+                <input type="text" value={invNotes} onChange={(e) => setInvNotes(e.target.value)} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" />
               </div>
               <div className="flex gap-2 pt-2">
-                <button type="submit" disabled={invSubmitting} className="rounded-sm border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50">
+                <button type="submit" disabled={invSubmitting} className="rounded-lg border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50">
                   {invSubmitting ? t("common.saving") : t("common.save")}
                 </button>
-                <button type="button" onClick={() => { setInvoiceModalMode(null); setInvError(null); }} className="rounded-sm border border-border/60 px-4 py-2 text-sm font-medium text-foreground hover:bg-muted">
+                <button type="button" onClick={() => { setInvoiceModalMode(null); setInvError(null); }} className="rounded-lg border border-border/60 px-4 py-2 text-sm font-medium text-foreground hover:bg-muted">
                   {t("common.cancel")}
                 </button>
               </div>

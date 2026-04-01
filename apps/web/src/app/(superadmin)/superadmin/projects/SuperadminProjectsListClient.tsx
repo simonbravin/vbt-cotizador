@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { FolderOpen, ChevronRight, User, MapPin } from "lucide-react";
 import { useT } from "@/lib/i18n/context";
+import { FilterSelect } from "@/components/ui/filter-select";
 import { ViewLayoutToggle } from "@/components/ui/view-layout-toggle";
 
 const SEARCH_DEBOUNCE_MS = 350;
@@ -87,7 +88,7 @@ export function SuperadminProjectsListClient() {
   return (
     <div className="space-y-4">
       {error && (
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-sm border border-alert-warningBorder bg-alert-warning px-4 py-2 text-sm text-foreground">
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-alert-warningBorder bg-alert-warning px-4 py-2 text-sm text-foreground">
           <span>
             {error}
             {projects.length === 0 && t("superadmin.projectsList.emptyListHint")}
@@ -95,29 +96,27 @@ export function SuperadminProjectsListClient() {
           <button
             type="button"
             onClick={() => fetchProjects()}
-            className="rounded-sm border border-primary/20 bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
+            className="rounded-lg border border-primary/20 bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
           >
             {t("superadmin.projectsList.retry")}
           </button>
         </div>
       )}
       <div className="flex flex-wrap items-center gap-3">
-        <select
+        <FilterSelect
           value={organizationId}
-          onChange={(e) => setOrganizationId(e.target.value)}
-          className="rounded-sm border border-input bg-background px-3 py-1.5 text-sm min-w-[180px]"
-        >
-          <option value="">{t("superadmin.projectsList.allCompanies")}</option>
-          {partners.map((p) => (
-            <option key={p.id} value={p.id}>{p.name}</option>
-          ))}
-        </select>
+          onValueChange={setOrganizationId}
+          emptyOptionLabel={t("superadmin.projectsList.allCompanies")}
+          options={partners.map((p) => ({ value: p.id, label: p.name }))}
+          aria-label={t("admin.entities.partnerLabel")}
+          triggerClassName="h-9 min-w-[180px] max-w-[min(100vw-2rem,280px)] text-sm"
+        />
         <input
           type="text"
           placeholder={t("superadmin.projectsList.countryPlaceholder")}
           value={countryCode}
           onChange={(e) => setCountryCode(e.target.value)}
-          className="rounded-sm border border-input bg-background px-3 py-1.5 text-sm w-32"
+          className="rounded-lg border border-input bg-background px-3 py-1.5 text-sm w-32"
         />
         <input
           type="search"
@@ -125,12 +124,12 @@ export function SuperadminProjectsListClient() {
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && setDebouncedSearch(searchInput.trim())}
-          className="rounded-sm border border-input bg-background px-3 py-1.5 text-sm min-w-[200px]"
+          className="rounded-lg border border-input bg-background px-3 py-1.5 text-sm min-w-[200px]"
         />
         <button
           type="button"
           onClick={() => setDebouncedSearch(searchInput.trim())}
-          className="rounded-sm px-3 py-1.5 text-sm font-medium bg-muted text-muted-foreground hover:bg-muted/80"
+          className="rounded-lg px-3 py-1.5 text-sm font-medium bg-muted text-muted-foreground hover:bg-muted/80"
         >
           {t("superadmin.projectsList.search")}
         </button>
@@ -138,7 +137,7 @@ export function SuperadminProjectsListClient() {
         <button
           type="button"
           onClick={() => setStatusFilter("")}
-          className={`rounded-sm px-3 py-1.5 text-sm font-medium ${!statusFilter ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
+          className={`rounded-lg px-3 py-1.5 text-sm font-medium ${!statusFilter ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
         >
           {t("superadmin.projectsList.allStatuses")}
         </button>
@@ -147,7 +146,7 @@ export function SuperadminProjectsListClient() {
             key={s}
             type="button"
             onClick={() => setStatusFilter(s)}
-            className={`rounded-sm px-3 py-1.5 text-sm font-medium ${statusFilter === s ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium ${statusFilter === s ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
           >
             {projectStatusLabel(s)}
           </button>
@@ -242,7 +241,7 @@ export function SuperadminProjectsListClient() {
                 className="surface-card p-5 transition-colors hover:border-border"
               >
                 <div className="flex items-start justify-between gap-2">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-primary/10 dark:bg-primary/15">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 dark:bg-primary/15">
                     <FolderOpen className="h-5 w-5 text-primary" />
                   </div>
                   <span className="inline-flex shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">

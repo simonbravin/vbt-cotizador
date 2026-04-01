@@ -45,12 +45,12 @@ export default async function ProjectsPage() {
   return (
     <div className="space-y-6">
       {dataLoadError && (projects.length > 0 || total > 0) && (
-        <div className="flex flex-wrap items-center justify-between gap-4 rounded-sm border border-alert-warningBorder bg-alert-warning px-4 py-3 text-sm text-foreground">
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-alert-warningBorder bg-alert-warning px-4 py-3 text-sm text-foreground">
           <p className="text-foreground">
             <span className="font-medium">{t("dashboard.errorLoad")}</span>
             <span className="text-muted-foreground ml-1">{t("dashboard.errorHelp")}</span>
           </p>
-          <Link href="/projects" className="shrink-0 rounded-sm bg-muted px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted/80">
+          <Link href="/projects" className="shrink-0 rounded-lg bg-muted px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted/80">
             {t("common.retry")}
           </Link>
         </div>
@@ -63,13 +63,13 @@ export default async function ProjectsPage() {
         <div className="flex gap-2">
           <Link
             href="/projects/logs"
-            className="inline-flex items-center gap-2 rounded-sm border border-border bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-muted/40"
+            className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-muted/40"
           >
             <History className="w-4 h-4" /> {t("projects.logs")}
           </Link>
           <Link
             href="/projects/new"
-            className="inline-flex items-center gap-2 rounded-sm border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
+            className="inline-flex items-center gap-2 rounded-lg border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
           >
             <Plus className="w-4 h-4" /> {t("projects.newProject")}
           </Link>

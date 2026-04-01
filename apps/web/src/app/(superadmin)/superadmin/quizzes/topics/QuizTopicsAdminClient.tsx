@@ -110,7 +110,7 @@ export function QuizTopicsAdminClient() {
         />
         <button
           type="submit"
-          className="rounded-sm bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+          className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
         >
           {t("superadmin.quizzes.topics.create")}
         </button>

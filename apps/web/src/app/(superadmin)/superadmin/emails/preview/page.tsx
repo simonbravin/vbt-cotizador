@@ -43,7 +43,7 @@ export default async function SuperadminEmailPreviewPage({
           <Link
             key={t.id}
             href={`/superadmin/emails/preview?template=${t.id}&locale=${locale}`}
-            className={`rounded-sm border px-3 py-1.5 text-sm ${
+            className={`rounded-lg border px-3 py-1.5 text-sm ${
               template === t.id
                 ? "border-primary bg-primary/10 text-primary"
                 : "border-border text-muted-foreground hover:bg-muted/50"
@@ -57,7 +57,7 @@ export default async function SuperadminEmailPreviewPage({
       <div className="flex gap-2">
         <Link
           href={`/superadmin/emails/preview?template=${template}&locale=en`}
-          className={`rounded-sm border px-3 py-1.5 text-sm ${
+          className={`rounded-lg border px-3 py-1.5 text-sm ${
             locale === "en"
               ? "border-primary bg-primary/10 text-primary"
               : "border-border text-muted-foreground hover:bg-muted/50"
@@ -67,7 +67,7 @@ export default async function SuperadminEmailPreviewPage({
         </Link>
         <Link
           href={`/superadmin/emails/preview?template=${template}&locale=es`}
-          className={`rounded-sm border px-3 py-1.5 text-sm ${
+          className={`rounded-lg border px-3 py-1.5 text-sm ${
             locale === "es"
               ? "border-primary bg-primary/10 text-primary"
               : "border-border text-muted-foreground hover:bg-muted/50"
@@ -81,7 +81,7 @@ export default async function SuperadminEmailPreviewPage({
         <iframe
           title="Email preview"
           src={iframeSrc}
-          className="h-[860px] w-full rounded-sm border border-border bg-white"
+          className="h-[860px] w-full rounded-lg border border-border bg-card"
         />
       </div>
     </div>

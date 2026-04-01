@@ -102,17 +102,17 @@ export default async function DashboardPage(props: PageProps) {
   return (
     <div className="space-y-8">
       {accessDeniedSuperadmin && (
-        <div className="bg-destructive/15 border border-destructive/30 text-destructive rounded-sm px-4 py-3 text-sm">
+        <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-caption text-destructive">
           {t("dashboard.accessDeniedSuperadmin")}
         </div>
       )}
         {dataLoadError && (projectCount > 0 || quoteCount > 0) && (
-        <div className="bg-alert-warning border border-alert-warningBorder rounded-sm px-4 py-3 text-sm flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-alert-warningBorder bg-alert-warning px-4 py-3 text-caption">
           <p className="text-foreground">
             <span className="font-medium">{t("dashboard.errorLoad")}</span>
             <span className="text-muted-foreground ml-1">{t("dashboard.errorHelp")}</span>
           </p>
-          <Link href="/dashboard" className="shrink-0 px-3 py-1.5 bg-muted text-foreground rounded-sm text-sm font-medium hover:bg-muted/80 border border-border">
+          <Link href="/dashboard" className="shrink-0 rounded-full border border-border/80 bg-card px-4 py-2 text-[15px] font-medium text-foreground hover:bg-muted">
             {t("common.retry")}
           </Link>
         </div>
@@ -128,14 +128,14 @@ export default async function DashboardPage(props: PageProps) {
         <div className="flex gap-3">
           <Link
             href="/projects/new"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-sm text-sm font-semibold hover:opacity-90 transition-opacity border border-primary/20"
+            className="inline-flex items-center gap-2 rounded-full border border-transparent bg-primary px-5 py-2.5 text-[17px] font-normal text-primary-foreground transition-opacity hover:opacity-[0.88]"
           >
             <Plus className="w-4 h-4" />
             {t("dashboard.newProject")}
           </Link>
           <Link
             href="/quotes/create"
-            className="inline-flex items-center gap-2 rounded-sm border border-vbt-orange/30 bg-vbt-orange px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
+            className="inline-flex items-center gap-2 rounded-full border border-transparent bg-primary px-5 py-2.5 text-[17px] font-normal text-primary-foreground hover:opacity-[0.88]"
           >
             <Plus className="w-4 h-4" />
             {t("dashboard.newQuote")}
@@ -145,7 +145,7 @@ export default async function DashboardPage(props: PageProps) {
 
       {/* Pending users alert: only superadmin can see and access admin approval (partners never see this) */}
       {(user as { isPlatformSuperadmin?: boolean }).isPlatformSuperadmin && pendingUsers > 0 && (
-        <div className="bg-alert-warning border border-alert-warningBorder rounded-sm p-4 flex items-center justify-between">
+        <div className="flex items-center justify-between rounded-lg border border-alert-warningBorder bg-alert-warning p-5">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
               <span className="text-foreground font-bold text-sm">{pendingUsers}</span>
@@ -173,36 +173,42 @@ export default async function DashboardPage(props: PageProps) {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         {[
           {
+            id: "stat-projects",
             label: t("dashboard.activeProjects"),
             value: projectCount,
             icon: FolderOpen,
             href: "/projects",
           },
           {
+            id: "stat-quotes-total",
             label: t("dashboard.totalQuotes"),
             value: quoteCount,
             icon: FileText,
             href: "/quotes",
           },
           {
+            id: "stat-quotes-draft",
             label: t("dashboard.draftQuotes"),
             value: draftCount,
             icon: TrendingUp,
             href: "/quotes?status=draft",
           },
           {
+            id: "stat-quotes-sent",
             label: t("dashboard.sentQuotes"),
             value: sentCount,
             icon: Package,
             href: "/quotes?status=sent",
           },
           {
+            id: "stat-sales-ytd",
             label: t("dashboard.salesYtd"),
             value: formatCurrency(salesYtd),
             icon: DollarSign,
             href: "/sales",
           },
           {
+            id: "stat-quotes-sent-ytd",
             label: t("dashboard.quotesSentYtd"),
             value: quotesSentYtd,
             icon: Send,
@@ -210,26 +216,26 @@ export default async function DashboardPage(props: PageProps) {
           },
         ].map((stat) => (
           <Link
-            key={stat.href}
+            key={stat.id}
             href={stat.href}
-            className="bg-background rounded-sm p-6 border border-border/60 hover:border-border transition-colors"
+            className="rounded-lg border border-border/80 bg-card p-6 transition-colors hover:shadow-card"
           >
             <div className="flex items-center justify-between mb-3">
-              <div className="w-10 h-10 bg-muted border border-border/60 rounded-sm flex items-center justify-center">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-border/80 bg-muted">
                 <stat.icon className="w-5 h-5 text-primary" />
               </div>
             </div>
-            <p className="text-2xl font-bold text-foreground font-mono tabular-nums tracking-tight">{stat.value}</p>
-            <p className="text-muted-foreground text-[11px] font-mono uppercase tracking-wider mt-1">{stat.label}</p>
+            <p className="text-2xl font-semibold tabular-nums tracking-tight text-foreground">{stat.value}</p>
+            <p className="mt-2 text-micro uppercase tracking-wide text-muted-foreground">{stat.label}</p>
           </Link>
         ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Quotes */}
-        <div className="bg-background rounded-sm border border-border/60">
+        <div className="rounded-lg border border-border/80 bg-card">
           <div className="p-5 border-b border-border/60 flex items-center justify-between bg-muted/25">
-            <h2 className="text-xs font-mono font-semibold uppercase tracking-[0.12em] text-foreground">{t("dashboard.recentQuotes")}</h2>
+            <h2 className="text-caption font-semibold uppercase tracking-wide text-foreground">{t("dashboard.recentQuotes")}</h2>
             <Link href="/quotes" className="text-sm text-primary hover:underline">
               {t("common.viewAll")}
             </Link>
@@ -273,9 +279,9 @@ export default async function DashboardPage(props: PageProps) {
         </div>
 
         {/* Recent Projects */}
-        <div className="bg-background rounded-sm border border-border/60">
+        <div className="rounded-lg border border-border/80 bg-card">
           <div className="p-5 border-b border-border/60 flex items-center justify-between bg-muted/25">
-            <h2 className="text-xs font-mono font-semibold uppercase tracking-[0.12em] text-foreground">{t("dashboard.recentProjects")}</h2>
+            <h2 className="text-caption font-semibold uppercase tracking-wide text-foreground">{t("dashboard.recentProjects")}</h2>
             <Link href="/projects" className="text-sm text-primary hover:underline">
               {t("common.viewAll")}
             </Link>

@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Plus, Pencil, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import { useT } from "@/lib/i18n/context";
+import { FilterSelect } from "@/components/ui/filter-select";
 
 type TaxBase = "CIF" | "FOB" | "BASE_IMPONIBLE" | "FIXED_PER_CONTAINER" | "FIXED_TOTAL";
 
@@ -131,7 +132,7 @@ export default function TaxesPage() {
         </div>
         <button
           onClick={openAdd}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-sm text-sm font-medium hover:opacity-90"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90"
         >
           <Plus className="w-4 h-4" /> {t("admin.taxes.add")}
         </button>
@@ -156,7 +157,7 @@ export default function TaxesPage() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={(e) => { e.stopPropagation(); openEdit(ts); }}
-                  className="p-1.5 text-muted-foreground/70 hover:text-muted-foreground rounded-sm"
+                  className="p-1.5 text-muted-foreground/70 hover:text-muted-foreground rounded-lg"
                 >
                   <Pencil className="w-3.5 h-3.5" />
                 </button>
@@ -206,7 +207,7 @@ export default function TaxesPage() {
             <div className="p-6 border-b border-border/60">
               <h3 className="font-semibold text-lg">{editSet ? t("admin.taxes.editRuleSetTitle") : t("admin.taxes.addRuleSetTitle")}</h3>
               {saveError && (
-                <div className="mt-3 rounded-sm border border-alert-errorBorder bg-alert-error px-3 py-2 text-sm text-foreground">
+                <div className="mt-3 rounded-lg border border-alert-errorBorder bg-alert-error px-3 py-2 text-sm text-foreground">
                   {saveError}
                 </div>
               )}
@@ -220,19 +221,19 @@ export default function TaxesPage() {
                     value={form.name}
                     onChange={(e) => setForm(p => ({ ...p, name: e.target.value }))}
                     placeholder={t("admin.taxes.namePlaceholder")}
-                    className="w-full px-3 py-2 border border-input rounded-sm text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="w-full px-3 py-2 border border-input rounded-lg text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-1">{t("admin.taxes.countryLabel")}</label>
-                  <select
+                  <FilterSelect
                     value={form.countryId}
-                    onChange={(e) => setForm(p => ({ ...p, countryId: e.target.value }))}
-                    className="w-full px-3 py-2 border border-input rounded-sm text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    <option value="">{t("admin.taxes.selectOption")}</option>
-                    {countries.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
+                    onValueChange={(v) => setForm((p) => ({ ...p, countryId: v }))}
+                    emptyOptionLabel={t("admin.taxes.selectOption")}
+                    options={countries.map((c) => ({ value: c.id, label: c.name }))}
+                    aria-label={t("admin.taxes.countryLabel")}
+                    triggerClassName="h-10 w-full min-w-0 max-w-full text-sm"
+                  />
                 </div>
               </div>
 
@@ -255,17 +256,18 @@ export default function TaxesPage() {
                         value={rule.label}
                         onChange={(e) => updateRule(i, "label", e.target.value)}
                         placeholder={t("admin.taxes.labelPlaceholder")}
-                        className="flex-1 px-2 py-1.5 border border-input rounded-sm text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        className="flex-1 px-2 py-1.5 border border-input rounded-lg text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       />
-                      <select
+                      <FilterSelect
                         value={rule.base}
-                        onChange={(e) => updateRule(i, "base", e.target.value as TaxBase)}
-                        className="px-2 py-1.5 border border-input rounded-sm text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      >
-                        {(Object.keys(BASE_LABELS) as TaxBase[]).map(b => (
-                          <option key={b} value={b}>{BASE_LABELS[b]}</option>
-                        ))}
-                      </select>
+                        onValueChange={(v) => updateRule(i, "base", v as TaxBase)}
+                        options={(Object.keys(BASE_LABELS) as TaxBase[]).map((b) => ({
+                          value: b,
+                          label: BASE_LABELS[b],
+                        }))}
+                        aria-label={t("admin.taxes.rulesAppliedInOrder")}
+                        triggerClassName="h-9 min-w-[8rem] max-w-[min(100vw-2rem,200px)] text-sm"
+                      />
                       {IS_PCT[rule.base] ? (
                         <div className="relative w-20">
                           <input
@@ -274,7 +276,7 @@ export default function TaxesPage() {
                             step="0.01"
                             value={rule.ratePct ?? 0}
                             onChange={(e) => updateRule(i, "ratePct", parseFloat(e.target.value) || 0)}
-                            className="w-full px-2 py-1.5 pr-5 border border-input rounded-sm text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            className="w-full px-2 py-1.5 pr-5 border border-input rounded-lg text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                           />
                           <span className="absolute right-2 top-1.5 text-muted-foreground/70 text-xs">%</span>
                         </div>
@@ -287,7 +289,7 @@ export default function TaxesPage() {
                             step="1"
                             value={rule.fixedAmount ?? 0}
                             onChange={(e) => updateRule(i, "fixedAmount", parseFloat(e.target.value) || 0)}
-                            className="w-full pl-4 pr-2 py-1.5 border border-input rounded-sm text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            className="w-full pl-4 pr-2 py-1.5 border border-input rounded-lg text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                           />
                         </div>
                       )}
@@ -303,11 +305,11 @@ export default function TaxesPage() {
               </div>
             </div>
             <div className="p-6 border-t border-border/60 flex gap-3 justify-end">
-              <button onClick={() => setShowAdd(false)} className="px-4 py-2 border border-input rounded-sm text-sm">{t("common.cancel")}</button>
+              <button onClick={() => setShowAdd(false)} className="px-4 py-2 border border-input rounded-lg text-sm">{t("common.cancel")}</button>
               <button
                 onClick={save}
                 disabled={saving || !form.name || !form.countryId}
-                className="px-4 py-2 bg-primary text-white rounded-sm text-sm disabled:opacity-50"
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm disabled:opacity-50"
               >
                 {saving ? t("common.saving") : t("common.save")}
               </button>

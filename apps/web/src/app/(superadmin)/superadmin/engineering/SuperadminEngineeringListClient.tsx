@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Wrench, ChevronRight, Search, Download } from "lucide-react";
 import { useT } from "@/lib/i18n/context";
+import { FilterSelect } from "@/components/ui/filter-select";
 import { ViewLayoutToggle } from "@/components/ui/view-layout-toggle";
 
 const ENGINEERING_STATUSES = ["draft", "in_review", "completed"] as const;
@@ -102,6 +103,16 @@ export function SuperadminEngineeringListClient() {
     fetchList();
   }, [fetchList]);
 
+  const assigneeOptions = useMemo(() => {
+    const rest = platformUsers
+      .filter((u) => u.id !== sessionUserId)
+      .map((u) => ({ value: u.id, label: u.fullName || u.email }));
+    if (sessionUserId) {
+      return [{ value: sessionUserId, label: t("superadmin.engineeringList.myQueue") }, ...rest];
+    }
+    return rest;
+  }, [sessionUserId, platformUsers, t]);
+
   const exportCsvHref = (() => {
     const params = new URLSearchParams();
     if (statusFilter) params.set("status", statusFilter);
@@ -115,67 +126,53 @@ export function SuperadminEngineeringListClient() {
   return (
     <div className="space-y-4">
       {error && (
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-sm border border-alert-warningBorder bg-alert-warning px-4 py-2 text-sm text-foreground">
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-alert-warningBorder bg-alert-warning px-4 py-2 text-sm text-foreground">
           <span>{error}</span>
           <button
             type="button"
             onClick={() => fetchList()}
-            className="rounded-sm border border-primary/20 bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
+            className="rounded-lg border border-primary/20 bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
           >
             {t("superadmin.engineeringList.retry")}
           </button>
         </div>
       )}
       <div className="flex flex-wrap items-center gap-3">
-        <select
+        <FilterSelect
           value={organizationId}
-          onChange={(e) => setOrganizationId(e.target.value)}
-          className="min-w-[180px] rounded-sm border border-input bg-background px-3 py-1.5 text-sm"
-        >
-          <option value="">{t("superadmin.engineeringList.allCompanies")}</option>
-          {partners.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
-        <select
+          onValueChange={setOrganizationId}
+          emptyOptionLabel={t("superadmin.engineeringList.allCompanies")}
+          options={partners.map((p) => ({ value: p.id, label: p.name }))}
+          aria-label={t("admin.entities.partnerLabel")}
+          triggerClassName="h-9 min-w-[180px] max-w-[min(100vw-2rem,280px)] text-sm"
+        />
+        <FilterSelect
           value={assigneeFilter}
-          onChange={(e) => setAssigneeFilter(e.target.value)}
-          className="min-w-[200px] rounded-sm border border-input bg-background px-3 py-1.5 text-sm"
+          onValueChange={setAssigneeFilter}
+          emptyOptionLabel={t("superadmin.engineeringList.assigneeAll")}
+          options={assigneeOptions}
           aria-label={t("superadmin.engineeringList.filterAssignee")}
-        >
-          <option value="">{t("superadmin.engineeringList.assigneeAll")}</option>
-          {sessionUserId && (
-            <option value={sessionUserId}>{t("superadmin.engineeringList.myQueue")}</option>
-          )}
-          {platformUsers
-            .filter((u) => u.id !== sessionUserId)
-            .map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.fullName || u.email}
-              </option>
-            ))}
-        </select>
+          triggerClassName="h-9 min-w-[200px] max-w-[min(100vw-2rem,280px)] text-sm"
+        />
         <input
           type="search"
           placeholder={t("superadmin.engineeringList.searchPlaceholder")}
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && setDebouncedSearch(searchInput.trim())}
-          className="min-w-[200px] rounded-sm border border-input bg-background px-3 py-1.5 text-sm"
+          className="min-w-[200px] rounded-lg border border-input bg-background px-3 py-1.5 text-sm"
         />
         <button
           type="button"
           onClick={() => setDebouncedSearch(searchInput.trim())}
-          className="inline-flex items-center gap-1.5 rounded-sm bg-muted px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted/80"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-muted px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted/80"
         >
           <Search className="h-4 w-4" />
           {t("superadmin.engineeringList.search")}
         </button>
         <a
           href={exportCsvHref}
-          className="inline-flex items-center gap-1.5 rounded-sm border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted/80"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted/80"
         >
           <Download className="h-4 w-4" />
           {t("superadmin.engineeringList.exportCsv")}
@@ -184,7 +181,7 @@ export function SuperadminEngineeringListClient() {
         <button
           type="button"
           onClick={() => setStatusFilter("")}
-          className={`rounded-sm px-3 py-1.5 text-sm font-medium ${!statusFilter ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
+          className={`rounded-lg px-3 py-1.5 text-sm font-medium ${!statusFilter ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
         >
           {t("superadmin.engineeringList.allStatuses")}
         </button>
@@ -193,7 +190,7 @@ export function SuperadminEngineeringListClient() {
             key={s}
             type="button"
             onClick={() => setStatusFilter(s)}
-            className={`rounded-sm px-3 py-1.5 text-sm font-medium ${statusFilter === s ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium ${statusFilter === s ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
           >
             {t(`partner.engineering.status.${s}`)}
           </button>
@@ -268,7 +265,7 @@ export function SuperadminEngineeringListClient() {
             {rows.map((r) => (
               <div key={r.id} className="surface-card p-5 transition-colors hover:border-border">
                 <div className="flex items-start justify-between gap-2">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-muted">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
                     <Wrench className="h-5 w-5 text-muted-foreground" />
                   </div>
                   <span className="inline-flex shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">

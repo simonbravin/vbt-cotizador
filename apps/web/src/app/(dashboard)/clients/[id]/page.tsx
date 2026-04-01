@@ -69,7 +69,7 @@ export default async function ClientDetailPage({
         <ClientDetailActions client={client} countries={countries} />
       </div>
 
-      <div className="rounded-sm border border-border/60 bg-card p-5">
+      <div className="rounded-lg border border-border/60 bg-card p-5">
         <h2 className="mb-4 font-semibold text-foreground">Client details</h2>
         <dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
           {client.legalName && (
@@ -142,7 +142,7 @@ export default async function ClientDetailPage({
         </dl>
       </div>
 
-      <div className="rounded-sm border border-border/60 bg-card p-5">
+      <div className="rounded-lg border border-border/60 bg-card p-5">
         <h2 className="mb-4 font-semibold text-foreground">
           Projects ({client.projects.length})
         </h2>

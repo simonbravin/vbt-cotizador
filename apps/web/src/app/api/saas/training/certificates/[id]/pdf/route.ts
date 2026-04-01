@@ -50,7 +50,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     qrDataUrl = await QRCode.toDataURL(verifyUrl, {
       margin: 1,
       width: 160,
-      color: { dark: "#0c4a6e", light: "#ffffff" },
+      color: { dark: "#1d1d1f", light: "#ffffff" },
     });
   } catch {
     qrDataUrl = null;

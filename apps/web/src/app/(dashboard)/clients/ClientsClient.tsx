@@ -9,6 +9,7 @@ import { useT } from "@/lib/i18n/context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { FilterSelect } from "@/components/ui/filter-select";
 import { ViewLayoutToggle } from "@/components/ui/view-layout-toggle";
 
 type Country = { id: string; name: string; code: string };
@@ -33,9 +34,6 @@ type Stats = {
 };
 
 const SEARCH_DEBOUNCE_MS = 350;
-
-const nativeSelectClass =
-  "flex h-10 w-full rounded-sm border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
 
 const emptyForm = {
   name: "",
@@ -272,16 +270,14 @@ export function ClientsClient({
         </div>
         <div>
           <label className="block text-xs text-muted-foreground mb-1.5">{t("clients.country")}</label>
-          <select
+          <FilterSelect
             value={form.countryId}
-            onChange={(e) => setForm((f) => ({ ...f, countryId: e.target.value }))}
-            className={nativeSelectClass}
-          >
-            <option value="">{t("clients.noneOption")}</option>
-            {countries.map((co) => (
-              <option key={co.id} value={co.id}>{co.name}</option>
-            ))}
-          </select>
+            onValueChange={(v) => setForm((f) => ({ ...f, countryId: v }))}
+            emptyOptionLabel={t("clients.noneOption")}
+            options={countries.map((co) => ({ value: co.id, label: co.name }))}
+            aria-label={t("clients.country")}
+            triggerClassName="h-10 w-full min-w-0 max-w-full text-sm"
+          />
         </div>
       </div>
       <div>
@@ -327,7 +323,7 @@ export function ClientsClient({
         />
       </div>
       {error && (
-        <p className="text-destructive text-sm border border-destructive/25 rounded-sm px-2 py-1.5 bg-destructive/5" role="alert">
+        <p className="text-destructive text-sm border border-destructive/25 rounded-lg px-2 py-1.5 bg-destructive/5" role="alert">
           {error}
         </p>
       )}
@@ -349,7 +345,7 @@ export function ClientsClient({
       {/* KPI cards */}
       {stats && (stats.topByProjects.length > 0 || stats.topBySold.length > 0) && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="rounded-sm border border-border/60 bg-card p-4">
+          <div className="rounded-lg border border-border/60 bg-card p-4">
             <h3 className="text-[10px] font-mono font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t("clients.kpiTopByProjects")}</h3>
             <ul className="space-y-1 text-sm">
               {stats.topByProjects.slice(0, 5).map((s) => (
@@ -362,7 +358,7 @@ export function ClientsClient({
               ))}
             </ul>
           </div>
-          <div className="rounded-sm border border-border/60 bg-card p-4">
+          <div className="rounded-lg border border-border/60 bg-card p-4">
             <h3 className="text-[10px] font-mono font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t("clients.kpiTopBySold")}</h3>
             <ul className="space-y-1 text-sm">
               {stats.topBySold.slice(0, 5).map((s) => (
@@ -395,7 +391,7 @@ export function ClientsClient({
       </div>
 
       {clients.length === 0 ? (
-        <div className="rounded-sm border border-border/60 bg-background p-12 text-center">
+        <div className="rounded-lg border border-border/60 bg-background p-12 text-center">
           <Building2 className="mx-auto mb-3 h-10 w-10 text-muted-foreground/35" />
           <p className="text-sm font-medium text-foreground">{t("clients.noClientsYet")}</p>
           <p className="mt-1 text-sm text-muted-foreground">{t("clients.noClientsHint")}</p>
@@ -405,16 +401,16 @@ export function ClientsClient({
           {clients.map((c) => (
             <div
               key={c.id}
-              className="flex flex-col rounded-sm border border-border/60 bg-card p-5 transition-colors hover:border-border"
+              className="flex flex-col rounded-lg border border-border/60 bg-card p-5 transition-colors hover:border-border"
             >
               <div className="mb-3 flex items-start justify-between">
-                <div className="flex h-10 w-10 items-center justify-center rounded-sm border border-border/60 bg-muted/30">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-border/60 bg-muted/30">
                   <Building2 className="h-5 w-5 text-muted-foreground" />
                 </div>
                 <button
                   type="button"
                   onClick={() => openEdit(c)}
-                  className="rounded-sm p-1.5 text-muted-foreground hover:bg-muted hover:text-primary"
+                  className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-primary"
                   title={t("clients.edit")}
                 >
                   <Pencil className="h-4 w-4" />
@@ -447,7 +443,7 @@ export function ClientsClient({
           ))}
         </div>
       ) : (
-        <div className="overflow-hidden rounded-sm border border-border/60 bg-card">
+        <div className="overflow-hidden rounded-lg border border-border/60 bg-card">
           <table className="w-full text-sm">
             <thead className="border-b border-border/60 bg-muted/30">
               <tr>
@@ -477,7 +473,7 @@ export function ClientsClient({
                     <button
                       type="button"
                       onClick={() => openEdit(c)}
-                      className="rounded-sm p-1.5 text-muted-foreground hover:bg-muted hover:text-primary"
+                      className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-primary"
                       title={t("clients.edit")}
                     >
                       <Pencil className="h-4 w-4" />
@@ -498,7 +494,7 @@ export function ClientsClient({
             onClick={() => setNewOpen(false)}
           >
             <div
-              className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-sm border border-border/60 bg-background p-6"
+              className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-lg border border-border/60 bg-background p-6"
               onClick={(e) => e.stopPropagation()}
             >
               <h2 className="mb-4 text-lg font-semibold tracking-tight text-foreground">{t("clients.newClient")}</h2>
@@ -524,7 +520,7 @@ export function ClientsClient({
             onClick={() => setEditId(null)}
           >
             <div
-              className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-sm border border-border/60 bg-background p-6"
+              className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-lg border border-border/60 bg-background p-6"
               onClick={(e) => e.stopPropagation()}
             >
               <h2 className="mb-4 text-lg font-semibold tracking-tight text-foreground">{t("clients.editClientTitle")}</h2>

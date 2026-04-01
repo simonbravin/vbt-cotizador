@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useT, useLanguage } from "@/lib/i18n/context";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { FilterSelect } from "@/components/ui/filter-select";
 
 function engineeringFeeModeLabel(t: (key: string) => string, mode: string | null | undefined): string {
   if (!mode) return "—";
@@ -227,7 +228,7 @@ export function PartnerDetailClient({
       </div>
 
       {inviteSent && !dismissInviteBanner && (
-        <div className="rounded-sm border border-alert-successBorder bg-alert-success px-4 py-3 text-sm text-foreground flex items-center justify-between">
+        <div className="rounded-lg border border-alert-successBorder bg-alert-success px-4 py-3 text-sm text-foreground flex items-center justify-between">
           <span>
             {inviteSent === "new"
               ? t("superadmin.partner.inviteBannerNewAccount")
@@ -245,7 +246,7 @@ export function PartnerDetailClient({
       )}
 
       {error && (
-        <div className="rounded-sm border border-alert-errorBorder bg-alert-error px-4 py-3 text-sm text-foreground">
+        <div className="rounded-lg border border-alert-errorBorder bg-alert-error px-4 py-3 text-sm text-foreground">
           {error}
         </div>
       )}
@@ -269,7 +270,7 @@ export function PartnerDetailClient({
                 <span
                   className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
                     partner.status === "active"
-                      ? "bg-emerald-500/15 text-emerald-800 dark:text-emerald-200"
+                      ? "border border-primary/25 bg-primary/10 text-primary"
                       : "bg-muted text-foreground"
                   }`}
                 >
@@ -321,7 +322,7 @@ export function PartnerDetailClient({
             </div>
           </div>
 
-          <div className="rounded-sm border border-alert-warningBorder bg-alert-warning p-4">
+          <div className="rounded-lg border border-alert-warningBorder bg-alert-warning p-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-medium text-foreground">{t("superadmin.partner.commissionSectionTitle")}</h3>
               <Link
@@ -353,7 +354,7 @@ export function PartnerDetailClient({
           </div>
 
           {/* Annual goals (read-only); edit in Parameters tab */}
-          <div className="rounded-sm border border-border/60 bg-muted/30 p-4">
+          <div className="rounded-lg border border-border/60 bg-muted/30 p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Target className="h-4 w-4 text-primary" />
@@ -389,7 +390,7 @@ export function PartnerDetailClient({
 
           <Link
             href={`/superadmin/partners/${partnerId}/edit`}
-            className="inline-flex items-center gap-2 rounded-sm border border-border/60 bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-muted"
+            className="inline-flex items-center gap-2 rounded-lg border border-border/60 bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-muted"
           >
             <Settings className="h-4 w-4" />
             {t("superadmin.partner.editPartner")}
@@ -420,19 +421,18 @@ export function PartnerDetailClient({
             {t("superadmin.partner.onboardingHelp")}
           </p>
           <div className="mt-4">
-            <select
+            <FilterSelect
               value={onboardingState}
-              onChange={(e) => handleUpdateOnboarding(e.target.value)}
+              onValueChange={handleUpdateOnboarding}
+              emptyOptionLabel={t("superadmin.partner.onboardingNotSet")}
+              options={ONBOARDING_STATES.map((s) => ({
+                value: s,
+                label: onboardingStateLabel(t, s),
+              }))}
               disabled={saving}
-              className="input-native mt-1 max-w-xs"
-            >
-              <option value="">{t("superadmin.partner.onboardingNotSet")}</option>
-              {ONBOARDING_STATES.map((s) => (
-                <option key={s} value={s}>
-                  {onboardingStateLabel(t, s)}
-                </option>
-              ))}
-            </select>
+              aria-label={t("superadmin.partner.detail.onboardingState")}
+              triggerClassName="h-10 mt-1 max-w-xs min-w-0 text-sm"
+            />
             {saving && <p className="mt-2 text-sm text-muted-foreground">{t("superadmin.partner.detail.saving")}</p>}
           </div>
         </div>
@@ -557,7 +557,7 @@ function TeamSection({ partnerId, partnerName }: { partnerId: string; partnerNam
         <button
           type="button"
           onClick={() => setInviteOpen(true)}
-          className="inline-flex items-center gap-2 rounded-sm border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
+          className="inline-flex items-center gap-2 rounded-lg border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
         >
           <UserPlus className="h-4 w-4" />
           {t("partner.team.inviteByEmail")}
@@ -565,7 +565,7 @@ function TeamSection({ partnerId, partnerName }: { partnerId: string; partnerNam
       </div>
 
       {inviteOpen && (
-        <div className="rounded-sm border border-border/60 bg-muted/30 p-4 space-y-3">
+        <div className="rounded-lg border border-border/60 bg-muted/30 p-4 space-y-3">
           <p className="text-sm font-medium text-foreground">
             {t("superadmin.partner.inviteMemberTo", { partner: partnerName })}
           </p>
@@ -589,29 +589,25 @@ function TeamSection({ partnerId, partnerName }: { partnerId: string; partnerNam
             </div>
             <div>
               <label className="block text-xs font-medium text-muted-foreground">{t("admin.users.role")}</label>
-              <select
+              <FilterSelect
                 value={inviteRole}
-                onChange={(e) => setInviteRole(e.target.value as typeof inviteRole)}
-                className="input-native mt-1"
-              >
-                {TEAM_ROLES.map((r) => (
-                  <option key={r.value} value={r.value}>
-                    {t(r.labelKey)}
-                  </option>
-                ))}
-              </select>
+                onValueChange={(v) => setInviteRole(v as typeof inviteRole)}
+                options={TEAM_ROLES.map((r) => ({ value: r.value, label: t(r.labelKey) }))}
+                aria-label={t("admin.users.role")}
+                triggerClassName="h-10 mt-1 min-w-[10rem] max-w-full text-sm"
+              />
             </div>
             <button
               type="submit"
               disabled={submitting}
-              className="rounded-sm border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
+              className="rounded-lg border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
             >
               {submitting ? t("partner.team.inviting") : t("partner.team.invite")}
             </button>
             <button
               type="button"
               onClick={() => { setInviteOpen(false); setInviteError(null); }}
-              className="rounded-sm border border-border/60 bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-muted"
+              className="rounded-lg border border-border/60 bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-muted"
             >
               {t("common.cancel")}
             </button>
@@ -623,7 +619,7 @@ function TeamSection({ partnerId, partnerName }: { partnerId: string; partnerNam
       )}
 
       {inviteSuccess && (
-        <div className="rounded-sm border border-alert-successBorder bg-alert-success px-4 py-2 text-sm text-foreground">
+        <div className="rounded-lg border border-alert-successBorder bg-alert-success px-4 py-2 text-sm text-foreground">
           {inviteSuccess}
         </div>
       )}
@@ -678,9 +674,9 @@ function TeamSection({ partnerId, partnerName }: { partnerId: string; partnerNam
                     <span
                       className={`text-xs rounded-full px-2 py-0.5 ${
                         m.status === "active"
-                          ? "bg-emerald-500/15 text-emerald-800 dark:text-emerald-200"
+                          ? "border border-primary/25 bg-primary/10 text-primary"
                           : m.status === "invited"
-                            ? "bg-amber-500/15 text-amber-900 dark:text-amber-200"
+                            ? "border border-border/80 bg-muted text-foreground"
                             : "bg-muted text-foreground"
                       }`}
                     >
@@ -787,7 +783,7 @@ function TerritoriesSection({
           <button
             type="button"
             onClick={() => setAdding(true)}
-            className="inline-flex items-center gap-2 rounded-sm border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
+            className="inline-flex items-center gap-2 rounded-lg border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
           >
             {t("superadmin.partner.addTerritory")}
           </button>
@@ -795,7 +791,7 @@ function TerritoriesSection({
       </div>
 
       {adding && (
-        <div className="rounded-sm border border-border/60 bg-muted/30 p-4 space-y-3">
+        <div className="rounded-lg border border-border/60 bg-muted/30 p-4 space-y-3">
           {err && <p className="text-sm text-destructive">{err}</p>}
           <div className="flex flex-wrap gap-3 items-end">
             <div>
@@ -805,7 +801,7 @@ function TerritoriesSection({
                 maxLength={2}
                 value={countryCode}
                 onChange={(e) => setCountryCode(e.target.value.toUpperCase())}
-                className="mt-1 block w-20 rounded-sm border border-input px-2 py-1.5 text-sm"
+                className="mt-1 block w-20 rounded-lg border border-input px-2 py-1.5 text-sm"
               />
             </div>
             <div>
@@ -814,33 +810,35 @@ function TerritoriesSection({
                 type="text"
                 value={region}
                 onChange={(e) => setRegion(e.target.value)}
-                className="mt-1 block w-32 rounded-sm border border-input px-2 py-1.5 text-sm"
+                className="mt-1 block w-32 rounded-lg border border-input px-2 py-1.5 text-sm"
               />
             </div>
             <div>
               <label className="block text-xs font-medium text-muted-foreground">{t("superadmin.partner.detail.territoryType")}</label>
-              <select
+              <FilterSelect
                 value={territoryType}
-                onChange={(e) => setTerritoryType(e.target.value as "exclusive" | "open" | "referral")}
-                className="mt-1 block rounded-sm border border-input px-2 py-1.5 text-sm"
-              >
-                <option value="exclusive">{t("superadmin.partner.territoryType.exclusive")}</option>
-                <option value="open">{t("superadmin.partner.territoryType.open")}</option>
-                <option value="referral">{t("superadmin.partner.territoryType.referral")}</option>
-              </select>
+                onValueChange={(v) => setTerritoryType(v as "exclusive" | "open" | "referral")}
+                options={[
+                  { value: "exclusive", label: t("superadmin.partner.territoryType.exclusive") },
+                  { value: "open", label: t("superadmin.partner.territoryType.open") },
+                  { value: "referral", label: t("superadmin.partner.territoryType.referral") },
+                ]}
+                aria-label={t("superadmin.partner.detail.territoryType")}
+                triggerClassName="mt-1 h-9 min-w-[9rem] max-w-full text-sm"
+              />
             </div>
             <button
               type="button"
               onClick={handleAdd}
               disabled={submitting}
-              className="rounded-sm border border-primary/20 bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
+              className="rounded-lg border border-primary/20 bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
             >
               {submitting ? t("superadmin.partner.adding") : t("superadmin.partner.add")}
             </button>
             <button
               type="button"
               onClick={() => { setAdding(false); setErr(null); }}
-              className="rounded-sm border border-border/60 px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted"
+              className="rounded-lg border border-border/60 px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted"
             >
               {t("common.cancel")}
             </button>
@@ -856,7 +854,7 @@ function TerritoriesSection({
             <li key={territory.id} className="py-3 flex items-center justify-between">
               <span className="font-medium">{territory.countryCode}</span>
               {territory.region && <span className="text-muted-foreground">{territory.region}</span>}
-              <span className="text-xs rounded-sm bg-muted px-2 py-0.5">
+              <span className="text-xs rounded-lg bg-muted px-2 py-0.5">
                 {territoryTypeDisplay(t, territory.territoryType)}
               </span>
               <button
@@ -1004,7 +1002,7 @@ function ParametersSection({
       </p>
       {error && <p className="text-sm text-destructive">{error}</p>}
       {successMessage && (
-        <div className="rounded-sm border border-alert-successBorder bg-alert-success p-3 text-sm text-foreground">
+        <div className="rounded-lg border border-alert-successBorder bg-alert-success p-3 text-sm text-foreground">
           {successMessage}
         </div>
       )}
@@ -1040,12 +1038,14 @@ function ParametersSection({
             </div>
             <div>
               <label className="block text-xs font-medium text-muted-foreground">{t("superadmin.partner.edit.engineeringFeeMode")}</label>
-              <select value={engineeringFeeMode} onChange={(e) => setEngineeringFeeMode(e.target.value)} className="input-native mt-1">
-                <option value="">{t("superadmin.partner.onboardingNotSet")}</option>
-                {ENGINEERING_FEE_MODES.map((m) => (
-                  <option key={m.value} value={m.value}>{t(m.labelKey)}</option>
-                ))}
-              </select>
+              <FilterSelect
+                value={engineeringFeeMode}
+                onValueChange={setEngineeringFeeMode}
+                emptyOptionLabel={t("superadmin.partner.onboardingNotSet")}
+                options={ENGINEERING_FEE_MODES.map((m) => ({ value: m.value, label: t(m.labelKey) }))}
+                aria-label={t("superadmin.partner.edit.engineeringFeeMode")}
+                triggerClassName="mt-1 h-10 w-full min-w-0 max-w-full text-sm"
+              />
             </div>
             <div>
               <label className="block text-xs font-medium text-muted-foreground">{t("superadmin.partner.detail.engineeringFeeValue")}</label>
@@ -1110,16 +1110,22 @@ function ParametersSection({
             </div>
             <div>
               <label className="block text-xs font-medium text-muted-foreground">{t("superadmin.partner.detail.status")}</label>
-              <select value={agreementStatus} onChange={(e) => setAgreementStatus(e.target.value)} className="input-native mt-1">
-                {AGREEMENT_STATUS_OPTIONS.map((opt) => (
-                  <option key={opt.value || "_empty"} value={opt.value}>{t(opt.labelKey)}</option>
-                ))}
-              </select>
+              <FilterSelect
+                value={agreementStatus}
+                onValueChange={setAgreementStatus}
+                emptyOptionLabel={t("superadmin.partner.agreementStatusNone")}
+                options={AGREEMENT_STATUS_OPTIONS.filter((o) => o.value !== "").map((o) => ({
+                  value: o.value,
+                  label: t(o.labelKey),
+                }))}
+                aria-label={t("superadmin.partner.detail.status")}
+                triggerClassName="mt-1 h-10 w-full min-w-0 max-w-full text-sm"
+              />
             </div>
           </div>
         </div>
         <div className="flex justify-end">
-          <button type="submit" disabled={saving} className="rounded-sm border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50">
+          <button type="submit" disabled={saving} className="rounded-lg border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50">
             {saving ? t("common.saving") : t("superadmin.partner.saveParameters")}
           </button>
         </div>

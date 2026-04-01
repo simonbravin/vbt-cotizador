@@ -66,16 +66,16 @@ export function SuperadminDashboardClient() {
     return (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="h-24 rounded-sm bg-muted animate-pulse" />
+          <div key={i} className="h-24 rounded-lg bg-muted animate-pulse" />
         ))}
-        <div className="lg:col-span-2 h-64 rounded-sm bg-muted animate-pulse" />
+        <div className="lg:col-span-2 h-64 rounded-lg bg-muted animate-pulse" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="rounded-sm border border-alert-warningBorder bg-alert-warning p-6 text-foreground">
+      <div className="rounded-lg border border-alert-warningBorder bg-alert-warning p-6 text-foreground">
         <p className="font-medium">{error}</p>
         <p className="text-sm mt-1 text-muted-foreground">{t("superadmin.dashboard.checkSuperadmin")}</p>
       </div>
@@ -87,7 +87,7 @@ export function SuperadminDashboardClient() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <div className="surface-card p-5">
           <div className="flex items-center gap-3">
-            <div className="rounded-sm bg-muted p-2">
+            <div className="rounded-lg bg-muted p-2">
               <FolderOpen className="h-5 w-5 text-primary" />
             </div>
             <div>
@@ -100,7 +100,7 @@ export function SuperadminDashboardClient() {
         </div>
         <div className="surface-card p-5">
           <div className="flex items-center gap-3">
-            <div className="rounded-sm bg-muted p-2">
+            <div className="rounded-lg bg-muted p-2">
               <FileText className="h-5 w-5 text-primary" />
             </div>
             <div>
@@ -113,7 +113,7 @@ export function SuperadminDashboardClient() {
         </div>
         <div className="surface-card p-5">
           <div className="flex items-center gap-3">
-            <div className="rounded-sm bg-muted p-2">
+            <div className="rounded-lg bg-muted p-2">
               <TrendingUp className="h-5 w-5 text-primary" />
             </div>
             <div>
@@ -126,7 +126,7 @@ export function SuperadminDashboardClient() {
         </div>
         <div className="surface-card p-5">
           <div className="flex items-center gap-3">
-            <div className="rounded-sm bg-muted p-2">
+            <div className="rounded-lg bg-muted p-2">
               <TrendingUp className="h-5 w-5 text-primary" />
             </div>
             <div>
@@ -142,7 +142,7 @@ export function SuperadminDashboardClient() {
       <div className="surface-card p-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="rounded-sm bg-muted p-2">
+            <div className="rounded-lg bg-muted p-2">
               <Wrench className="h-5 w-5 text-primary" />
             </div>
             <div>

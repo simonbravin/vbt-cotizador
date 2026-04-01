@@ -6,6 +6,7 @@ import { Mail, Phone, User, Building2, Calendar, Globe, ShieldCheck, ShieldAlert
 import { useLanguage } from "@/lib/i18n/context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { FilterSelect } from "@/components/ui/filter-select";
 
 export type ReadOnlyProfilePayload = {
   fullName: string;
@@ -80,6 +81,7 @@ export function ReadOnlyProfile({ profile }: { profile: ReadOnlyProfilePayload }
       : t("partner.profile.localeEn");
 
   const isVerified = Boolean(profile.emailVerified);
+  const hasAvatar = Boolean(profile.image?.trim());
 
   async function savePhone() {
     setPhoneSaving(true);
@@ -190,7 +192,7 @@ export function ReadOnlyProfile({ profile }: { profile: ReadOnlyProfilePayload }
             className="hidden"
             onChange={onAvatarSelected}
           />
-          {!avatarFailed ? (
+          {hasAvatar && !avatarFailed ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={avatarSrc}
@@ -214,12 +216,12 @@ export function ReadOnlyProfile({ profile }: { profile: ReadOnlyProfilePayload }
       </div>
 
       {!isVerified ? (
-        <div className="rounded-sm border border-amber-500/30 bg-amber-500/10 p-4 space-y-2">
+        <div className="rounded-lg border border-alert-warningBorder bg-alert-warning p-4 space-y-2">
           <p className="text-sm text-foreground">{t("partner.profile.verifyEmailPrompt")}</p>
           <Button type="button" size="sm" variant="secondary" onClick={requestVerification} disabled={verifyBusy}>
             {verifyBusy ? t("partner.profile.sending") : t("partner.profile.sendVerifyEmail")}
           </Button>
-          {verifyFlash ? <p className="text-xs text-emerald-700 dark:text-emerald-400">{verifyFlash}</p> : null}
+          {verifyFlash ? <p className="text-xs text-primary">{verifyFlash}</p> : null}
           {verifyErr ? <p className="text-xs text-destructive">{verifyErr}</p> : null}
         </div>
       ) : null}
@@ -277,14 +279,16 @@ export function ReadOnlyProfile({ profile }: { profile: ReadOnlyProfilePayload }
             </div>
           ) : (
             <div className="flex flex-wrap items-center gap-2">
-              <select
-                className="h-9 rounded-sm border border-input bg-background px-2 text-sm"
+              <FilterSelect
                 value={localeInput}
-                onChange={(e) => setLocaleInput(e.target.value === "es" ? "es" : "en")}
-              >
-                <option value="es">{t("partner.profile.localeEs")}</option>
-                <option value="en">{t("partner.profile.localeEn")}</option>
-              </select>
+                onValueChange={(v) => setLocaleInput(v === "es" ? "es" : "en")}
+                options={[
+                  { value: "es", label: t("partner.profile.localeEs") },
+                  { value: "en", label: t("partner.profile.localeEn") },
+                ]}
+                aria-label={t("partner.profile.emailLanguage")}
+                triggerClassName="h-9 w-[min(100%,12rem)] min-w-0 text-sm"
+              />
               <Button type="button" size="sm" onClick={saveLocale} disabled={localeSaving}>
                 {localeSaving ? t("partner.profile.saving") : t("partner.profile.save")}
               </Button>
@@ -358,12 +362,12 @@ export function ReadOnlyProfile({ profile }: { profile: ReadOnlyProfilePayload }
         <dd className="text-foreground flex items-center gap-1.5">
           {profile.isActive ? (
             <>
-              <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
+              <ShieldCheck className="h-3.5 w-3.5 text-primary" />
               {t("partner.profile.statusActive")}
             </>
           ) : (
             <>
-              <ShieldAlert className="h-3.5 w-3.5 text-amber-600" />
+              <ShieldAlert className="h-3.5 w-3.5 text-muted-foreground" />
               {t("partner.profile.statusInactive")}
             </>
           )}

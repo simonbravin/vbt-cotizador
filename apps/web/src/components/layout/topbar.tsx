@@ -134,17 +134,19 @@ export function TopBar({ showContextSwitcher, activeOrgName }: TopBarProps) {
   };
 
   return (
-    <header className="h-14 bg-header border-b border-header-foreground/15 flex items-center justify-between px-6 flex-shrink-0">
-      <div className="flex items-center gap-3">
-        <h1 className="text-lg font-semibold text-header-foreground tracking-tight">{t("topbar.title")}</h1>
-        <span className="text-header-foreground/40">|</span>
+    <header className="sticky top-0 z-40 h-12 flex-shrink-0 flex items-center justify-between border-b border-header-foreground/10 bg-header/80 px-8 text-header-foreground backdrop-blur-[20px] backdrop-saturate-[180%] supports-[backdrop-filter]:bg-header/80 dark:bg-header/88">
+      <div className="flex items-center gap-4">
+        <h1 className="text-[14px] font-semibold tracking-[-0.28px] text-header-foreground">{t("topbar.title")}</h1>
+        <span className="text-header-foreground/30" aria-hidden>
+          |
+        </span>
         {showContextSwitcher ? (
           <div className="relative">
             <button
               type="button"
               onClick={() => setSwitcherOpen((o) => !o)}
               disabled={switching}
-              className="flex items-center gap-1.5 rounded-sm px-2.5 py-1.5 text-sm text-header-foreground/90 hover:bg-header-foreground/10 border border-header-foreground/20"
+              className="flex items-center gap-1.5 rounded-full border border-header-foreground/20 px-3 py-1.5 text-[12px] text-header-foreground/90 transition-colors hover:bg-header-foreground/10"
             >
               <Building2 className="h-4 w-4" />
               <span>{t("topbar.viewAs")}</span>
@@ -153,11 +155,11 @@ export function TopBar({ showContextSwitcher, activeOrgName }: TopBarProps) {
             {switcherOpen && (
               <>
                 <div className="fixed inset-0 z-10" aria-hidden onClick={() => setSwitcherOpen(false)} />
-                <div className="absolute left-0 top-full mt-1 z-20 min-w-[200px] rounded-sm border border-border bg-popover py-1 text-left shadow-none">
+                <div className="absolute left-0 top-full mt-2 z-20 min-w-[220px] rounded-lg border border-border/80 bg-popover py-1 text-left text-popover-foreground shadow-none">
                   <button
                     type="button"
                     onClick={() => setActiveOrg(null)}
-                    className="w-full px-3 py-2 text-sm text-popover-foreground hover:bg-muted text-left"
+                    className="w-full px-4 py-2.5 text-left text-[15px] text-popover-foreground hover:bg-muted"
                   >
                     Platform (all)
                   </button>
@@ -166,7 +168,7 @@ export function TopBar({ showContextSwitcher, activeOrgName }: TopBarProps) {
                       key={p.id}
                       type="button"
                       onClick={() => setActiveOrg(p.id)}
-                      className="w-full px-3 py-2 text-sm text-popover-foreground hover:bg-muted text-left flex items-center gap-2"
+                      className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-[15px] text-popover-foreground hover:bg-muted"
                     >
                       <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
                       {p.name}
@@ -177,39 +179,35 @@ export function TopBar({ showContextSwitcher, activeOrgName }: TopBarProps) {
             )}
           </div>
         ) : (
-          <span className="text-sm text-header-foreground/70">{activeOrgName ?? t("topbar.org")}</span>
+          <span className="text-[12px] text-header-foreground/70">{activeOrgName ?? t("topbar.org")}</span>
         )}
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         {/* Theme toggle */}
         <button
           type="button"
           onClick={toggleTheme}
-          className="p-2 rounded-sm text-header-foreground/70 hover:text-header-foreground hover:bg-header-foreground/10 transition-colors"
+          className="rounded-full p-2 text-header-foreground/70 transition-colors hover:bg-header-foreground/10 hover:text-header-foreground"
           title={theme === "dark" ? "Light mode" : "Dark mode"}
           aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
         >
           {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
         </button>
         {/* Language toggle */}
-        <div className="flex items-center rounded-sm border border-header-foreground/20 overflow-hidden text-xs font-medium">
+        <div className="flex items-center overflow-hidden rounded-full border border-header-foreground/20 text-[12px] font-medium">
           <button
             onClick={() => setLocale("en")}
-            className={`px-2.5 py-1.5 transition-colors ${
-              locale === "en"
-                ? "bg-header-foreground/20 text-header-foreground"
-                : "text-header-foreground/70 hover:bg-header-foreground/10"
+            className={`px-3 py-1.5 transition-colors ${
+              locale === "en" ? "bg-primary text-primary-foreground" : "text-header-foreground/70 hover:bg-header-foreground/10"
             }`}
           >
             ENG
           </button>
           <button
             onClick={() => setLocale("es")}
-            className={`px-2.5 py-1.5 transition-colors ${
-              locale === "es"
-                ? "bg-header-foreground/20 text-header-foreground"
-                : "text-header-foreground/70 hover:bg-header-foreground/10"
+            className={`px-3 py-1.5 transition-colors ${
+              locale === "es" ? "bg-primary text-primary-foreground" : "text-header-foreground/70 hover:bg-header-foreground/10"
             }`}
           >
             ESP
@@ -220,13 +218,13 @@ export function TopBar({ showContextSwitcher, activeOrgName }: TopBarProps) {
           <button
             type="button"
             onClick={() => setBellOpen((o) => !o)}
-            className="relative p-2 text-header-foreground/70 hover:text-header-foreground transition-colors rounded-sm"
+            className="relative rounded-full p-2 text-header-foreground/70 transition-colors hover:bg-header-foreground/10 hover:text-header-foreground"
             aria-expanded={bellOpen}
             aria-haspopup="true"
           >
             <Bell className="w-5 h-5" />
             {badgeCount > 0 && (
-              <span className="absolute right-1 top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-xs font-medium text-primary-foreground">
+              <span className="absolute right-0.5 top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[11px] font-medium text-primary-foreground">
                 {badgeCount > 99 ? "99+" : badgeCount}
               </span>
             )}
@@ -234,8 +232,8 @@ export function TopBar({ showContextSwitcher, activeOrgName }: TopBarProps) {
           {bellOpen && (
             <>
               <div className="fixed inset-0 z-10" aria-hidden onClick={() => setBellOpen(false)} />
-              <div className="absolute right-0 top-full mt-1 z-20 w-[320px] max-h-[400px] overflow-hidden rounded-sm border border-border bg-popover flex flex-col">
-                <div className="px-3 py-2 border-b border-border font-medium text-popover-foreground text-sm">
+              <div className="absolute right-0 top-full mt-2 z-20 flex max-h-[400px] w-[320px] flex-col overflow-hidden rounded-lg border border-border/80 bg-popover text-popover-foreground shadow-none">
+                <div className="border-b border-border/80 px-4 py-3 text-[15px] font-semibold">
                   {t("notifications.title")}
                 </div>
                 <div className="overflow-y-auto flex-1">

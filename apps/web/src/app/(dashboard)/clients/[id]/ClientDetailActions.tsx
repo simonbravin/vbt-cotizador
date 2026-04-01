@@ -8,9 +8,7 @@ import { useT } from "@/lib/i18n/context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-
-const nativeSelectClass =
-  "flex h-10 w-full rounded-sm border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2";
+import { FilterSelect } from "@/components/ui/filter-select";
 
 type Country = { id: string; name: string; code: string };
 type Client = {
@@ -126,16 +124,14 @@ export function ClientDetailActions({
         </div>
         <div>
           <label className="mb-1 block text-xs text-muted-foreground">{t("clients.country")}</label>
-          <select
+          <FilterSelect
             value={form.countryId}
-            onChange={(e) => setForm((f) => ({ ...f, countryId: e.target.value }))}
-            className={nativeSelectClass}
-          >
-            <option value="">{t("clients.noneOption")}</option>
-            {countries.map((co) => (
-              <option key={co.id} value={co.id}>{co.name}</option>
-            ))}
-          </select>
+            onValueChange={(v) => setForm((f) => ({ ...f, countryId: v }))}
+            emptyOptionLabel={t("clients.noneOption")}
+            options={countries.map((co) => ({ value: co.id, label: co.name }))}
+            aria-label={t("clients.country")}
+            triggerClassName="h-10 w-full min-w-0 max-w-full text-sm"
+          />
         </div>
       </div>
       <div>
@@ -165,7 +161,7 @@ export function ClientDetailActions({
         <Textarea value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} className="min-h-[60px]" />
       </div>
       {error && (
-        <p className="rounded-sm border border-destructive/25 bg-destructive/5 px-2 py-1.5 text-sm text-destructive" role="alert">
+        <p className="rounded-lg border border-destructive/25 bg-destructive/5 px-2 py-1.5 text-sm text-destructive" role="alert">
           {error}
         </p>
       )}
@@ -184,7 +180,7 @@ export function ClientDetailActions({
             onClick={() => setEditOpen(false)}
           >
             <div
-              className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-sm border border-border/60 bg-background p-6"
+              className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-lg border border-border/60 bg-background p-6"
               onClick={(e) => e.stopPropagation()}
             >
               <h2 className="mb-4 text-lg font-semibold tracking-tight text-foreground">Edit client</h2>

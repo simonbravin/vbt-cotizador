@@ -15,31 +15,31 @@ const styles = StyleSheet.create({
     paddingBottom: 50,
     paddingLeft: 40,
     paddingRight: 40,
-    color: "#1a1a1a",
+    color: "#1d1d1f",
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
     marginBottom: 20,
-    borderBottom: "2px solid #1a3a5c",
+    borderBottom: "1px solid #d2d2d7",
     paddingBottom: 12,
   },
   headerLeft: { flex: 1 },
   companyName: {
     fontSize: 18,
     fontFamily: "Helvetica-Bold",
-    color: "#1a3a5c",
+    color: "#1d1d1f",
   },
   companyTagline: {
     fontSize: 8,
-    color: "#666",
+    color: "#6e6e73",
     marginTop: 2,
   },
   docTitle: {
     fontSize: 14,
     fontFamily: "Helvetica-Bold",
-    color: "#e87722",
+    color: "#0071e3",
   },
   docSubtitle: {
     fontSize: 9,
@@ -50,7 +50,7 @@ const styles = StyleSheet.create({
   clientName: {
     fontSize: 12,
     fontFamily: "Helvetica-Bold",
-    color: "#1a3a5c",
+    color: "#1d1d1f",
     marginBottom: 6,
   },
   totalsRow: {
@@ -65,8 +65,8 @@ const styles = StyleSheet.create({
   table: { width: "100%", marginBottom: 12 },
   tableHeader: {
     flexDirection: "row",
-    backgroundColor: "#1a3a5c",
-    color: "white",
+    backgroundColor: "#f5f5f7",
+    color: "#1d1d1f",
     padding: "5 6",
     fontFamily: "Helvetica-Bold",
     fontSize: 8,

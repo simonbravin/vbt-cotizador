@@ -29,7 +29,7 @@ type Quote = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  sent: "border-emerald-600/45 bg-emerald-500/10 text-emerald-950 dark:text-emerald-300",
+  sent: "border-primary/35 bg-primary/10 text-primary",
   draft: "border border-alert-warningBorder bg-alert-warning text-foreground",
   accepted: "border-primary/40 bg-primary/10 text-foreground",
   rejected: "border-destructive/45 bg-destructive/10 text-destructive",
@@ -151,7 +151,7 @@ export function QuotesClient({ quotes: initialQuotes, initialStatus }: { quotes:
       </div>
 
       {quotes.length === 0 ? (
-        <div className="bg-background rounded-sm p-12 text-center border border-border/60 border-dashed">
+        <div className="bg-background rounded-lg p-12 text-center border border-border/60 border-dashed">
           <FileText className="w-10 h-10 text-muted-foreground mx-auto mb-3 opacity-60" />
           <p className="text-muted-foreground">
             {search.trim() ? t("quotes.noSearchResults") : t("quotes.noQuotes")}
@@ -163,7 +163,7 @@ export function QuotesClient({ quotes: initialQuotes, initialStatus }: { quotes:
           )}
         </div>
       ) : view === "table" ? (
-        <div className="bg-background rounded-sm border border-border/60 overflow-hidden">
+        <div className="bg-background rounded-lg border border-border/60 overflow-hidden">
           <table className="w-full text-sm border-collapse">
             <thead>
               <tr className="border-b border-border/60 bg-muted/40">
@@ -211,7 +211,7 @@ export function QuotesClient({ quotes: initialQuotes, initialStatus }: { quotes:
                   </td>
                   <td className="px-3 py-2.5">
                     <span
-                      className={`text-[10px] px-2 py-0.5 rounded-sm font-mono font-semibold uppercase tracking-wide border ${
+                      className={`text-[10px] px-2 py-0.5 rounded-lg font-mono font-semibold uppercase tracking-wide border ${
                         STATUS_COLORS[q.status] ?? "border-border bg-muted text-muted-foreground"
                       }`}
                     >
@@ -226,7 +226,7 @@ export function QuotesClient({ quotes: initialQuotes, initialStatus }: { quotes:
                       type="button"
                       onClick={() => handleDeleteClick(q)}
                       disabled={deletingId === q.id}
-                      className="p-1.5 text-destructive hover:bg-destructive/10 rounded-sm border border-transparent hover:border-destructive/20 disabled:opacity-50"
+                      className="p-1.5 text-destructive hover:bg-destructive/10 rounded-lg border border-transparent hover:border-destructive/20 disabled:opacity-50"
                       title={t("quotes.deleteTitle")}
                     >
                       <Trash2 className="w-4 h-4" />
@@ -242,7 +242,7 @@ export function QuotesClient({ quotes: initialQuotes, initialStatus }: { quotes:
           {quotes.map((q) => (
             <div
               key={q.id}
-              className="bg-background rounded-sm border border-border/60 p-5 hover:border-primary/30 transition-colors relative group"
+              className="bg-background rounded-lg border border-border/60 p-5 hover:border-primary/30 transition-colors relative group"
             >
               <button
                 type="button"
@@ -251,18 +251,18 @@ export function QuotesClient({ quotes: initialQuotes, initialStatus }: { quotes:
                   handleDeleteClick(q);
                 }}
                 disabled={deletingId === q.id}
-                className="absolute top-3 right-3 p-1.5 text-destructive hover:bg-destructive/10 rounded-sm border border-transparent hover:border-destructive/25 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                className="absolute top-3 right-3 p-1.5 text-destructive hover:bg-destructive/10 rounded-lg border border-transparent hover:border-destructive/25 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
                 title={t("quotes.deleteTitle")}
               >
                 <Trash2 className="w-4 h-4" />
               </button>
               <Link href={`/quotes/${q.id}`} className="block">
                 <div className="flex items-start justify-between mb-3">
-                  <div className="w-10 h-10 border border-border bg-muted/40 rounded-sm flex items-center justify-center">
+                  <div className="w-10 h-10 border border-border bg-muted/40 rounded-lg flex items-center justify-center">
                     <FileText className="w-5 h-5 text-primary" />
                   </div>
                   <span
-                    className={`text-[10px] px-2 py-0.5 rounded-sm font-mono font-semibold uppercase tracking-wide border ${
+                    className={`text-[10px] px-2 py-0.5 rounded-lg font-mono font-semibold uppercase tracking-wide border ${
                       STATUS_COLORS[q.status] ?? "border-border bg-muted text-muted-foreground"
                     }`}
                   >

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
 import { BarChart3, Download, Package, Mail, ShoppingCart } from "lucide-react";
 import { useLanguage } from "@/lib/i18n/context";
+import { FilterSelect } from "@/components/ui/filter-select";
 
 type Country = { id: string; name: string; code: string };
 type Project = {
@@ -257,42 +258,48 @@ export function ReportsClient({ countries, clients, canSendReport = true }: { co
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">{t("partner.reports.filterStatus")}</label>
-            <select
+            <FilterSelect
               value={status}
-              onChange={(e) => { setStatus(e.target.value); setPage(1); }}
-              className="input-native"
-            >
-              <option value="">{t("partner.reports.all")}</option>
-              {PIPELINE_STATUS_VALUES.map((v) => (
-                <option key={v} value={v}>{t(`partner.reports.status.${v}`)}</option>
-              ))}
-            </select>
+              onValueChange={(v) => {
+                setStatus(v);
+                setPage(1);
+              }}
+              emptyOptionLabel={t("partner.reports.all")}
+              options={PIPELINE_STATUS_VALUES.map((v) => ({
+                value: v,
+                label: t(`partner.reports.status.${v}`),
+              }))}
+              aria-label={t("partner.reports.filterStatus")}
+              triggerClassName="w-full min-w-0 max-w-full"
+            />
           </div>
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">{t("partner.reports.filterCountry")}</label>
-            <select
+            <FilterSelect
               value={countryId}
-              onChange={(e) => { setCountryId(e.target.value); setPage(1); }}
-              className="input-native"
-            >
-              <option value="">{t("partner.reports.all")}</option>
-              {countries.map((c) => (
-                <option key={c.code} value={c.code}>{c.name}</option>
-              ))}
-            </select>
+              onValueChange={(v) => {
+                setCountryId(v);
+                setPage(1);
+              }}
+              emptyOptionLabel={t("partner.reports.all")}
+              options={countries.map((c) => ({ value: c.code, label: c.name }))}
+              aria-label={t("partner.reports.filterCountry")}
+              triggerClassName="w-full min-w-0 max-w-full"
+            />
           </div>
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">{t("partner.reports.filterClient")}</label>
-            <select
+            <FilterSelect
               value={clientId}
-              onChange={(e) => { setClientId(e.target.value); setPage(1); }}
-              className="input-native"
-            >
-              <option value="">{t("partner.reports.all")}</option>
-              {clients.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
+              onValueChange={(v) => {
+                setClientId(v);
+                setPage(1);
+              }}
+              emptyOptionLabel={t("partner.reports.all")}
+              options={clients.map((c) => ({ value: c.id, label: c.name }))}
+              aria-label={t("partner.reports.filterClient")}
+              triggerClassName="w-full min-w-0 max-w-full"
+            />
           </div>
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">{t("partner.reports.soldFrom")}</label>
@@ -325,7 +332,7 @@ export function ReportsClient({ countries, clients, canSendReport = true }: { co
           <button
             type="button"
             onClick={() => { setPage(1); fetchReport(); }}
-            className="rounded-sm border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="rounded-lg border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
             {t("partner.reports.apply")}
           </button>
@@ -343,7 +350,7 @@ export function ReportsClient({ countries, clients, canSendReport = true }: { co
               <button
                 type="button"
                 onClick={handleSalesExport}
-                className="inline-flex items-center gap-1 rounded-sm border border-border/60 px-2 py-1 text-sm text-foreground hover:bg-muted"
+                className="inline-flex items-center gap-1 rounded-lg border border-border/60 px-2 py-1 text-sm text-foreground hover:bg-muted"
               >
                 <Download className="w-4 h-4" /> {t("partner.reports.exportCsv")}
               </button>
@@ -365,7 +372,7 @@ export function ReportsClient({ countries, clients, canSendReport = true }: { co
             </div>
             <div>
               <div className="text-muted-foreground text-xs">{t("partner.reports.kpiPaid")}</div>
-              <p className="text-lg font-bold text-emerald-700 dark:text-emerald-400">{formatCurrency(salesSummary.totalPaid)}</p>
+              <p className="text-lg font-bold text-primary">{formatCurrency(salesSummary.totalPaid)}</p>
             </div>
             <div>
               <div className="text-muted-foreground text-xs">{t("partner.reports.kpiPending")}</div>
@@ -406,7 +413,7 @@ export function ReportsClient({ countries, clients, canSendReport = true }: { co
           </div>
           <div className="surface-card p-4">
             <div className="text-muted-foreground text-sm">{t("partner.reports.kpiSold")}</div>
-            <p className="mt-1 text-2xl font-bold text-emerald-700 dark:text-emerald-400">{summary.sold}</p>
+            <p className="mt-1 text-2xl font-bold text-primary">{summary.sold}</p>
           </div>
           <div className="surface-card p-4">
             <div className="text-muted-foreground text-sm">{t("partner.reports.kpiArchived")}</div>
@@ -422,7 +429,7 @@ export function ReportsClient({ countries, clients, canSendReport = true }: { co
           </div>
           <div className="surface-card p-4">
             <div className="text-muted-foreground text-sm">{t("partner.reports.kpiTotalValueSold")}</div>
-            <p className="mt-1 text-lg font-bold text-emerald-700 dark:text-emerald-400">{formatCurrency(summary.totalValueSold)}</p>
+            <p className="mt-1 text-lg font-bold text-primary">{formatCurrency(summary.totalValueSold)}</p>
           </div>
         </div>
       )}
@@ -514,7 +521,7 @@ export function ReportsClient({ countries, clients, canSendReport = true }: { co
               <button
                 type="button"
                 onClick={() => setEmailOpen(true)}
-                className="inline-flex items-center gap-2 rounded-sm border border-border/60 px-3 py-2 text-sm text-foreground hover:bg-muted"
+                className="inline-flex items-center gap-2 rounded-lg border border-border/60 px-3 py-2 text-sm text-foreground hover:bg-muted"
               >
                 <Mail className="w-4 h-4" /> {t("partner.reports.emailReport")}
               </button>
@@ -522,14 +529,14 @@ export function ReportsClient({ countries, clients, canSendReport = true }: { co
             <button
               type="button"
               onClick={handleExportCsv}
-              className="inline-flex items-center gap-2 rounded-sm border border-border/60 px-3 py-2 text-sm text-foreground hover:bg-muted"
+              className="inline-flex items-center gap-2 rounded-lg border border-border/60 px-3 py-2 text-sm text-foreground hover:bg-muted"
             >
               <Download className="w-4 h-4" /> {t("partner.reports.exportCsv")}
             </button>
             <button
               type="button"
               onClick={handleExportExcel}
-              className="inline-flex items-center gap-2 rounded-sm border border-border/60 px-3 py-2 text-sm text-foreground hover:bg-muted"
+              className="inline-flex items-center gap-2 rounded-lg border border-border/60 px-3 py-2 text-sm text-foreground hover:bg-muted"
             >
               <Download className="w-4 h-4" /> {t("partner.reports.exportExcel")}
             </button>
@@ -568,10 +575,10 @@ export function ReportsClient({ countries, clients, canSendReport = true }: { co
                       <td className="px-4 py-3 text-muted-foreground">{p.country?.name ?? "—"}</td>
                       <td className="px-4 py-3">
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                          p.status === "won" || p.status === "SOLD" ? "bg-emerald-500/15 text-emerald-800 dark:text-emerald-200" :
+                          p.status === "won" || p.status === "SOLD" ? "border border-primary/25 bg-primary/10 text-primary" :
                           p.status === "lost" || p.status === "ARCHIVED" ? "bg-muted text-muted-foreground" :
                           p.status === "quoting" || p.status === "QUOTE_SENT" ? "bg-primary/10 text-primary" :
-                          p.status === "qualified" || p.status === "QUOTED" ? "bg-amber-500/15 text-amber-900 dark:text-amber-200" :
+                          p.status === "qualified" || p.status === "QUOTED" ? "border border-border/80 bg-muted text-foreground" :
                           p.status === "engineering" ? "bg-primary/10 text-primary" :
                           p.status === "on_hold" ? "bg-muted text-muted-foreground ring-1 ring-border/50" :
                           "bg-muted text-muted-foreground"
@@ -609,7 +616,7 @@ export function ReportsClient({ countries, clients, canSendReport = true }: { co
                     type="button"
                     disabled={page <= 1}
                     onClick={() => setPage((p) => p - 1)}
-                    className="rounded-sm border border-border/60 px-2 py-1 disabled:opacity-50"
+                    className="rounded-lg border border-border/60 px-2 py-1 disabled:opacity-50"
                   >
                     {t("partner.sales.previous")}
                   </button>
@@ -617,7 +624,7 @@ export function ReportsClient({ countries, clients, canSendReport = true }: { co
                     type="button"
                     disabled={page * limit >= total}
                     onClick={() => setPage((p) => p + 1)}
-                    className="rounded-sm border border-border/60 px-2 py-1 disabled:opacity-50"
+                    className="rounded-lg border border-border/60 px-2 py-1 disabled:opacity-50"
                   >
                     {t("partner.sales.next")}
                   </button>
@@ -631,7 +638,7 @@ export function ReportsClient({ countries, clients, canSendReport = true }: { co
       {/* Email report modal */}
       {emailOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4">
-          <div className="m-4 w-full max-w-sm rounded-sm border border-border/60 bg-background p-6">
+          <div className="m-4 w-full max-w-sm rounded-lg border border-border/60 bg-background p-6">
             <h3 className="mb-4 text-lg font-semibold tracking-tight text-foreground">{t("partner.reports.emailModalTitle")}</h3>
             <p className="mb-4 text-sm text-muted-foreground">{t("partner.reports.emailModalDescription")}</p>
             <div className="space-y-3">
@@ -642,7 +649,7 @@ export function ReportsClient({ countries, clients, canSendReport = true }: { co
                   value={emailTo}
                   onChange={(e) => setEmailTo(e.target.value)}
                   placeholder={t("partner.reports.emailAddressPlaceholder")}
-                  className="w-full rounded-sm border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 />
               </div>
               <div>
@@ -652,18 +659,18 @@ export function ReportsClient({ countries, clients, canSendReport = true }: { co
                   value={emailSubject}
                   onChange={(e) => setEmailSubject(e.target.value)}
                   placeholder={t("partner.reports.subjectPlaceholder")}
-                  className="w-full rounded-sm border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 />
               </div>
               {emailMessage && (
-                <p className={`text-sm ${emailMessage.type === "success" ? "text-emerald-700 dark:text-emerald-400" : "text-destructive"}`}>{emailMessage.text}</p>
+                <p className={`text-sm ${emailMessage.type === "success" ? "text-primary" : "text-destructive"}`}>{emailMessage.text}</p>
               )}
             </div>
             <div className="mt-4 flex justify-end gap-3">
               <button
                 type="button"
                 onClick={() => { setEmailOpen(false); setEmailMessage(null); }}
-                className="rounded-sm border border-border/60 px-4 py-2 text-sm text-foreground hover:bg-muted"
+                className="rounded-lg border border-border/60 px-4 py-2 text-sm text-foreground hover:bg-muted"
               >
                 {t("common.cancel")}
               </button>
@@ -671,7 +678,7 @@ export function ReportsClient({ countries, clients, canSendReport = true }: { co
                 type="button"
                 onClick={handleEmailReport}
                 disabled={emailSending || !emailTo.trim()}
-                className="rounded-sm border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
+                className="rounded-lg border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
               >
                 {emailSending ? t("partner.sales.sending") : t("partner.sales.send")}
               </button>

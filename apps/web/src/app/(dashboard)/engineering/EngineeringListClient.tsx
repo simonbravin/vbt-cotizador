@@ -5,9 +5,9 @@ import Link from "next/link";
 import { Plus, Wrench, FolderOpen, Search } from "lucide-react";
 import { useT } from "@/lib/i18n/context";
 import { ViewLayoutToggle } from "@/components/ui/view-layout-toggle";
+import { FilterSelect } from "@/components/ui/filter-select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { NATIVE_SELECT_FILTER } from "@/lib/ui-filter-classes";
 
 type RequestRow = {
   id: string;
@@ -99,19 +99,16 @@ export function EngineeringListClient() {
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-1 sm:flex-wrap sm:items-center">
-          <select
+          <FilterSelect
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className={NATIVE_SELECT_FILTER}
+            onValueChange={setStatusFilter}
+            emptyOptionLabel={t("partner.engineering.allStatuses")}
+            options={STATUS_OPTIONS.map((s) => ({
+              value: s,
+              label: t(`partner.engineering.status.${s}`),
+            }))}
             aria-label={t("partner.engineering.status")}
-          >
-            <option value="">{t("partner.engineering.allStatuses")}</option>
-            {STATUS_OPTIONS.map((s) => (
-              <option key={s} value={s}>
-                {t(`partner.engineering.status.${s}`)}
-              </option>
-            ))}
-          </select>
+          />
           <div className="relative flex-1 min-w-[200px] max-w-xl">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -138,7 +135,7 @@ export function EngineeringListClient() {
       </div>
 
       <div className="surface-card-overflow">
-        {error && <div className="rounded-sm border border-alert-warningBorder bg-alert-warning p-4 text-sm text-foreground">{error}</div>}
+        {error && <div className="rounded-lg border border-alert-warningBorder bg-alert-warning p-4 text-sm text-foreground">{error}</div>}
         {loading ? (
           <div className="p-12 text-center text-sm text-muted-foreground">{t("common.loading")}</div>
         ) : requests.length === 0 ? (
@@ -200,7 +197,7 @@ export function EngineeringListClient() {
                 className="surface-card p-5 transition-colors hover:border-border"
               >
                 <div className="flex items-start justify-between gap-2">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-muted">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
                     <Wrench className="h-5 w-5 text-muted-foreground" />
                   </div>
                   <span className="inline-flex shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
