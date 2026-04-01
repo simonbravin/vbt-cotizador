@@ -120,8 +120,8 @@ export function SuperadminSidebar({ userDisplayName, hasAvatar, profileHref }: S
           />
         </Link>
       </div>
-      <nav className="flex-1 space-y-0 overflow-y-auto px-3 py-3">
-        <p className="px-3 py-[0.325rem] text-[10px] font-light uppercase tracking-[0.5px] text-header-foreground/45">
+      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-5">
+        <p className="px-3 py-2 text-micro font-semibold uppercase tracking-[0.5px] text-header-foreground/45">
           Platform
         </p>
         {superadminNavigation.map((item) => {
@@ -136,7 +136,7 @@ export function SuperadminSidebar({ userDisplayName, hasAvatar, profileHref }: S
                   type="button"
                   onClick={() => toggle(item.labelKey)}
                   className={cn(
-                    "flex w-full items-center gap-2 rounded-lg border border-transparent px-3 py-[0.325rem] text-left text-[13px] font-light tracking-[-0.02em] transition-colors",
+                    "flex w-full items-center gap-2.5 rounded-lg border border-transparent px-3 py-[0.5rem] text-left text-[15px] tracking-[-0.02em] transition-colors",
                     hasActiveChild
                       ? "bg-header-foreground/10 text-header-foreground"
                       : "text-header-foreground/75 hover:bg-header-foreground/5 hover:text-header-foreground"
@@ -151,13 +151,13 @@ export function SuperadminSidebar({ userDisplayName, hasAvatar, profileHref }: S
                   )}
                 </button>
                 {isOpen && (
-                  <div className="ml-3 mt-0 space-y-0 border-l border-header-foreground/15 pl-3">
+                  <div className="ml-3 mt-1 space-y-1 border-l border-header-foreground/15 pl-3">
                     {item.children.map((child) => (
                       <Link
                         key={child.href}
                         href={child.href!}
                         className={cn(
-                          "flex items-center gap-2 rounded-lg px-3 py-[0.325rem] text-[12px] font-light transition-colors",
+                          "flex items-center gap-2.5 rounded-lg px-3 py-[0.5rem] text-[14px] transition-colors",
                           child.href && isActive(child.href)
                             ? "bg-header-foreground/10 text-header-foreground"
                             : "text-header-foreground/60 hover:bg-header-foreground/5 hover:text-header-foreground"
@@ -177,7 +177,7 @@ export function SuperadminSidebar({ userDisplayName, hasAvatar, profileHref }: S
               key={item.href}
               href={item.href!}
               className={cn(
-                "flex items-center gap-2 rounded-lg border border-transparent px-3 py-[0.325rem] text-[13px] font-light tracking-[-0.02em] transition-colors",
+                "flex items-center gap-2.5 rounded-lg border border-transparent px-3 py-[0.5rem] text-[15px] font-medium tracking-[-0.02em] transition-colors",
                 isActive(item.href!)
                   ? "bg-header-foreground/12 text-header-foreground"
                   : "text-header-foreground/75 hover:bg-header-foreground/5 hover:text-header-foreground"
