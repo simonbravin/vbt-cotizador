@@ -160,7 +160,7 @@ export function Sidebar({ role, userDisplayName, hasAvatar, profileHref, moduleV
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-5">
+      <nav className="flex-1 space-y-0 overflow-y-auto px-3 py-3">
         {navigation
           .filter(canSee)
           .filter((item) => {
@@ -181,7 +181,7 @@ export function Sidebar({ role, userDisplayName, hasAvatar, profileHref, moduleV
                 <button
                   onClick={() => toggle(item.labelKey)}
                   className={cn(
-                    "flex w-full items-center gap-2.5 rounded-lg border border-transparent px-3 py-2.5 text-left text-[15px] tracking-[-0.02em] transition-colors",
+                    "flex w-full items-center gap-2 rounded-lg border border-transparent px-3 py-[0.325rem] text-left text-[13px] font-light tracking-[-0.02em] transition-colors",
                     hasActiveChild
                       ? "bg-header-foreground/10 text-header-foreground"
                       : "text-header-foreground/75 hover:bg-header-foreground/5 hover:text-header-foreground"
@@ -197,7 +197,7 @@ export function Sidebar({ role, userDisplayName, hasAvatar, profileHref, moduleV
                 </button>
 
                 {isOpen && (
-                  <div className="ml-3 mt-1 space-y-1 border-l border-header-foreground/15 pl-3">
+                  <div className="ml-3 mt-0 space-y-0 border-l border-header-foreground/15 pl-3">
                     {item.children
                       .filter(canSee)
                       .filter((child) => isModuleVisible(moduleVisibility, child.href))
@@ -206,7 +206,7 @@ export function Sidebar({ role, userDisplayName, hasAvatar, profileHref, moduleV
                         key={child.href}
                         href={child.href!}
                         className={cn(
-                          "flex items-center gap-2.5 rounded-lg px-3 py-2 text-[14px] transition-colors",
+                          "flex items-center gap-2 rounded-lg px-3 py-[0.325rem] text-[12px] font-light transition-colors",
                           child.href && isNavLinkActive(pathname, child.href)
                             ? "bg-header-foreground/10 text-header-foreground"
                             : "text-header-foreground/60 hover:bg-header-foreground/5 hover:text-header-foreground"
@@ -227,7 +227,7 @@ export function Sidebar({ role, userDisplayName, hasAvatar, profileHref, moduleV
               key={item.href}
               href={item.href!}
               className={cn(
-                "flex items-center gap-2.5 rounded-lg border border-transparent px-3 py-2.5 text-[15px] font-medium tracking-[-0.02em] transition-colors",
+                "flex items-center gap-2 rounded-lg border border-transparent px-3 py-[0.325rem] text-[13px] font-light tracking-[-0.02em] transition-colors",
                 isNavLinkActive(pathname, item.href!)
                   ? "bg-header-foreground/12 text-header-foreground"
                   : "text-header-foreground/75 hover:bg-header-foreground/5 hover:text-header-foreground"
