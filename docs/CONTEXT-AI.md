@@ -6,7 +6,7 @@ Este documento describe el **tech stack**, la **estructura de la aplicación**, 
 
 ## 1. ¿Qué es esta plataforma?
 
-- **Nombre de producto:** **Plataforma VBT** (ES) / **VBT Platform** (EN). El repositorio puede seguir en una carpeta `VBT_Cotizador` por legado; no usar “Cotizador” como nombre de marca en UI ni emails.
+- **Nombre de producto:** **Plataforma VBT** (ES) / **VBT Platform** (EN). El repositorio en GitHub es **simonbravin/vbt-platform** y la carpeta local habitual es `vbt-platform`; no usar “Cotizador” como nombre de marca en UI ni emails.
 - **Empresa:** Vision Building Technologies (VBT).
 - **Propósito:** Herramienta interna para **cotizar** proyectos de construcción (sistemas de muros/prefabricados: S80, S150, S200), calcular costos de fábrica, flete, impuestos y comisiones, enviar cotizaciones por email (PDF), gestionar **ventas** (Sales), facturación y pagos. Incluye **clientes**, **proyectos**, **catálogo de piezas**, **inventario**, **importación desde Revit (CSV)** y **reportes**.
 - **Evolución planeada:** Migración hacia un **CRM**; modelo **multi-tenant** donde cada partner (Org) ve solo sus datos y un superadmin ve todo.
@@ -43,7 +43,7 @@ Este documento describe el **tech stack**, la **estructura de la aplicación**, 
 ## 3. Estructura del monorepo
 
 ```
-VBT_Cotizador/
+vbt-platform/
 ├── apps/
 │   └── web/                    # Next.js 14 App Router
 │       ├── src/

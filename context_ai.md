@@ -66,7 +66,7 @@ vbt-orange → #F97316  (naranja acción)
 ## 3. Estructura del Monorepo
 
 ```
-VBT_Cotizador/
+vbt-platform/
 ├── apps/
 │   └── web/                          # App Next.js (puerto 3000)
 │       ├── .prisma/client/           # Prisma client generado (output del schema)
