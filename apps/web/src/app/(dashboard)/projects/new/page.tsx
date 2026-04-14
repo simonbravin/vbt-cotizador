@@ -8,6 +8,7 @@ import { ArrowLeft, Plus } from "lucide-react";
 import { STATIC_COUNTRIES } from "@/lib/countries";
 import { useT } from "@/lib/i18n/context";
 import { FilterSelect } from "@/components/ui/filter-select";
+import { saasApiUserFacingMessage } from "@/lib/saas-api-error-message";
 
 type Country = { id: string; name: string; code: string };
 type Client = { id: string; name: string; legalName?: string | null };
@@ -88,7 +89,7 @@ export default function NewProjectPage() {
         setNewClientOpen(false);
         setNewClientForm({ name: "", legalName: "", countryId: "", email: "", phone: "" });
       } else {
-        setNewClientError(data.error ?? t("auth.errorUnexpected"));
+        setNewClientError(saasApiUserFacingMessage(data, t, t("auth.errorUnexpected")));
       }
     } catch {
       setNewClientError(t("auth.errorUnexpected"));
@@ -118,7 +119,10 @@ export default function NewProjectPage() {
         body: JSON.stringify(payload),
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.error ?? t("projects.failedCreate")); return; }
+      if (!res.ok) {
+        setError(saasApiUserFacingMessage(data, t, t("projects.failedCreate")));
+        return;
+      }
       router.push(`/projects/${data.id}`);
     } catch { setError(t("auth.errorUnexpected")); }
     finally { setLoading(false); }

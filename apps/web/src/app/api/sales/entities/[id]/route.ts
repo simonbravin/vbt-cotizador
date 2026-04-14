@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import type { SessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { requireModuleRouteAuth } from "@/lib/module-route-auth";
+import { requireSession, TenantError } from "@/lib/tenant";
+import { withSaaSHandler } from "@/lib/saas-handler";
+import { ApiHttpError } from "@/lib/api-error";
 import { billingEntityOrganizationIdIfManageable, canManageBillingEntities } from "@/lib/sales-access";
 import { z } from "zod";
 
@@ -16,36 +18,40 @@ const patchSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
-export async function PATCH(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> | { id: string } }
-) {
-  const auth = await requireModuleRouteAuth("sales");
-  if (!auth.ok) return auth.response;
-  const user = auth.user as SessionUser;
+type RouteCtx = { params: Promise<{ id: string }> | { id: string } };
+
+async function billingEntityPatchHandler(req: Request, routeContext: unknown) {
+  const user = (await requireSession()) as SessionUser;
   if (!canManageBillingEntities(user)) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    throw new TenantError("Forbidden", "FORBIDDEN");
   }
 
-  const { id } = params instanceof Promise ? await params : params;
+  const paramsMaybe = (routeContext as RouteCtx).params;
+  const paramsObj = paramsMaybe instanceof Promise ? await paramsMaybe : paramsMaybe;
+  const { id } = paramsObj;
 
   const orgId = await billingEntityOrganizationIdIfManageable(user, id);
-  if (!orgId) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!orgId) throw new ApiHttpError(404, "RECORD_NOT_FOUND", "Billing entity not found");
 
   let body: unknown;
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    throw new ApiHttpError(400, "INVALID_JSON", "Request body must be valid JSON.");
   }
   const parsed = patchSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid body" }, { status: 400 });
+    throw new ApiHttpError(400, "VALIDATION_ERROR", "Validation failed", parsed.error.issues.map((issue) => ({
+      path: issue.path.join(".") || undefined,
+      message: issue.message,
+    })));
   }
 
   const data = parsed.data;
   if (data.name === undefined && data.slug === undefined && data.isActive === undefined) {
-    return NextResponse.json({ error: "No fields to update" }, { status: 400 });
+    throw new ApiHttpError(400, "VALIDATION_ERROR", "No fields to update", [
+      { message: "Provide at least one of name, slug, or isActive." },
+    ]);
   }
 
   try {
@@ -62,9 +68,10 @@ export async function PATCH(
   } catch (e: unknown) {
     const code = e && typeof e === "object" && "code" in e ? (e as { code: string }).code : "";
     if (code === "P2002") {
-      return NextResponse.json({ error: "Slug already exists for this organization" }, { status: 409 });
+      throw new ApiHttpError(409, "SALES_BILLING_ENTITY_SLUG_CONFLICT", "Slug already exists for this organization.");
     }
-    console.error("[PATCH /api/sales/entities/[id]]", e);
-    return NextResponse.json({ error: "Failed to update billing entity" }, { status: 500 });
+    throw e;
   }
 }
+
+export const PATCH = withSaaSHandler({ module: "sales", rateLimitTier: "create_update" }, billingEntityPatchHandler);

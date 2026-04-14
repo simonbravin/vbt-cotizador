@@ -111,11 +111,11 @@ export async function assertOrgAccess(
 export async function getTenantContext(): Promise<TenantContext | null> {
   const user = await getSessionUser();
   if (!user) return null;
-  let activeOrgId = user.activeOrgId ?? null;
+  let activeOrgId = getEffectiveOrganizationId(user);
   if (user.isPlatformSuperadmin) {
     const store = await cookies();
     const value = store.get(ACTIVE_ORG_COOKIE)?.value;
-    activeOrgId = value ?? null;
+    if (value) activeOrgId = value;
   }
   return {
     userId: user.userId ?? user.id,

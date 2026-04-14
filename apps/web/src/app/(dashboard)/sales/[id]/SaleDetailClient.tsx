@@ -10,6 +10,7 @@ import { ArrowLeft, Plus, Pencil, Trash2 } from "lucide-react";
 import { useT } from "@/lib/i18n/context";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FilterSelect } from "@/components/ui/filter-select";
+import { saasApiUserFacingMessage } from "@/lib/saas-api-error-message";
 
 const DUE_SOON_DAYS = 7;
 
@@ -205,7 +206,7 @@ export function SaleDetailClient({
         }),
       });
       const data = parseJsonSafe<{ error?: string }>(await res.text());
-      if (!res.ok) throw new Error(data.error ?? t("partner.sales.failedToAddPayment"));
+      if (!res.ok) throw new Error(saasApiUserFacingMessage(data, t, t("partner.sales.failedToAddPayment")));
       setPaymentOpen(false);
       setPayAmountUsd("");
       setPayAmountLocal("");
@@ -268,7 +269,7 @@ export function SaleDetailClient({
           body: JSON.stringify(body),
         });
         const data = parseJsonSafe<{ error?: string }>(await res.text());
-        if (!res.ok) throw new Error(data.error ?? t("partner.sales.failedToUpdateInvoice"));
+        if (!res.ok) throw new Error(saasApiUserFacingMessage(data, t, t("partner.sales.failedToUpdateInvoice")));
       } else {
         const res = await fetch(`/api/sales/${saleId}/invoices`, {
           method: "POST",
@@ -276,7 +277,7 @@ export function SaleDetailClient({
           body: JSON.stringify(body),
         });
         const data = parseJsonSafe<{ error?: string }>(await res.text());
-        if (!res.ok) throw new Error(data.error ?? t("partner.sales.failedToAddInvoice"));
+        if (!res.ok) throw new Error(saasApiUserFacingMessage(data, t, t("partner.sales.failedToAddInvoice")));
       }
       setInvoiceModalMode(null);
       refetchSale();
@@ -298,7 +299,7 @@ export function SaleDetailClient({
         refetchSale();
       } else {
         const data = parseJsonSafe<{ error?: string }>(await res.text());
-        setDeleteInvoiceError(data.error ?? t("partner.sales.failedToRemoveInvoice"));
+        setDeleteInvoiceError(saasApiUserFacingMessage(data, t, t("partner.sales.failedToRemoveInvoice")));
       }
     } catch {
       setDeleteInvoiceError(t("partner.sales.failedToRemoveInvoice"));
@@ -318,7 +319,7 @@ export function SaleDetailClient({
         refetchSale();
       } else {
         const data = parseJsonSafe<{ error?: string }>(await res.text());
-        setDeletePaymentError(data.error ?? t("partner.sales.failedToRemovePayment"));
+        setDeletePaymentError(saasApiUserFacingMessage(data, t, t("partner.sales.failedToRemovePayment")));
       }
     } catch {
       setDeletePaymentError(t("partner.sales.failedToRemovePayment"));
@@ -338,7 +339,7 @@ export function SaleDetailClient({
         return;
       }
       const data = parseJsonSafe<{ error?: string }>(await res.text());
-      setDeleteSaleError(data.error ?? t("partner.sales.failedToDeleteSale"));
+      setDeleteSaleError(saasApiUserFacingMessage(data, t, t("partner.sales.failedToDeleteSale")));
     } catch {
       setDeleteSaleError(t("partner.sales.failedToDeleteSale"));
     } finally {

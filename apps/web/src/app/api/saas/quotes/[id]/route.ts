@@ -4,14 +4,9 @@
  */
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import {
-  getSessionUser,
-  getTenantContext,
-  requireActiveOrg,
-  TenantError,
-  tenantErrorStatus,
-} from "@/lib/tenant";
-import { assertPartnerModuleEnabled } from "@/lib/module-access";
+import { getTenantContext, requireActiveOrg, requireSession, TenantError } from "@/lib/tenant";
+import { withSaaSHandler } from "@/lib/saas-handler";
+import { ApiHttpError } from "@/lib/api-error";
 import {
   canonicalizeSaaSQuotePayload,
   clampPartnerMarkupOnMergedSaaSSource,
@@ -21,8 +16,6 @@ import {
   mergeSaaSQuotePatchIntoSource,
   normalizeQuoteStatus,
   patchRequiresSaaSQuotePricingRecompute,
-  QuoteMissingTaxSnapshotError,
-  QuoteTaxResolutionError,
   resolvePartnerPricingConfig,
   resolveTaxRulesForSaaSQuote,
   updateQuote,
@@ -88,66 +81,52 @@ function patchHasEffect(data: PatchBody, isSuperadmin: boolean): boolean {
   return false;
 }
 
-export async function GET(
-  _req: Request,
-  { params }: { params: { id: string } }
-) {
-  try {
-    const ctx = await getTenantContext();
-    if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    await assertPartnerModuleEnabled("quotes", ctx);
-    const tenantCtx = {
-      userId: ctx.userId,
-      organizationId: ctx.activeOrgId ?? null,
-      isPlatformSuperadmin: ctx.isPlatformSuperadmin,
-    };
-    const quote = await getQuoteById(prisma, tenantCtx, params.id);
-    if (!quote) return NextResponse.json({ error: "Not found" }, { status: 404 });
-    return NextResponse.json(
-      formatQuoteForSaaSApiWithSnapshot(quote, { maskFactoryExw: !ctx.isPlatformSuperadmin })
-    );
-  } catch (e) {
-    if (e instanceof TenantError) {
-      return NextResponse.json({ error: e.message }, { status: tenantErrorStatus(e) });
-    }
-    if (e instanceof QuoteMissingTaxSnapshotError) {
-      return NextResponse.json(
-        { error: e.message, code: e.code, quoteId: e.quoteId },
-        { status: 422 }
-      );
-    }
-    throw e;
-  }
+type RouteCtx = { params: Promise<{ id: string }> | { id: string } };
+
+async function quoteIdFromCtx(routeContext: unknown): Promise<string> {
+  const p = (routeContext as RouteCtx).params;
+  return (p instanceof Promise ? await p : p).id;
 }
 
-export async function PATCH(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
-  try {
-    const user = await requireActiveOrg();
-    await assertPartnerModuleEnabled("quotes", user);
-    if (!canManageQuotes(user)) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+async function getQuoteHandler(_req: Request, routeContext: unknown) {
+  const id = await quoteIdFromCtx(routeContext);
+  const ctx = await getTenantContext();
+  if (!ctx) throw new TenantError("Unauthorized", "UNAUTHORIZED");
+  const tenantCtx = {
+    userId: ctx.userId,
+    organizationId: ctx.activeOrgId ?? null,
+    isPlatformSuperadmin: ctx.isPlatformSuperadmin,
+  };
+  const quote = await getQuoteById(prisma, tenantCtx, id);
+  if (!quote) throw new ApiHttpError(404, "RECORD_NOT_FOUND", "Quote not found");
+  return NextResponse.json(
+    formatQuoteForSaaSApiWithSnapshot(quote, { maskFactoryExw: !ctx.isPlatformSuperadmin })
+  );
+}
+
+async function patchHandler(req: Request, routeContext: unknown) {
+  const id = await quoteIdFromCtx(routeContext);
+  const user = await requireActiveOrg();
+  if (!canManageQuotes(user)) {
+    throw new TenantError("Forbidden", "FORBIDDEN");
+  }
     const body = await req.json().catch(() => ({}));
     if (body && typeof body === "object" && body !== null && "status" in body && body.status != null) {
       const st = (body as { status: unknown }).status;
       if (typeof st === "string" && st.trim() !== "") {
         const n = normalizeQuoteStatus(st);
         if (n == null) {
-          return NextResponse.json({ error: "Invalid status" }, { status: 400 });
+          throw new ApiHttpError(400, "QUOTE_STATUS_INVALID", "Invalid quote status");
         }
         (body as { status: string }).status = n;
       }
     }
     const parsed = patchSchema.safeParse(body);
     if (!parsed.success) {
-      const first = parsed.error.issues[0];
-      return NextResponse.json(
-        { error: first?.message ?? "Validation failed" },
-        { status: 400 }
-      );
+      throw new ApiHttpError(400, "VALIDATION_ERROR", "Validation failed", parsed.error.issues.map((issue) => ({
+        path: issue.path.join(".") || undefined,
+        message: issue.message,
+      })));
     }
     const tenantCtx = {
       userId: user.userId ?? user.id,
@@ -159,14 +138,14 @@ export async function PATCH(
 
     if (!patchHasEffect(data, isSuperadmin)) {
       const ctxRead = await getTenantContext();
-      if (!ctxRead) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      if (!ctxRead) throw new TenantError("Unauthorized", "UNAUTHORIZED");
       const tenantRead = {
         userId: ctxRead.userId,
         organizationId: ctxRead.activeOrgId ?? null,
         isPlatformSuperadmin: ctxRead.isPlatformSuperadmin,
       };
-      const unchanged = await getQuoteById(prisma, tenantRead, params.id);
-      if (!unchanged) return NextResponse.json({ error: "Not found" }, { status: 404 });
+      const unchanged = await getQuoteById(prisma, tenantRead, id);
+      if (!unchanged) throw new ApiHttpError(404, "RECORD_NOT_FOUND", "Quote not found");
       if (!isSuperadmin) {
         return NextResponse.json(formatQuoteForSaaSApiWithSnapshot(unchanged, { maskFactoryExw: true }));
       }
@@ -180,17 +159,18 @@ export async function PATCH(
       (data.items !== undefined || data.factoryCostTotal != null || data.visionLatamMarkupPct != null);
 
     if (isSuperadmin && (isReject || isModify) && !commentTrim) {
-      return NextResponse.json(
-        { error: "A comment is required when rejecting or modifying a quote." },
-        { status: 400 }
+      throw new ApiHttpError(
+        400,
+        "QUOTE_SUPERADMIN_COMMENT_REQUIRED",
+        "A comment is required when rejecting or modifying a quote."
       );
     }
 
     if (!isSuperadmin && data.factoryCostTotal !== undefined) {
-      return NextResponse.json({ error: "Only platform superadmin may set factoryCostTotal." }, { status: 403 });
+      throw new ApiHttpError(403, "QUOTE_FIELD_SUPERADMIN_ONLY", "Only platform superadmin may set factoryCostTotal.");
     }
     if (!isSuperadmin && data.visionLatamMarkupPct !== undefined) {
-      return NextResponse.json({ error: "Only platform superadmin may set visionLatamMarkupPct." }, { status: 403 });
+      throw new ApiHttpError(403, "QUOTE_FIELD_SUPERADMIN_ONLY", "Only platform superadmin may set visionLatamMarkupPct.");
     }
 
     const now = new Date();
@@ -199,8 +179,8 @@ export async function PATCH(
     let updateData: Parameters<typeof updateQuote>[3];
 
     if (needsPricing) {
-      const existingFull = await getQuoteById(prisma, tenantCtx, params.id);
-      if (!existingFull) return NextResponse.json({ error: "Not found" }, { status: 404 });
+      const existingFull = await getQuoteById(prisma, tenantCtx, id);
+      if (!existingFull) throw new ApiHttpError(404, "RECORD_NOT_FOUND", "Quote not found");
 
       const patchForMerge = {
         items: data.items?.map((it, i) => ({
@@ -234,18 +214,10 @@ export async function PATCH(
         organizationId: string;
         project?: { countryCode: string | null } | null;
       };
-      let taxRules;
-      try {
-        taxRules = await resolveTaxRulesForSaaSQuote(prisma, {
-          organizationId: fullRow.organizationId,
-          projectCountryCode: fullRow.project?.countryCode,
-        });
-      } catch (e) {
-        if (e instanceof QuoteTaxResolutionError) {
-          return NextResponse.json({ error: e.message, code: e.code }, { status: 400 });
-        }
-        throw e;
-      }
+      const taxRules = await resolveTaxRulesForSaaSQuote(prisma, {
+        organizationId: fullRow.organizationId,
+        projectCountryCode: fullRow.project?.countryCode,
+      });
       const resolved = await resolvePartnerPricingConfig(prisma, {
         organizationId: fullRow.organizationId,
         projectCountryCode: fullRow.project?.countryCode,
@@ -303,7 +275,7 @@ export async function PATCH(
       updateData.approvedByUserId = null;
       updateData.reviewedAt = null;
     }
-    const quote = await updateQuote(prisma, tenantCtx, params.id, updateData);
+    const quote = await updateQuote(prisma, tenantCtx, id, updateData);
     const quoteOrgId = (quote as { organizationId?: string }).organizationId;
     const quoteNumber = (quote as { quoteNumber?: string }).quoteNumber;
     const metadataBase = { quoteNumber, organizationId: quoteOrgId, comment: data.superadminComment ?? undefined };
@@ -313,7 +285,7 @@ export async function PATCH(
         userId: user.userId ?? user.id,
         action: "quote_approved",
         entityType: "quote",
-        entityId: params.id,
+        entityId: id,
         metadata: metadataBase,
       });
     } else if (data.status === "rejected") {
@@ -323,7 +295,7 @@ export async function PATCH(
           userId: user.userId ?? user.id,
           action: "quote_rejected",
           entityType: "quote",
-          entityId: params.id,
+          entityId: id,
           metadata: metadataBase,
         });
       } else {
@@ -332,7 +304,7 @@ export async function PATCH(
           userId: user.userId ?? user.id,
           action: "QUOTE_UPDATED",
           entityType: "Quote",
-          entityId: params.id,
+          entityId: id,
           metadata: { changed: ["status"] },
         });
       }
@@ -343,7 +315,7 @@ export async function PATCH(
         userId: user.userId ?? user.id,
         action: "QUOTE_ARCHIVED",
         entityType: "Quote",
-        entityId: params.id,
+        entityId: id,
         metadata: { changed: changedKeys.map(String) },
       });
     } else if (
@@ -358,7 +330,7 @@ export async function PATCH(
         userId: user.userId ?? user.id,
         action: "quote_modified_by_superadmin",
         entityType: "quote",
-        entityId: params.id,
+        entityId: id,
         metadata: metadataBase,
       });
     } else if (!isSuperadmin && patchHasEffect(data, isSuperadmin)) {
@@ -370,73 +342,54 @@ export async function PATCH(
         userId: user.userId ?? user.id,
         action: "QUOTE_UPDATED",
         entityType: "Quote",
-        entityId: params.id,
+        entityId: id,
         metadata: { changed: changedKeys.map(String) },
       });
     }
     return NextResponse.json(formatQuoteForSaaSApiWithSnapshot(quote, { maskFactoryExw: !isSuperadmin }));
-  } catch (e) {
-    if (e instanceof TenantError) {
-      return NextResponse.json({ error: e.message }, { status: tenantErrorStatus(e) });
-    }
-    if (e instanceof QuoteMissingTaxSnapshotError) {
-      return NextResponse.json(
-        { error: e.message, code: e.code, quoteId: e.quoteId },
-        { status: 422 }
-      );
-    }
-    throw e;
-  }
 }
 
-export async function DELETE(
-  _req: Request,
-  { params }: { params: { id: string } }
-) {
+async function deleteQuoteHandler(_req: Request, routeContext: unknown) {
+  const id = await quoteIdFromCtx(routeContext);
+  const sessionUser = await requireSession();
+  if (!canDeleteQuote(sessionUser)) {
+    throw new TenantError("Forbidden", "FORBIDDEN");
+  }
+
+  const ctx = await getTenantContext();
+  if (!ctx) throw new TenantError("Unauthorized", "UNAUTHORIZED");
+  if (!ctx.isPlatformSuperadmin && !ctx.activeOrgId) {
+    throw new TenantError("No active organization", "NO_ACTIVE_ORG");
+  }
+
+  const tenantCtx = {
+    userId: ctx.userId,
+    organizationId: ctx.activeOrgId ?? null,
+    isPlatformSuperadmin: ctx.isPlatformSuperadmin,
+  };
+
+  let existing;
   try {
-    const sessionUser = await getSessionUser();
-    if (!sessionUser) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    await assertPartnerModuleEnabled("quotes", sessionUser);
-    if (!canDeleteQuote(sessionUser)) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    existing = await deleteQuote(prisma, tenantCtx, id);
+  } catch (err) {
+    if (err instanceof Error && err.message === "Quote not found") {
+      throw new ApiHttpError(404, "RECORD_NOT_FOUND", "Quote not found");
     }
-
-    const ctx = await getTenantContext();
-    if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    if (!ctx.isPlatformSuperadmin && !ctx.activeOrgId) {
-      return NextResponse.json({ error: "No active organization" }, { status: 403 });
-    }
-
-    const tenantCtx = {
-      userId: ctx.userId,
-      organizationId: ctx.activeOrgId ?? null,
-      isPlatformSuperadmin: ctx.isPlatformSuperadmin,
-    };
-
-    let existing;
-    try {
-      existing = await deleteQuote(prisma, tenantCtx, params.id);
-    } catch (err) {
-      if (err instanceof Error && err.message === "Quote not found") {
-        return NextResponse.json({ error: "Not found" }, { status: 404 });
-      }
-      throw err;
-    }
-
-    await createActivityLog({
-      organizationId: ctx.activeOrgId ?? existing.organizationId ?? null,
-      userId: sessionUser.userId ?? sessionUser.id,
-      action: "QUOTE_DELETED",
-      entityType: "Quote",
-      entityId: params.id,
-      metadata: { quoteNumber: existing.quoteNumber },
-    });
-
-    return NextResponse.json({ success: true });
-  } catch (e) {
-    if (e instanceof TenantError) {
-      return NextResponse.json({ error: e.message }, { status: tenantErrorStatus(e) });
-    }
-    throw e;
+    throw err;
   }
+
+  await createActivityLog({
+    organizationId: ctx.activeOrgId ?? existing.organizationId ?? null,
+    userId: sessionUser.userId ?? sessionUser.id,
+    action: "QUOTE_DELETED",
+    entityType: "Quote",
+    entityId: id,
+    metadata: { quoteNumber: existing.quoteNumber },
+  });
+
+  return NextResponse.json({ success: true });
 }
+
+export const GET = withSaaSHandler({ module: "quotes", rateLimitTier: "read" }, getQuoteHandler);
+export const PATCH = withSaaSHandler({ module: "quotes", rateLimitTier: "create_update" }, patchHandler);
+export const DELETE = withSaaSHandler({ module: "quotes", rateLimitTier: "create_update" }, deleteQuoteHandler);

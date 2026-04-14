@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { FilterSelect } from "@/components/ui/filter-select";
 import { ViewLayoutToggle } from "@/components/ui/view-layout-toggle";
+import { saasApiUserFacingMessage } from "@/lib/saas-api-error-message";
 
 type Country = { id: string; name: string; code: string };
 type Client = {
@@ -208,7 +209,7 @@ export function ClientsClient({
       setNewOpen(false);
       refreshList();
     } else {
-      setError(data.error ?? t("clients.failedToCreate"));
+      setError(saasApiUserFacingMessage(data, t, t("clients.failedToCreate")));
     }
   };
 
@@ -241,7 +242,7 @@ export function ClientsClient({
       setEditId(null);
       refreshList();
     } else {
-      setError(data.error ?? t("clients.failedToUpdate"));
+      setError(saasApiUserFacingMessage(data, t, t("clients.failedToUpdate")));
     }
   };
 

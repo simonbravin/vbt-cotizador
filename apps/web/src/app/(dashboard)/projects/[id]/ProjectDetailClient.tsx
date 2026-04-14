@@ -9,6 +9,7 @@ import { formatCurrency } from "@/lib/utils";
 import { useLanguage } from "@/lib/i18n/context";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FilterSelect } from "@/components/ui/filter-select";
+import { saasApiUserFacingMessage } from "@/lib/saas-api-error-message";
 
 type Country = { id: string; name: string; code: string };
 type Quote = {
@@ -68,10 +69,12 @@ export function ProjectDetailClient({ initialProject }: { initialProject: Projec
   const [project, setProject] = useState<Project>(initialProject);
   const [editOpen, setEditOpen] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [auditLog, setAuditLog] = useState<AuditEntry[]>([]);
   const [loadingAudit, setLoadingAudit] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
   const [countries, setCountries] = useState<Country[]>([]);
   const [clients, setClients] = useState<{ id: string; name: string }[]>([]);
   const [newClientOpen, setNewClientOpen] = useState(false);
@@ -98,11 +101,14 @@ export function ProjectDetailClient({ initialProject }: { initialProject: Projec
     expectedCloseDate: project.expectedCloseDate ? String(project.expectedCloseDate).slice(0, 10) : "",
   });
 
-  // Auditoría por proyecto: aún no hay `/api/saas/projects/:id/audit`.
   useEffect(() => {
-    fetch(`/api/projects/${project.id}/audit`)
+    fetch(`/api/saas/projects/${project.id}/audit`)
       .then((r) => r.json())
-      .then((data) => { setAuditLog(Array.isArray(data) ? data : []); setLoadingAudit(false); })
+      .then((data) => {
+        const entries = Array.isArray(data) ? data : (data?.entries ?? []);
+        setAuditLog(Array.isArray(entries) ? entries : []);
+        setLoadingAudit(false);
+      })
       .catch(() => setLoadingAudit(false));
   }, [project.id]);
 
@@ -147,7 +153,7 @@ export function ProjectDetailClient({ initialProject }: { initialProject: Projec
         errBody = {};
       }
       if (!res.ok) {
-        setBaselineError(typeof errBody.error === "string" ? errBody.error : t("auth.errorUnexpected"));
+        setBaselineError(saasApiUserFacingMessage(errBody, t, t("auth.errorUnexpected")));
         return;
       }
       const fullRes = await fetch(`/api/saas/projects/${project.id}`);
@@ -163,6 +169,7 @@ export function ProjectDetailClient({ initialProject }: { initialProject: Projec
   };
 
   const openEdit = () => {
+    setEditError(null);
     setForm({
       projectName: project.projectName ?? (project as any).name ?? "",
       clientId: project.clientId ?? project.client?.id ?? (project as any).clientRecord?.id ?? "",
@@ -178,11 +185,27 @@ export function ProjectDetailClient({ initialProject }: { initialProject: Projec
   };
 
   const handleDelete = async () => {
+    setDeleteError(null);
     setDeleting(true);
-    const res = await fetch(`/api/saas/projects/${project.id}`, { method: "DELETE" });
-    setDeleting(false);
-    setDeleteDialog(false);
-    if (res.ok) router.push("/projects");
+    try {
+      const res = await fetch(`/api/saas/projects/${project.id}`, { method: "DELETE" });
+      let body: unknown = null;
+      try {
+        body = await res.json();
+      } catch {
+        body = null;
+      }
+      if (!res.ok) {
+        setDeleteError(saasApiUserFacingMessage(body, t, t("auth.errorUnexpected")));
+        return;
+      }
+      setDeleteDialog(false);
+      router.push("/projects");
+    } catch {
+      setDeleteError(t("auth.errorUnexpected"));
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const saveNewClient = async () => {
@@ -211,7 +234,7 @@ export function ProjectDetailClient({ initialProject }: { initialProject: Projec
         setNewClientOpen(false);
         setNewClientForm({ name: "", legalName: "", countryId: "", email: "", phone: "" });
       } else {
-        setNewClientError(data.error ?? t("auth.errorUnexpected"));
+        setNewClientError(saasApiUserFacingMessage(data, t, t("auth.errorUnexpected")));
       }
     } catch {
       setNewClientError(t("auth.errorUnexpected"));
@@ -222,29 +245,45 @@ export function ProjectDetailClient({ initialProject }: { initialProject: Projec
 
   const saveEdit = async () => {
     setSaving(true);
-    const res = await fetch(`/api/saas/projects/${project.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        projectName: form.projectName?.trim() || undefined,
-        clientId: form.clientId || null,
-        countryCode: form.countryCode?.trim() || null,
-        city: form.city?.trim() || undefined,
-        address: form.address?.trim() || undefined,
-        description: form.description?.trim() || undefined,
-        status: form.status,
-        estimatedTotalAreaM2: form.estimatedTotalAreaM2 !== "" ? Number(form.estimatedTotalAreaM2) || null : null,
-        expectedCloseDate: form.expectedCloseDate || null,
-      }),
-    });
-    setSaving(false);
-    if (res.ok) {
-      const updated = await res.json();
-      setProject(updated);
+    setEditError(null);
+    try {
+      const res = await fetch(`/api/saas/projects/${project.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          projectName: form.projectName?.trim() || undefined,
+          clientId: form.clientId || null,
+          countryCode: form.countryCode?.trim() || null,
+          city: form.city?.trim() || undefined,
+          address: form.address?.trim() || undefined,
+          description: form.description?.trim() || undefined,
+          status: form.status,
+          estimatedTotalAreaM2: form.estimatedTotalAreaM2 !== "" ? Number(form.estimatedTotalAreaM2) || null : null,
+          expectedCloseDate: form.expectedCloseDate || null,
+        }),
+      });
+      let body: unknown = null;
+      try {
+        body = await res.json();
+      } catch {
+        body = null;
+      }
+      if (!res.ok) {
+        setEditError(saasApiUserFacingMessage(body, t, t("projects.failedSave")));
+        return;
+      }
+      if (body && typeof body === "object" && "id" in body) {
+        setProject(body as Project);
+      }
       setEditOpen(false);
-      const auditRes = await fetch(`/api/projects/${project.id}/audit`);
+      const auditRes = await fetch(`/api/saas/projects/${project.id}/audit`);
       const auditData = await auditRes.json();
-      setAuditLog(Array.isArray(auditData) ? auditData : []);
+      const entries = Array.isArray(auditData) ? auditData : (auditData?.entries ?? []);
+      setAuditLog(Array.isArray(entries) ? entries : []);
+    } catch {
+      setEditError(t("projects.failedSave"));
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -295,7 +334,10 @@ export function ProjectDetailClient({ initialProject }: { initialProject: Projec
           </button>
           <button
             type="button"
-            onClick={() => setDeleteDialog(true)}
+            onClick={() => {
+              setDeleteError(null);
+              setDeleteDialog(true);
+            }}
             className="inline-flex items-center gap-2 rounded-lg border border-destructive/30 px-3 py-2 text-sm text-destructive hover:bg-destructive/10"
           >
             <Trash2 className="w-4 h-4" /> {t("common.delete")}
@@ -305,7 +347,10 @@ export function ProjectDetailClient({ initialProject }: { initialProject: Projec
 
       <ConfirmDialog
         open={deleteDialog}
-        onOpenChange={setDeleteDialog}
+        onOpenChange={(open) => {
+          if (!open) setDeleteError(null);
+          setDeleteDialog(open);
+        }}
         title={t("projects.deleteProjectTitle")}
         description={t("projects.deleteProjectMsg", { name: projectName })}
         confirmLabel={t("common.delete")}
@@ -313,6 +358,7 @@ export function ProjectDetailClient({ initialProject }: { initialProject: Projec
         loadingLabel={t("projects.deleting")}
         variant="danger"
         loading={deleting}
+        error={deleteError}
         onConfirm={handleDelete}
       />
 
@@ -511,6 +557,9 @@ export function ProjectDetailClient({ initialProject }: { initialProject: Projec
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/65 p-4">
           <div className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-lg border border-border/60 bg-background p-6">
             <h3 className="mb-4 text-lg font-semibold tracking-tight text-foreground">{t("projects.editProject")}</h3>
+            {editError && (
+              <div className="mb-3 rounded-lg border border-destructive/25 bg-destructive/5 p-2 text-sm text-destructive">{editError}</div>
+            )}
             <div className="space-y-3 text-sm">
               <div>
                 <label className="mb-1 block text-xs text-muted-foreground">{t("projects.projectNameLabel")}</label>
@@ -585,7 +634,16 @@ export function ProjectDetailClient({ initialProject }: { initialProject: Projec
               </div>
             </div>
             <div className="mt-6 flex justify-end gap-2">
-              <button type="button" onClick={() => setEditOpen(false)} className="rounded-lg border border-border/60 px-4 py-2 text-sm font-medium text-foreground hover:bg-muted">{t("common.cancel")}</button>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditError(null);
+                  setEditOpen(false);
+                }}
+                className="rounded-lg border border-border/60 px-4 py-2 text-sm font-medium text-foreground hover:bg-muted"
+              >
+                {t("common.cancel")}
+              </button>
               <button type="button" onClick={saveEdit} disabled={saving || !form.projectName?.trim()} className="rounded-lg border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50">{saving ? t("common.saving") : t("common.save")}</button>
             </div>
           </div>

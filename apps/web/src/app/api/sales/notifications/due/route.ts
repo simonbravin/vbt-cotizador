@@ -1,14 +1,12 @@
 import { NextResponse } from "next/server";
 import type { SessionUser } from "@/lib/auth";
-import { getEffectiveOrganizationId, getEffectiveActiveOrgId } from "@/lib/tenant";
-import { requireModuleRouteAuth } from "@/lib/module-route-auth";
+import { getEffectiveOrganizationId, getEffectiveActiveOrgId, requireSession } from "@/lib/tenant";
+import { withSaaSHandler } from "@/lib/saas-handler";
 import { listDueInvoiceItems } from "@/lib/partner-sales";
 
 /** Partner UI: count of invoices due within the next `days` (default 7). Superadmin: pass organizationId or use active-org cookie. */
-export async function GET(req: Request) {
-  const auth = await requireModuleRouteAuth("sales");
-  if (!auth.ok) return auth.response;
-  const user = auth.user as SessionUser;
+async function salesNotificationsDueGetHandler(req: Request) {
+  const user = (await requireSession()) as SessionUser;
   const url = new URL(req.url);
 
   let organizationId: string | null;
@@ -25,3 +23,5 @@ export async function GET(req: Request) {
   const { count, invoices } = await listDueInvoiceItems(organizationId, days);
   return NextResponse.json({ count, invoices });
 }
+
+export const GET = withSaaSHandler({ module: "sales", rateLimitTier: "read" }, salesNotificationsDueGetHandler);

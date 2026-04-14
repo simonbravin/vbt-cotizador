@@ -1,5 +1,10 @@
+import { NextResponse } from "next/server";
 import { ZodError, type ZodIssue } from "zod";
-import { InvalidDocumentOrgIdsError, QuoteMissingTaxSnapshotError } from "@vbt/core";
+import {
+  InvalidDocumentOrgIdsError,
+  QuoteMissingTaxSnapshotError,
+  QuoteTaxResolutionError,
+} from "@vbt/core";
 import { TenantError } from "./tenant";
 import { tenantErrorStatus } from "./tenant";
 import { RateLimitExceededError } from "./rate-limit";
@@ -11,6 +16,34 @@ export type ApiErrorPayload = {
     details: Array<{ path?: string; message: string }>;
   };
 };
+
+/**
+ * Explicit HTTP API failure with stable `code` for clients (i18n via `apiErrors.${code}`) and logging.
+ * Thrown from route handlers wrapped by `withSaaSHandler` (or caught and mapped manually).
+ */
+export class ApiHttpError extends Error {
+  readonly name = "ApiHttpError";
+
+  constructor(
+    public readonly status: number,
+    public readonly code: string,
+    message: string,
+    public readonly details: Array<{ path?: string; message: string }> = []
+  ) {
+    super(message);
+    Object.setPrototypeOf(this, new.target.prototype);
+  }
+}
+
+/** Build a `NextResponse` with the canonical `{ error: { code, message, details } }` body. */
+export function jsonApiErrorResponse(
+  status: number,
+  code: string,
+  message: string,
+  details: ApiErrorPayload["error"]["details"] = []
+): NextResponse<ApiErrorPayload> {
+  return NextResponse.json({ error: { code, message, details } }, { status });
+}
 
 /**
  * Zod from `@vbt/core` vs `web` can resolve to different module instances; `instanceof ZodError` then fails
@@ -29,6 +62,19 @@ function zodIssuesFromUnknown(error: unknown): ZodIssue[] | null {
  * Handles RateLimitExceededError, TenantError, Zod validation errors, Prisma errors, and generic Error.
  */
 export function normalizeApiError(error: unknown): { status: number; payload: ApiErrorPayload } {
+  if (error instanceof ApiHttpError) {
+    return {
+      status: error.status,
+      payload: {
+        error: {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+        },
+      },
+    };
+  }
+
   if (error instanceof RateLimitExceededError) {
     return {
       status: 429,
@@ -63,6 +109,19 @@ export function normalizeApiError(error: unknown): { status: number; payload: Ap
           code: error.code,
           message: error.message,
           details: error.quoteId ? [{ path: "quoteId", message: error.quoteId }] : [],
+        },
+      },
+    };
+  }
+
+  if (error instanceof QuoteTaxResolutionError) {
+    return {
+      status: 400,
+      payload: {
+        error: {
+          code: error.code,
+          message: error.message,
+          details: [],
         },
       },
     };
@@ -116,6 +175,8 @@ export function normalizeApiError(error: unknown): { status: number; payload: Ap
       };
     }
     const status = code === "P2002" ? 409 : code === "P2025" ? 404 : 400;
+    const apiCode =
+      code === "P2002" ? "DB_DUPLICATE_KEY" : code === "P2025" ? "DB_RECORD_NOT_FOUND" : "DB_ERROR";
     const message =
       code === "P2002"
         ? "A record with this value already exists"
@@ -126,7 +187,7 @@ export function normalizeApiError(error: unknown): { status: number; payload: Ap
       status,
       payload: {
         error: {
-          code: "DB_ERROR",
+          code: apiCode,
           message,
           details: [],
         },

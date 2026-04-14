@@ -70,7 +70,7 @@ Tracks incremental migration from legacy schema to Partner SaaS schema.
 
 ### auditLog → activityLog
 
-- `api/projects/[id]/audit/route.ts`, `api/projects/logs/route.ts`, `api/quotes/[id]/audit/route.ts`, `api/inventory/logs/route.ts`.  
+- `api/saas/projects/[id]/audit/route.ts` (canonical SaaS; legacy `api/projects/[id]/audit` removed), `api/projects/logs/route.ts`, `api/quotes/[id]/audit/route.ts`, `api/inventory/logs/route.ts`.  
 - Use `prisma.activityLog` and string `action` + `metadataJson`.
 
 ---
@@ -85,7 +85,7 @@ Tracks incremental migration from legacy schema to Partner SaaS schema.
 | `app/(dashboard)/projects/[id]/page.tsx` | Migrated | Uses getProjectById or Prisma with organizationId, client, quotes. |
 | `app/api/projects/route.ts` | Migrated | GET uses core listProjects; POST uses core createProject; tenant helpers; createActivityLog. |
 | `app/api/projects/[id]/route.ts` | Migrated | GET/PATCH/DELETE use core or Prisma with organizationId; new Project fields; activityLog. |
-| `app/api/projects/[id]/audit/route.ts` | Migrated | activityLog, organizationId. |
+| `app/api/saas/projects/[id]/audit/route.ts` | Migrated | Canonical GET; `withSaaSHandler`; activityLog; replaces removed `app/api/projects/[id]/audit/route.ts`. |
 | `app/api/projects/logs/route.ts` | Migrated | activityLog, organizationId. |
 | `ProjectsClient.tsx` / `ProjectDetailClient.tsx` | Adapted | Use `client`, `projectName`, `estimatedTotalAreaM2` / `estimatedWallAreaM2`; no baselineQuote/country/clientRecord. |
 | `projects/new/page.tsx` | Adapted | Form posts projectName, clientId, countryCode, estimatedTotalAreaM2; API uses new schema. |

@@ -6,6 +6,7 @@ import { formatCurrency } from "@/lib/utils";
 import { BarChart3, Download, Package, Mail, ShoppingCart } from "lucide-react";
 import { useLanguage } from "@/lib/i18n/context";
 import { FilterSelect } from "@/components/ui/filter-select";
+import { saasApiUserFacingMessage } from "@/lib/saas-api-error-message";
 
 type Country = { id: string; name: string; code: string };
 type Project = {
@@ -191,7 +192,7 @@ export function ReportsClient({ countries, clients, canSendReport = true }: { co
         setEmailSubject("");
         setTimeout(() => { setEmailOpen(false); setEmailMessage(null); }, 2000);
       } else {
-        setEmailMessage({ type: "error", text: data.error ?? t("partner.reports.failedToSend") });
+        setEmailMessage({ type: "error", text: saasApiUserFacingMessage(data, t, t("partner.reports.failedToSend")) });
       }
     } catch {
       setEmailMessage({ type: "error", text: t("partner.sales.failedToSendEmail") });

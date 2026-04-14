@@ -90,9 +90,10 @@ export function getRateLimitTier(pathname: string, method: string): RateLimitTie
   const isMutation = /^(POST|PATCH|PUT|DELETE)$/.test(method);
   if (
     isMutation &&
-    /\/api\/saas\/(projects|quotes|engineering|documents|partners|org-members|territories|training\/enrollments)/.test(
+    (/\/api\/saas\/(projects|quotes|engineering|documents|partners|org-members|territories|training\/enrollments)/.test(
       pathname
-    )
+    ) ||
+      /\/api\/sales(\/|$)/.test(pathname))
   )
     return "create_update";
   return "read";

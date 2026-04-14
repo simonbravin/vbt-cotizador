@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useT } from "@/lib/i18n/context";
 import { AuthEngineeringShell, AuthFormSurface } from "@/components/auth/AuthEngineeringShell";
 import { Button } from "@/components/ui/button";
+import { saasApiUserFacingMessage } from "@/lib/saas-api-error-message";
 import { Input } from "@/components/ui/input";
 
 type InviteInfo = {
@@ -72,7 +73,7 @@ function InviteAcceptContent() {
       });
       const data = await res.json();
       if (!res.ok) {
-        const msg = data.error ?? t("auth.errorGeneric");
+        const msg = saasApiUserFacingMessage(data, t, t("auth.errorGeneric"));
         setSubmitError(data.debug ? `${msg}: ${data.debug}` : msg);
         return;
       }

@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import type { SessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { getEffectiveOrganizationId } from "@/lib/tenant";
-import { requireModuleRouteAuth } from "@/lib/module-route-auth";
+import { getEffectiveOrganizationId, requireSession, TenantError } from "@/lib/tenant";
+import { withSaaSHandler } from "@/lib/saas-handler";
+import { ApiHttpError } from "@/lib/api-error";
 import { buildStatementsResponse } from "@/lib/partner-sales";
 import { renderToBuffer } from "@react-pdf/renderer";
 import React from "react";
@@ -24,30 +25,31 @@ const bodySchema = z.object({
   organizationId: z.string().optional(),
 });
 
-export async function POST(req: Request) {
-  const auth = await requireModuleRouteAuth("sales");
-  if (!auth.ok) return auth.response;
-  const user = auth.user as SessionUser;
+async function statementsEmailPostHandler(req: Request) {
+  const user = (await requireSession()) as SessionUser;
 
   const role = (user.role ?? "").toLowerCase();
   if (!user.isPlatformSuperadmin && role !== "org_admin" && role !== "sales_user") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    throw new TenantError("Forbidden", "FORBIDDEN");
   }
 
   const apiKey = process.env.RESEND_API_KEY?.trim();
   if (!apiKey) {
-    return NextResponse.json({ error: "Email not configured" }, { status: 503 });
+    throw new ApiHttpError(503, "SALES_EMAIL_NOT_CONFIGURED", "Email not configured.");
   }
 
   let body: unknown;
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    throw new ApiHttpError(400, "INVALID_JSON", "Request body must be valid JSON.");
   }
   const parsed = bodySchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid body" }, { status: 400 });
+    throw new ApiHttpError(400, "VALIDATION_ERROR", "Validation failed", parsed.error.issues.map((issue) => ({
+      path: issue.path.join(".") || undefined,
+      message: issue.message,
+    })));
   }
   const data = parsed.data;
 
@@ -55,12 +57,12 @@ export async function POST(req: Request) {
   if (user.isPlatformSuperadmin) {
     const fromBody = data.organizationId?.trim();
     if (!fromBody) {
-      return NextResponse.json({ error: "organizationId required" }, { status: 400 });
+      throw new ApiHttpError(400, "SALES_ORG_SCOPE_REQUIRED", "organizationId is required when sending as platform superadmin.");
     }
     organizationId = fromBody;
   } else {
     const org = getEffectiveOrganizationId(user);
-    if (!org) return NextResponse.json({ error: "No organization" }, { status: 403 });
+    if (!org) throw new ApiHttpError(403, "SALES_ORG_SCOPE_REQUIRED", "No organization context.");
     organizationId = org;
   }
 
@@ -115,8 +117,10 @@ export async function POST(req: Request) {
 
   if (error) {
     console.error("[statements/email]", error);
-    return NextResponse.json({ error: error.message ?? "Send failed" }, { status: 502 });
+    throw new ApiHttpError(502, "SALES_EMAIL_SEND_FAILED", error.message ?? "Send failed");
   }
 
   return NextResponse.json({ ok: true, message: `Sent to ${data.to}` });
 }
+
+export const POST = withSaaSHandler({ module: "sales", rateLimitTier: "create_update" }, statementsEmailPostHandler);

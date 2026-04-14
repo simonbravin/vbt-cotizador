@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import type { SessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { requireModuleRouteAuth } from "@/lib/module-route-auth";
+import { requireSession, TenantError } from "@/lib/tenant";
+import { withSaaSHandler } from "@/lib/saas-handler";
+import { ApiHttpError } from "@/lib/api-error";
 import {
   resolveOrganizationIdForSaleCreate,
   salesListWhere,
@@ -45,7 +47,6 @@ const postSchema = z
     landedDdpUsd: z.number().optional(),
     invoicedBasis: z.enum(["EXW", "FOB", "CIF", "DDP"]).optional(),
     notes: z.string().optional(),
-    /** Platform superadmin: create sale in this org (alternatively ?organizationId= or active-org cookie). */
     organizationId: z.string().optional(),
     invoices: z
       .array(
@@ -102,11 +103,8 @@ function parseStatus(s: string | null): SaleOrderStatus | undefined {
   return map[up];
 }
 
-export async function GET(req: Request) {
-  const auth = await requireModuleRouteAuth("sales");
-  if (!auth.ok) return auth.response;
-  const user = auth.user as SessionUser;
-
+async function salesGetHandler(req: Request) {
+  const user = (await requireSession()) as SessionUser;
   const url = new URL(req.url);
   const baseWhere = await salesListWhere(user, url);
   const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1", 10) || 1);
@@ -184,38 +182,40 @@ export async function GET(req: Request) {
   });
 }
 
-export async function POST(req: Request) {
-  const auth = await requireModuleRouteAuth("sales");
-  if (!auth.ok) return auth.response;
-  const user = auth.user as SessionUser;
-
+async function salesPostHandler(req: Request) {
+  const user = (await requireSession()) as SessionUser;
   if (!salesUserCanMutate(user)) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    throw new TenantError("Forbidden", "FORBIDDEN");
   }
 
   let body: unknown;
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    throw new ApiHttpError(400, "INVALID_JSON", "Request body must be valid JSON.");
   }
   const parsed = postSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid body" }, { status: 400 });
+    throw new ApiHttpError(400, "VALIDATION_ERROR", "Validation failed", parsed.error.issues.map((issue) => ({
+      path: issue.path.join(".") || undefined,
+      message: issue.message,
+    })));
   }
 
   const data = parsed.data;
   const url = new URL(req.url);
   const orgResolved = await resolveOrganizationIdForSaleCreate(user, url, data.organizationId);
   if (!orgResolved.ok) {
-    return NextResponse.json({ error: orgResolved.error }, { status: orgResolved.status });
+    throw new ApiHttpError(orgResolved.status, "SALES_ORG_SCOPE_REQUIRED", orgResolved.error);
   }
   const organizationId = orgResolved.organizationId;
   const clientRow = await prisma.client.findFirst({
     where: { id: data.clientId, organizationId },
     select: { id: true },
   });
-  if (!clientRow) return NextResponse.json({ error: "Client not found" }, { status: 400 });
+  if (!clientRow) {
+    throw new ApiHttpError(400, "SALES_CLIENT_NOT_FOUND", "Client not found for this organization.");
+  }
 
   const isMulti = (data.projectLines?.length ?? 0) > 0;
 
@@ -229,7 +229,12 @@ export async function POST(req: Request) {
   let cifUsd: number;
   let taxesFeesUsd: number;
   let landedDdpUsd: number;
-  let resolvedLinesForCreate: { projectId: string; quoteId: string | null; containerSharePct: number | null; sortOrder: number }[];
+  let resolvedLinesForCreate: {
+    projectId: string;
+    quoteId: string | null;
+    containerSharePct: number | null;
+    sortOrder: number;
+  }[];
 
   if (isMulti) {
     try {
@@ -259,7 +264,7 @@ export async function POST(req: Request) {
       }));
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Invalid multi-project sale";
-      return NextResponse.json({ error: msg }, { status: 400 });
+      throw new ApiHttpError(400, "SALES_MULTI_PROJECT_INVALID", msg);
     }
   } else {
     const [project, quoteRow] = await Promise.all([
@@ -268,8 +273,10 @@ export async function POST(req: Request) {
         ? prisma.quote.findFirst({ where: { id: data.quoteId, organizationId }, select: { id: true } })
         : Promise.resolve(null),
     ]);
-    if (!project) return NextResponse.json({ error: "Project not found" }, { status: 400 });
-    if (data.quoteId && !quoteRow) return NextResponse.json({ error: "Quote not found" }, { status: 400 });
+    if (!project) throw new ApiHttpError(400, "SALES_PROJECT_NOT_FOUND", "Project not found for this organization.");
+    if (data.quoteId && !quoteRow) {
+      throw new ApiHttpError(400, "SALES_QUOTE_NOT_FOUND", "Quote not found for this organization.");
+    }
     primaryProjectId = data.projectId!;
     headerQuoteId = data.quoteId ?? null;
     exwUsd = data.exwUsd!;
@@ -297,72 +304,72 @@ export async function POST(req: Request) {
     const ent = await prisma.billingEntity.findFirst({
       where: { id: inv.entityId, organizationId, isActive: true },
     });
-    if (!ent) return NextResponse.json({ error: "Invalid billing entity" }, { status: 400 });
-  }
-
-  try {
-    const sale = await prisma.$transaction(async (tx) => {
-      const saleNumber = await nextSaleNumber(tx, organizationId);
-      const statusEnum = data.status === "CONFIRMED" ? SaleOrderStatus.CONFIRMED : SaleOrderStatus.DRAFT;
-      const created = await tx.sale.create({
-        data: {
-          organizationId,
-          clientId: data.clientId,
-          projectId: primaryProjectId,
-          quoteId: headerQuoteId,
-          saleNumber,
-          quantity: data.quantity,
-          status: statusEnum,
-          exwUsd,
-          commissionPct,
-          commissionAmountUsd,
-          fobUsd,
-          freightUsd,
-          cifUsd,
-          taxesFeesUsd,
-          landedDdpUsd,
-          invoicedBasis: data.invoicedBasis ?? "DDP",
-          notes: data.notes ?? null,
-          createdByUserId: user.id ?? null,
-          saleProjectLines: {
-            create: resolvedLinesForCreate.map((l) => ({
-              projectId: l.projectId,
-              quoteId: l.quoteId,
-              containerSharePct: l.containerSharePct,
-              sortOrder: l.sortOrder,
-            })),
-          },
-          invoices:
-            invoiceLines.length > 0
-              ? {
-                  create: invoiceLines.map((inv) => ({
-                    billingEntityId: inv.entityId,
-                    amountUsd: inv.amountUsd,
-                    dueDate: inv.dueDate ? new Date(inv.dueDate) : null,
-                    sequence: inv.sequence ?? 1,
-                    referenceNumber: inv.referenceNumber ?? null,
-                    notes: inv.notes ?? null,
-                  })),
-                }
-              : undefined,
-        },
-      });
-      return created;
-    });
-
-    await refreshSaleComputedStatus(sale.id);
-
-    if (data.status === "CONFIRMED") {
-      const projectIds = [...new Set(resolvedLinesForCreate.map((l) => l.projectId))];
-      await prisma.project.updateMany({
-        where: { id: { in: projectIds }, organizationId, status: { not: "lost" } },
-        data: { status: "won" },
-      });
+    if (!ent) {
+      throw new ApiHttpError(400, "SALES_INVALID_BILLING_ENTITY", "Invalid or inactive billing entity.");
     }
-
-    return NextResponse.json({ id: sale.id });
-  } catch (e) {
-    console.error("[POST /api/sales]", e);
-    return NextResponse.json({ error: "Failed to create sale" }, { status: 500 });
   }
+
+  const sale = await prisma.$transaction(async (tx) => {
+    const saleNumber = await nextSaleNumber(tx, organizationId);
+    const statusEnum = data.status === "CONFIRMED" ? SaleOrderStatus.CONFIRMED : SaleOrderStatus.DRAFT;
+    const created = await tx.sale.create({
+      data: {
+        organizationId,
+        clientId: data.clientId,
+        projectId: primaryProjectId,
+        quoteId: headerQuoteId,
+        saleNumber,
+        quantity: data.quantity,
+        status: statusEnum,
+        exwUsd,
+        commissionPct,
+        commissionAmountUsd,
+        fobUsd,
+        freightUsd,
+        cifUsd,
+        taxesFeesUsd,
+        landedDdpUsd,
+        invoicedBasis: data.invoicedBasis ?? "DDP",
+        notes: data.notes ?? null,
+        createdByUserId: user.id ?? null,
+        saleProjectLines: {
+          create: resolvedLinesForCreate.map((l) => ({
+            projectId: l.projectId,
+            quoteId: l.quoteId,
+            containerSharePct: l.containerSharePct,
+            sortOrder: l.sortOrder,
+          })),
+        },
+        invoices:
+          invoiceLines.length > 0
+            ? {
+                create: invoiceLines.map((inv) => ({
+                  billingEntityId: inv.entityId,
+                  amountUsd: inv.amountUsd,
+                  dueDate: inv.dueDate ? new Date(inv.dueDate) : null,
+                  sequence: inv.sequence ?? 1,
+                  referenceNumber: inv.referenceNumber ?? null,
+                  notes: inv.notes ?? null,
+                })),
+              }
+            : undefined,
+      },
+    });
+    return created;
+  });
+
+  await refreshSaleComputedStatus(sale.id);
+
+  if (data.status === "CONFIRMED") {
+    const projectIds = [...new Set(resolvedLinesForCreate.map((l) => l.projectId))];
+    await prisma.project.updateMany({
+      where: { id: { in: projectIds }, organizationId, status: { not: "lost" } },
+      data: { status: "won" },
+    });
+  }
+
+  return NextResponse.json({ id: sale.id });
 }
+
+export const GET = withSaaSHandler({ module: "sales", rateLimitTier: "read" }, salesGetHandler);
+export const POST = withSaaSHandler({ module: "sales", rateLimitTier: "create_update" }, salesPostHandler);

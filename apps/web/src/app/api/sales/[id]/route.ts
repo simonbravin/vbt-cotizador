@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import type { SessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { requireModuleRouteAuth } from "@/lib/module-route-auth";
+import { requireSession, TenantError } from "@/lib/tenant";
+import { withSaaSHandler } from "@/lib/saas-handler";
+import { ApiHttpError } from "@/lib/api-error";
 import { saleOrganizationIdIfReadable, salesUserCanMutate } from "@/lib/sales-access";
 import { SaleOrderStatus } from "@vbt/db";
 import { z } from "zod";
@@ -37,53 +39,56 @@ const patchSchema = z.object({
     .optional(),
 });
 
-export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> | { id: string } }) {
-  const auth = await requireModuleRouteAuth("sales");
-  if (!auth.ok) return auth.response;
-  const user = auth.user as SessionUser;
+type RouteCtx = { params: Promise<{ id: string }> | { id: string } };
 
-  const { id } = params instanceof Promise ? await params : params;
+async function saleIdFromCtx(routeContext: unknown): Promise<string> {
+  const p = (routeContext as RouteCtx).params;
+  return (p instanceof Promise ? await p : p).id;
+}
+
+async function saleGetHandler(_req: Request, routeContext: unknown) {
+  const user = (await requireSession()) as SessionUser;
+  const id = await saleIdFromCtx(routeContext);
   const organizationId = await saleOrganizationIdIfReadable(user, id);
-  if (!organizationId) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!organizationId) throw new ApiHttpError(404, "RECORD_NOT_FOUND", "Sale not found");
 
   const sale = await getSaleForOrg(id, organizationId);
-  if (!sale) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!sale) throw new ApiHttpError(404, "RECORD_NOT_FOUND", "Sale not found");
   return NextResponse.json(serializeSaleDetail(sale));
 }
 
-export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> | { id: string } }) {
-  const auth = await requireModuleRouteAuth("sales");
-  if (!auth.ok) return auth.response;
-  const user = auth.user as SessionUser;
-
+async function salePatchHandler(req: Request, routeContext: unknown) {
+  const user = (await requireSession()) as SessionUser;
   if (!salesUserCanMutate(user)) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    throw new TenantError("Forbidden", "FORBIDDEN");
   }
 
-  const { id } = params instanceof Promise ? await params : params;
+  const id = await saleIdFromCtx(routeContext);
   const organizationId = await saleOrganizationIdIfReadable(user, id);
-  if (!organizationId) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!organizationId) throw new ApiHttpError(404, "RECORD_NOT_FOUND", "Sale not found");
 
   const existing = await prisma.sale.findFirst({
     where: { id, organizationId },
     include: { _count: { select: { payments: true } } },
   });
-  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!existing) throw new ApiHttpError(404, "RECORD_NOT_FOUND", "Sale not found");
 
   let body: unknown;
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    throw new ApiHttpError(400, "INVALID_JSON", "Request body must be valid JSON.");
   }
   const parsed = patchSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid body" }, { status: 400 });
+    throw new ApiHttpError(400, "VALIDATION_ERROR", "Validation failed", parsed.error.issues.map((issue) => ({
+      path: issue.path.join(".") || undefined,
+      message: issue.message,
+    })));
   }
   const data = parsed.data;
 
-  const replaceInvoices =
-    data.invoices !== undefined && existing._count.payments === 0;
+  const replaceInvoices = data.invoices !== undefined && existing._count.payments === 0;
 
   const statusUpdate =
     data.status === "DRAFT"
@@ -94,90 +99,84 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
           ? SaleOrderStatus.CANCELLED
           : undefined;
 
-  try {
-    await prisma.$transaction(async (tx) => {
-      if (replaceInvoices && data.invoices) {
-        await tx.saleInvoice.deleteMany({ where: { saleId: id } });
-        for (const inv of data.invoices) {
-          const ent = await tx.billingEntity.findFirst({
-            where: { id: inv.entityId, organizationId, isActive: true },
-          });
-          if (!ent) throw new Error("Invalid billing entity");
-          await tx.saleInvoice.create({
-            data: {
-              saleId: id,
-              billingEntityId: inv.entityId,
-              amountUsd: inv.amountUsd,
-              dueDate: inv.dueDate ? new Date(inv.dueDate) : null,
-              sequence: inv.sequence ?? 1,
-              referenceNumber: inv.referenceNumber ?? null,
-              notes: inv.notes ?? null,
-            },
-          });
+  await prisma.$transaction(async (tx) => {
+    if (replaceInvoices && data.invoices) {
+      await tx.saleInvoice.deleteMany({ where: { saleId: id } });
+      for (const inv of data.invoices) {
+        const ent = await tx.billingEntity.findFirst({
+          where: { id: inv.entityId, organizationId, isActive: true },
+        });
+        if (!ent) {
+          throw new ApiHttpError(400, "SALES_INVALID_BILLING_ENTITY", "Invalid or inactive billing entity.");
         }
+        await tx.saleInvoice.create({
+          data: {
+            saleId: id,
+            billingEntityId: inv.entityId,
+            amountUsd: inv.amountUsd,
+            dueDate: inv.dueDate ? new Date(inv.dueDate) : null,
+            sequence: inv.sequence ?? 1,
+            referenceNumber: inv.referenceNumber ?? null,
+            notes: inv.notes ?? null,
+          },
+        });
       }
+    }
 
-      await tx.sale.update({
-        where: { id },
-        data: {
-          ...(statusUpdate !== undefined ? { status: statusUpdate } : {}),
-          ...(data.exwUsd !== undefined ? { exwUsd: data.exwUsd } : {}),
-          ...(data.commissionPct !== undefined ? { commissionPct: data.commissionPct } : {}),
-          ...(data.commissionAmountUsd !== undefined ? { commissionAmountUsd: data.commissionAmountUsd } : {}),
-          ...(data.fobUsd !== undefined ? { fobUsd: data.fobUsd } : {}),
-          ...(data.freightUsd !== undefined ? { freightUsd: data.freightUsd } : {}),
-          ...(data.cifUsd !== undefined ? { cifUsd: data.cifUsd } : {}),
-          ...(data.taxesFeesUsd !== undefined ? { taxesFeesUsd: data.taxesFeesUsd } : {}),
-          ...(data.landedDdpUsd !== undefined ? { landedDdpUsd: data.landedDdpUsd } : {}),
-          ...(data.invoicedBasis !== undefined ? { invoicedBasis: data.invoicedBasis } : {}),
-          ...(data.notes !== undefined ? { notes: data.notes } : {}),
-        },
-      });
+    await tx.sale.update({
+      where: { id },
+      data: {
+        ...(statusUpdate !== undefined ? { status: statusUpdate } : {}),
+        ...(data.exwUsd !== undefined ? { exwUsd: data.exwUsd } : {}),
+        ...(data.commissionPct !== undefined ? { commissionPct: data.commissionPct } : {}),
+        ...(data.commissionAmountUsd !== undefined ? { commissionAmountUsd: data.commissionAmountUsd } : {}),
+        ...(data.fobUsd !== undefined ? { fobUsd: data.fobUsd } : {}),
+        ...(data.freightUsd !== undefined ? { freightUsd: data.freightUsd } : {}),
+        ...(data.cifUsd !== undefined ? { cifUsd: data.cifUsd } : {}),
+        ...(data.taxesFeesUsd !== undefined ? { taxesFeesUsd: data.taxesFeesUsd } : {}),
+        ...(data.landedDdpUsd !== undefined ? { landedDdpUsd: data.landedDdpUsd } : {}),
+        ...(data.invoicedBasis !== undefined ? { invoicedBasis: data.invoicedBasis } : {}),
+        ...(data.notes !== undefined ? { notes: data.notes } : {}),
+      },
     });
+  });
 
-    await refreshSaleComputedStatus(id);
+  await refreshSaleComputedStatus(id);
 
-    if (data.status === "CONFIRMED") {
-      const lineProjectIds = await prisma.saleProjectLine.findMany({
-        where: { saleId: id },
-        select: { projectId: true },
-      });
-      const projectIds = [...new Set(lineProjectIds.map((x) => x.projectId))];
-      if (projectIds.length === 0) projectIds.push(existing.projectId);
-      await prisma.project.updateMany({
-        where: { id: { in: projectIds }, organizationId, status: { not: "lost" } },
-        data: { status: "won" },
-      });
-    }
-
-    const sale = await getSaleForOrg(id, organizationId);
-    return NextResponse.json(sale ? serializeSaleDetail(sale) : { ok: true });
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    if (msg === "Invalid billing entity") {
-      return NextResponse.json({ error: msg }, { status: 400 });
-    }
-    console.error("[PATCH /api/sales/[id]]", e);
-    return NextResponse.json({ error: "Failed to update sale" }, { status: 500 });
+  if (data.status === "CONFIRMED") {
+    const lineProjectIds = await prisma.saleProjectLine.findMany({
+      where: { saleId: id },
+      select: { projectId: true },
+    });
+    const projectIds = [...new Set(lineProjectIds.map((x) => x.projectId))];
+    if (projectIds.length === 0) projectIds.push(existing.projectId);
+    await prisma.project.updateMany({
+      where: { id: { in: projectIds }, organizationId, status: { not: "lost" } },
+      data: { status: "won" },
+    });
   }
+
+  const sale = await getSaleForOrg(id, organizationId);
+  return NextResponse.json(sale ? serializeSaleDetail(sale) : { ok: true });
 }
 
-export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> | { id: string } }) {
-  const auth = await requireModuleRouteAuth("sales");
-  if (!auth.ok) return auth.response;
-  const user = auth.user as SessionUser;
-
+async function saleDeleteHandler(_req: Request, routeContext: unknown) {
+  const user = (await requireSession()) as SessionUser;
   if (!salesUserCanMutate(user)) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    throw new TenantError("Forbidden", "FORBIDDEN");
   }
 
-  const { id } = params instanceof Promise ? await params : params;
+  const id = await saleIdFromCtx(routeContext);
   const organizationId = await saleOrganizationIdIfReadable(user, id);
-  if (!organizationId) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!organizationId) throw new ApiHttpError(404, "RECORD_NOT_FOUND", "Sale not found");
 
   const existing = await prisma.sale.findFirst({ where: { id, organizationId } });
-  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!existing) throw new ApiHttpError(404, "RECORD_NOT_FOUND", "Sale not found");
 
   await prisma.sale.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }
+
+export const GET = withSaaSHandler({ module: "sales", rateLimitTier: "read" }, saleGetHandler);
+export const PATCH = withSaaSHandler({ module: "sales", rateLimitTier: "create_update" }, salePatchHandler);
+export const DELETE = withSaaSHandler({ module: "sales", rateLimitTier: "create_update" }, saleDeleteHandler);

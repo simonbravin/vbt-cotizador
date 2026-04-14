@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DATE_INPUT_FILTER } from "@/lib/ui-filter-classes";
+import { saasApiUserFacingMessage } from "@/lib/saas-api-error-message";
 
 const FILTER_ALL_VALUE = "__all__";
 
@@ -172,7 +173,7 @@ export function StatementsClient({
         setEmailTo("");
         setEmailMessage("");
       } else {
-        setEmailResult({ type: "error", text: data.error ?? t("partner.sales.failedToSendEmail") });
+        setEmailResult({ type: "error", text: saasApiUserFacingMessage(data, t, t("partner.sales.failedToSendEmail")) });
       }
     } catch {
       setEmailResult({ type: "error", text: t("partner.sales.failedToSendEmail") });

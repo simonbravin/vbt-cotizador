@@ -8,6 +8,7 @@ import { useLanguage, useT } from "@/lib/i18n/context";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FilterSelect } from "@/components/ui/filter-select";
 import { normalizeQuoteStatus } from "@vbt/core";
+import { saasApiUserFacingMessage } from "@/lib/saas-api-error-message";
 
 function fmt(n: number) {
   return n.toLocaleString("en-US", { style: "currency", currency: "USD" });
@@ -145,7 +146,7 @@ export default function QuoteDetailPage() {
       setQuote((prev: any) => ({ ...prev, status: "sent" }));
       fetchAudit();
     } else {
-      setSendResult(data.error ?? t("auth.errorGeneric"));
+      setSendResult(saasApiUserFacingMessage(data, t, t("auth.errorGeneric")));
     }
   };
 
@@ -199,7 +200,7 @@ export default function QuoteDetailPage() {
         /* ignore */
       }
       if (!res.ok || !data.id) {
-        setDuplicateError(data.error ?? t("quotes.duplicateFailed"));
+        setDuplicateError(saasApiUserFacingMessage(data, t, t("quotes.duplicateFailed")));
         return;
       }
       router.push(`/quotes/${data.id}`);

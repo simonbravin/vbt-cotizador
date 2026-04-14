@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { SessionUser } from "@/lib/auth";
-import { getEffectiveOrganizationId } from "@/lib/tenant";
-import { requireModuleRouteAuth } from "@/lib/module-route-auth";
+import { getEffectiveOrganizationId, requireSession } from "@/lib/tenant";
+import { withSaaSHandler } from "@/lib/saas-handler";
 import { requireSalesScopedOrganizationId } from "@/lib/sales-access";
 import { salesSummaryForOrg } from "@/lib/partner-sales";
 
@@ -15,10 +15,8 @@ const emptySummary = {
   entitySummary: [] as unknown[],
 };
 
-export async function GET(req: Request) {
-  const auth = await requireModuleRouteAuth("sales");
-  if (!auth.ok) return auth.response;
-  const user = auth.user as SessionUser;
+async function salesSummaryGetHandler(req: Request) {
+  const user = (await requireSession()) as SessionUser;
   const url = new URL(req.url);
 
   if (!user.isPlatformSuperadmin) {
@@ -37,3 +35,5 @@ export async function GET(req: Request) {
   const summary = await salesSummaryForOrg(scoped.organizationId);
   return NextResponse.json(summary);
 }
+
+export const GET = withSaaSHandler({ module: "sales", rateLimitTier: "read" }, salesSummaryGetHandler);

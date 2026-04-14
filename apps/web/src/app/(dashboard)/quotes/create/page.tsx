@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ArrowLeft, FileText } from "lucide-react";
 import { useT } from "@/lib/i18n/context";
 import { FilterSelect } from "@/components/ui/filter-select";
+import { saasApiUserFacingMessage } from "@/lib/saas-api-error-message";
 
 type Project = { id: string; projectName: string; projectCode?: string | null };
 
@@ -46,7 +47,7 @@ function CreateQuotePage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? t("quotes.failedCreate"));
+        setError(saasApiUserFacingMessage(data, t, t("quotes.failedCreate")));
         return;
       }
       router.push(`/quotes/${data.id}`);

@@ -1,24 +1,31 @@
 import { NextResponse } from "next/server";
 import type { SessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { requireModuleRouteAuth } from "@/lib/module-route-auth";
+import { requireSession, TenantError } from "@/lib/tenant";
+import { withSaaSHandler } from "@/lib/saas-handler";
+import { ApiHttpError } from "@/lib/api-error";
 import { paymentRecordIfMutable, salesUserCanMutate } from "@/lib/sales-access";
 import { refreshSaleComputedStatus } from "@/lib/partner-sales";
 
-export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> | { id: string } }) {
-  const auth = await requireModuleRouteAuth("sales");
-  if (!auth.ok) return auth.response;
-  const user = auth.user as SessionUser;
+type RouteCtx = { params: Promise<{ id: string }> | { id: string } };
+
+async function paymentDeleteHandler(_req: Request, routeContext: unknown) {
+  const user = (await requireSession()) as SessionUser;
 
   if (!salesUserCanMutate(user)) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    throw new TenantError("Forbidden", "FORBIDDEN");
   }
 
-  const { id: paymentId } = params instanceof Promise ? await params : params;
+  const paramsMaybe = (routeContext as RouteCtx).params;
+  const paramsObj = paramsMaybe instanceof Promise ? await paramsMaybe : paramsMaybe;
+  const paymentId = paramsObj.id;
+
   const payment = await paymentRecordIfMutable(user, paymentId);
-  if (!payment) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!payment) throw new ApiHttpError(404, "RECORD_NOT_FOUND", "Payment not found");
 
   await prisma.payment.delete({ where: { id: paymentId } });
   await refreshSaleComputedStatus(payment.saleId);
   return NextResponse.json({ ok: true });
 }
+
+export const DELETE = withSaaSHandler({ module: "sales", rateLimitTier: "create_update" }, paymentDeleteHandler);

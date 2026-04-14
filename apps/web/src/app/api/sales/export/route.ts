@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import type { SessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { requireModuleRouteAuth } from "@/lib/module-route-auth";
+import { requireSession } from "@/lib/tenant";
+import { withSaaSHandler } from "@/lib/saas-handler";
 import { salesListWhere } from "@/lib/sales-access";
 import { SaleOrderStatus } from "@vbt/db";
 import type { Prisma } from "@vbt/db";
@@ -28,10 +29,8 @@ function parseStatus(s: string | null): SaleOrderStatus | undefined {
   return map[up];
 }
 
-export async function GET(req: Request) {
-  const auth = await requireModuleRouteAuth("sales");
-  if (!auth.ok) return auth.response;
-  const user = auth.user as SessionUser;
+async function salesExportGetHandler(req: Request) {
+  const user = (await requireSession()) as SessionUser;
 
   const url = new URL(req.url);
   const baseWhere = await salesListWhere(user, url);
@@ -100,3 +99,5 @@ export async function GET(req: Request) {
     },
   });
 }
+
+export const GET = withSaaSHandler({ module: "sales", rateLimitTier: "read" }, salesExportGetHandler);

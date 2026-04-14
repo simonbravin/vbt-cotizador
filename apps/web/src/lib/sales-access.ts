@@ -1,6 +1,7 @@
 import type { SessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import type { Prisma } from "@vbt/db";
+import { ApiHttpError } from "@/lib/api-error";
 import { getEffectiveActiveOrgId, getEffectiveOrganizationId } from "@/lib/tenant";
 import { salesRoleCanWrite } from "@/lib/partner-sales";
 
@@ -26,6 +27,14 @@ export async function salesListWhere(user: SessionUser, url: URL): Promise<Prism
 export type SalesScopedOrgResult =
   | { ok: true; organizationId: string }
   | { ok: false; error: string; status: number };
+
+/** Turn `requireSalesScopedOrganizationId` / `resolveOrganizationIdForSaleCreate` failure into structured API error. */
+export function salesOrgScopeOrThrow(scoped: SalesScopedOrgResult): string {
+  if (!scoped.ok) {
+    throw new ApiHttpError(scoped.status, "SALES_ORG_SCOPE_REQUIRED", scoped.error);
+  }
+  return scoped.organizationId;
+}
 
 /** Statements, entities (superadmin), reports/summary, notifications/due: exactly one org. */
 export async function requireSalesScopedOrganizationId(user: SessionUser, url: URL): Promise<SalesScopedOrgResult> {

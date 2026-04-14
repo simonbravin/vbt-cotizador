@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { FilterSelect } from "@/components/ui/filter-select";
+import { saasApiUserFacingMessage } from "@/lib/saas-api-error-message";
 
 type Country = { id: string; name: string; code: string };
 type Client = {
@@ -103,7 +104,7 @@ export function ClientDetailActions({
       setEditOpen(false);
       router.refresh();
     } else {
-      setError(data.error ?? t("clients.failedToUpdate"));
+      setError(saasApiUserFacingMessage(data, t, t("clients.failedToUpdate")));
     }
   };
 

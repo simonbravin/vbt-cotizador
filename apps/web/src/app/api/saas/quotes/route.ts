@@ -13,7 +13,6 @@ import {
   formatQuoteForSaaSApiWithSnapshot,
   canonicalizeSaaSQuotePayload,
   resolveTaxRulesForSaaSQuote,
-  QuoteTaxResolutionError,
   resolvePartnerPricingConfig,
   resolveSaaSQuotePricingForCreate,
   projectHasCompletedEngineering,
@@ -24,6 +23,7 @@ import { createQuoteSchema } from "@vbt/core/validation";
 import { generateQuoteNumber } from "@/lib/utils";
 import { createActivityLog } from "@/lib/audit";
 import { withSaaSHandler } from "@/lib/saas-handler";
+import { ApiHttpError } from "@/lib/api-error";
 
 async function getHandler(req: Request) {
   try {
@@ -87,9 +87,10 @@ async function postHandler(req: Request) {
   });
   const orgId = tenantCtx.organizationId ?? projectOrg?.organizationId ?? null;
   if (!orgId) {
-    return NextResponse.json(
-      { error: "Organization could not be resolved for this quote (project may be invalid)." },
-      { status: 400 }
+    throw new ApiHttpError(
+      400,
+      "QUOTE_ORG_UNRESOLVED",
+      "Organization could not be resolved for this quote (project may be invalid)."
     );
   }
   const quoteCtx = { ...tenantCtx, organizationId: orgId };
@@ -101,13 +102,10 @@ async function postHandler(req: Request) {
   if (partnerProfile?.requireDeliveredEngineeringForQuotes) {
     const ok = await projectHasCompletedEngineering(prisma, orgId, data.projectId);
     if (!ok) {
-      return NextResponse.json(
-        {
-          error:
-            "This partner requires at least one completed engineering request for the project before creating quotes.",
-          code: "ENGINEERING_NOT_DELIVERED",
-        },
-        { status: 400 }
+      throw new ApiHttpError(
+        400,
+        "ENGINEERING_NOT_DELIVERED",
+        "This partner requires at least one completed engineering request for the project before creating quotes."
       );
     }
   }
@@ -116,21 +114,13 @@ async function postHandler(req: Request) {
     await assertEngineeringRequestForQuote(prisma, orgId, data.projectId, data.engineeringRequestId);
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Invalid engineering request";
-    return NextResponse.json({ error: msg }, { status: 400 });
+    throw new ApiHttpError(400, "ENGINEERING_REQUEST_INVALID", msg);
   }
 
-  let taxRules;
-  try {
-    taxRules = await resolveTaxRulesForSaaSQuote(prisma, {
-      organizationId: orgId,
-      projectCountryCode: projectOrg?.countryCode,
-    });
-  } catch (e) {
-    if (e instanceof QuoteTaxResolutionError) {
-      return NextResponse.json({ error: e.message, code: e.code }, { status: 400 });
-    }
-    throw e;
-  }
+  const taxRules = await resolveTaxRulesForSaaSQuote(prisma, {
+    organizationId: orgId,
+    projectCountryCode: projectOrg?.countryCode,
+  });
 
   const resolved = await resolvePartnerPricingConfig(prisma, {
     organizationId: orgId,

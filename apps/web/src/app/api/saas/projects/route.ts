@@ -7,6 +7,7 @@ import { getTenantContext, requireActiveOrg, TenantError } from "@/lib/tenant";
 import { listProjects, createProject } from "@vbt/core";
 import { createProjectSchema, listProjectsQuerySchema } from "@vbt/core/validation";
 import { withSaaSHandler } from "@/lib/saas-handler";
+import { ApiHttpError } from "@/lib/api-error";
 
 async function getHandler(req: Request) {
   try {
@@ -85,7 +86,7 @@ async function postHandler(req: Request) {
     return NextResponse.json(project, { status: 201 });
   } catch (e) {
     if (e instanceof Error && e.message.includes("Client does not belong")) {
-      return NextResponse.json({ error: e.message }, { status: 400 });
+      throw new ApiHttpError(400, "PROJECT_CLIENT_ORG_MISMATCH", e.message);
     }
     throw e;
   }

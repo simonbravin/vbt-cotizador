@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import type { SessionUser } from "@/lib/auth";
-import { getEffectiveOrganizationId } from "@/lib/tenant";
-import { requireModuleRouteAuth } from "@/lib/module-route-auth";
-import { requireSalesScopedOrganizationId } from "@/lib/sales-access";
+import { getEffectiveOrganizationId, requireSession } from "@/lib/tenant";
+import { withSaaSHandler } from "@/lib/saas-handler";
+import { ApiHttpError } from "@/lib/api-error";
+import { requireSalesScopedOrganizationId, salesOrgScopeOrThrow } from "@/lib/sales-access";
 import { buildStatementsResponse } from "@/lib/partner-sales";
 import { renderToBuffer } from "@react-pdf/renderer";
 import React from "react";
@@ -13,21 +14,18 @@ function escapeCsvCell(v: string): string {
   return v;
 }
 
-export async function GET(req: Request) {
-  const auth = await requireModuleRouteAuth("sales");
-  if (!auth.ok) return auth.response;
-  const user = auth.user as SessionUser;
+async function statementsExportGetHandler(req: Request) {
+  const user = (await requireSession()) as SessionUser;
   const url = new URL(req.url);
 
   let organizationId: string;
   if (!user.isPlatformSuperadmin) {
     const org = getEffectiveOrganizationId(user);
-    if (!org) return NextResponse.json({ error: "No organization" }, { status: 403 });
+    if (!org) throw new ApiHttpError(403, "SALES_ORG_SCOPE_REQUIRED", "No organization context.");
     organizationId = org;
   } else {
     const scoped = await requireSalesScopedOrganizationId(user, url);
-    if (!scoped.ok) return NextResponse.json({ error: scoped.error }, { status: scoped.status });
-    organizationId = scoped.organizationId;
+    organizationId = salesOrgScopeOrThrow(scoped);
   }
 
   const format = (url.searchParams.get("format") ?? "csv").toLowerCase();
@@ -105,3 +103,5 @@ export async function GET(req: Request) {
     },
   });
 }
+
+export const GET = withSaaSHandler({ module: "sales", rateLimitTier: "read" }, statementsExportGetHandler);
