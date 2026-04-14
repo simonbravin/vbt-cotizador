@@ -7,11 +7,45 @@ import { cookies } from "next/headers";
 import { FileText, FolderOpen, Package, TrendingUp, Plus, DollarSign, Send } from "lucide-react";
 import { SaleOrderStatus } from "@vbt/db";
 import { GoalKpiCard } from "@/components/dashboard/GoalKpiCard";
+import { RefreshPageButton } from "@/components/dashboard/RefreshPageButton";
 import type { SessionUser } from "@/lib/auth";
 import { getT, LOCALE_COOKIE_NAME } from "@/lib/i18n/translations";
 import type { Locale } from "@/lib/i18n/translations";
+import { normalizeQuoteStatus } from "@vbt/core";
+
+export const dynamic = "force-dynamic";
 
 type PageProps = { searchParams?: Promise<{ access_denied?: string }> | { access_denied?: string } };
+
+const recentQuoteSelect = {
+  id: true,
+  quoteNumber: true,
+  status: true,
+  totalPrice: true,
+  project: { select: { projectName: true } },
+} as const;
+
+const recentProjectSelect = {
+  id: true,
+  projectName: true,
+  city: true,
+  countryCode: true,
+  estimatedTotalAreaM2: true,
+  client: { select: { name: true } },
+} as const;
+
+function quoteStatusTranslationKey(status: string): string {
+  const n = normalizeQuoteStatus(status) ?? "draft";
+  const map: Record<string, string> = {
+    draft: "quotes.draft",
+    sent: "quotes.sent",
+    accepted: "quotes.accepted",
+    rejected: "quotes.rejected",
+    expired: "quotes.expired",
+    archived: "quotes.archived",
+  };
+  return map[n] ?? "quotes.draft";
+}
 
 export default async function DashboardPage(props: PageProps) {
   const raw = props.searchParams;
@@ -40,8 +74,8 @@ export default async function DashboardPage(props: PageProps) {
   let sentCount = 0;
   let salesYtd = 0;
   let quotesSentYtd = 0;
-  let recentQuotes: Awaited<ReturnType<typeof prisma.quote.findMany>> = [];
-  let recentProjects: Awaited<ReturnType<typeof prisma.project.findMany>> = [];
+  let recentQuotes: Awaited<ReturnType<typeof prisma.quote.findMany<{ select: typeof recentQuoteSelect }>>> = [];
+  let recentProjects: Awaited<ReturnType<typeof prisma.project.findMany<{ select: typeof recentProjectSelect }>>> = [];
   let pendingUsers = 0;
   const fallbackDisplayName = locale === "es" ? "Usuario" : "User";
   let displayName: string | null = null;
@@ -59,7 +93,7 @@ export default async function DashboardPage(props: PageProps) {
   }
 
   const startOfYear = new Date(new Date().getFullYear(), 0, 1);
-  let dataLoadError: string | null = null;
+  let statsLoadError: string | null = null;
 
   try {
     [projectCount, quoteCount, draftCount, sentCount, quotesSentYtd, salesYtd] = await Promise.all([
@@ -79,25 +113,42 @@ export default async function DashboardPage(props: PageProps) {
         })
         .then((a) => Number(a._sum.landedDdpUsd ?? 0)),
     ]);
-
-    recentQuotes = await prisma.quote.findMany({
-      where: { organizationId },
-      include: { project: { include: { client: true } } },
-      orderBy: { createdAt: "desc" },
-      take: 5,
-    });
-
-    recentProjects = await prisma.project.findMany({
-      where: { organizationId, status: { not: "lost" } },
-      include: { client: true },
-      orderBy: { createdAt: "desc" },
-      take: 5,
-    });
   } catch (err) {
-    console.error("Dashboard data fetch error:", err);
-    dataLoadError = err instanceof Error ? err.message : String(err);
-    // Keep default values (0, []) so the partner always sees the dashboard layout
+    console.error("Dashboard stats fetch error:", err);
+    statsLoadError = err instanceof Error ? err.message : String(err);
   }
+
+  const [quotesResult, projectsResult] = await Promise.all([
+    (async () => {
+      try {
+        return await prisma.quote.findMany({
+          where: { organizationId },
+          select: recentQuoteSelect,
+          orderBy: { createdAt: "desc" },
+          take: 5,
+        });
+      } catch (err) {
+        console.error("Dashboard recent quotes fetch error:", err);
+        return [];
+      }
+    })(),
+    (async () => {
+      try {
+        return await prisma.project.findMany({
+          where: { organizationId, status: { not: "lost" } },
+          select: recentProjectSelect,
+          orderBy: { createdAt: "desc" },
+          take: 5,
+        });
+      } catch (err) {
+        console.error("Dashboard recent projects fetch error:", err);
+        return [];
+      }
+    })(),
+  ]);
+
+  recentQuotes = quotesResult;
+  recentProjects = projectsResult;
 
   return (
     <div className="space-y-8">
@@ -106,15 +157,16 @@ export default async function DashboardPage(props: PageProps) {
           {t("dashboard.accessDeniedSuperadmin")}
         </div>
       )}
-        {dataLoadError && (projectCount > 0 || quoteCount > 0) && (
+      {statsLoadError && (
         <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-alert-warningBorder bg-alert-warning px-4 py-3 text-caption">
           <p className="text-foreground">
             <span className="font-medium">{t("dashboard.errorLoad")}</span>
             <span className="text-muted-foreground ml-1">{t("dashboard.errorHelp")}</span>
           </p>
-          <Link href="/dashboard" className="shrink-0 rounded-full border border-border/80 bg-card px-4 py-2 text-[15px] font-medium text-foreground hover:bg-muted">
-            {t("common.retry")}
-          </Link>
+          <RefreshPageButton
+            label={t("common.retry")}
+            className="shrink-0 rounded-full border border-border/80 bg-card px-4 py-2 text-[15px] font-medium text-foreground hover:bg-muted"
+          />
         </div>
       )}
       {/* Header */}
@@ -257,19 +309,13 @@ export default async function DashboardPage(props: PageProps) {
                   className="flex items-center justify-between p-4 hover:bg-muted transition-colors"
                 >
                   <div>
-                    <p className="font-medium text-foreground text-sm">
-                      {(quote as { quoteNumber?: string }).quoteNumber ?? quote.id.slice(0, 8).toUpperCase()}
-                    </p>
-                    <p className="text-muted-foreground text-xs">
-                      {(quote as { project?: { projectName?: string; name?: string } | null }).project?.projectName ?? (quote as { project?: { name?: string } | null }).project?.name ?? "—"}
-                    </p>
+                    <p className="font-medium text-foreground text-sm">{quote.quoteNumber}</p>
+                    <p className="text-muted-foreground text-xs">{quote.project.projectName}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-semibold text-foreground">
-                      {formatCurrency((quote as { totalPrice?: number }).totalPrice ?? 0)}
-                    </p>
+                    <p className="text-sm font-semibold text-foreground">{formatCurrency(quote.totalPrice)}</p>
                     <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-muted text-muted-foreground">
-                      {t(`quotes.${quote.status}` as "quotes.draft")}
+                      {t(quoteStatusTranslationKey(quote.status) as "quotes.draft")}
                     </span>
                   </div>
                 </Link>
@@ -303,14 +349,15 @@ export default async function DashboardPage(props: PageProps) {
                   className="flex items-center justify-between p-4 hover:bg-muted transition-colors"
                 >
                   <div>
-                    <p className="font-medium text-foreground text-sm">{(project as { projectName?: string; name?: string }).projectName ?? (project as { name?: string }).name ?? "—"}</p>
+                    <p className="font-medium text-foreground text-sm">{project.projectName}</p>
                     <p className="text-muted-foreground text-xs">
-                      {(project as { client?: { name: string } | null }).client?.name ?? t("dashboard.noClient")} • {(project as { city?: string; countryCode?: string }).city ?? (project as { countryCode?: string }).countryCode ?? t("dashboard.noLocation")}
+                      {project.client?.name ?? t("dashboard.noClient")} •{" "}
+                      {project.city ?? project.countryCode ?? t("dashboard.noLocation")}
                     </p>
                   </div>
                   <div className="text-right">
                     <p className="text-sm text-muted-foreground">
-                      {(Number((project as { estimatedTotalAreaM2?: number }).estimatedTotalAreaM2) || 0).toFixed(0)} m²
+                      {(Number(project.estimatedTotalAreaM2) || 0).toFixed(0)} m²
                     </p>
                   </div>
                 </Link>
