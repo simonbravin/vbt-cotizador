@@ -6,6 +6,8 @@ import { salesListWhere } from "@/lib/sales-access";
 import { SaleOrderStatus } from "@vbt/db";
 import type { Prisma } from "@vbt/db";
 import { getInvoicedAmount } from "@/lib/sales";
+import { saleProjectLinesSummary } from "@/lib/partner-sales";
+import { parseSaleListDateEnd, parseSaleListDateStart } from "@/lib/sale-list-date-filters";
 
 function esc(v: string): string {
   if (/[",\n]/.test(v)) return `"${v.replace(/"/g, '""')}"`;
@@ -40,22 +42,34 @@ export async function GET(req: Request) {
   const to = url.searchParams.get("to");
 
   const createdAt: { gte?: Date; lte?: Date } = {};
-  if (from) createdAt.gte = new Date(from + "T00:00:00.000Z");
-  if (to) createdAt.lte = new Date(to + "T23:59:59.999Z");
+  const gte = parseSaleListDateStart(from);
+  const lte = parseSaleListDateEnd(to);
+  if (gte) createdAt.gte = gte;
+  if (lte) createdAt.lte = lte;
+  const hasCreatedAtFilter = Boolean(createdAt.gte ?? createdAt.lte);
 
   const where: Prisma.SaleWhereInput = {
     ...baseWhere,
     ...(status ? { status } : {}),
     ...(clientId ? { clientId } : {}),
-    ...(projectId ? { projectId } : {}),
-    ...(from || to ? { createdAt } : {}),
+    ...(hasCreatedAtFilter ? { createdAt } : {}),
   };
+  if (projectId) {
+    where.AND = [
+      ...(Array.isArray(where.AND) ? where.AND : []),
+      { OR: [{ projectId }, { saleProjectLines: { some: { projectId } } }] },
+    ];
+  }
 
   const sales = await prisma.sale.findMany({
     where,
     include: {
       client: { select: { name: true } },
       project: { select: { projectName: true } },
+      saleProjectLines: {
+        orderBy: { sortOrder: "asc" },
+        include: { project: { select: { id: true, projectName: true } } },
+      },
     },
     orderBy: { createdAt: "desc" },
     take: 5000,
@@ -70,7 +84,7 @@ export async function GET(req: Request) {
         esc(s.saleNumber ?? s.id.slice(0, 8)),
         s.status,
         esc(s.client.name),
-        esc(s.project.projectName),
+        esc(saleProjectLinesSummary(s.saleProjectLines ?? [], s.project.projectName)),
         String(s.quantity),
         basis.toFixed(2),
         s.createdAt.toISOString(),

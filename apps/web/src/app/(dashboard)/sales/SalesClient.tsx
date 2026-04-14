@@ -4,11 +4,12 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
 import { getInvoicedAmount } from "@/lib/sales";
-import { Plus, ShoppingCart, Bell, Download, Search } from "lucide-react";
+import { Plus, ShoppingCart, Bell, Download, Search, AlertTriangle } from "lucide-react";
 import { useT } from "@/lib/i18n/context";
 import { Button } from "@/components/ui/button";
 import { FilterSelect } from "@/components/ui/filter-select";
 import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { DATE_INPUT_FILTER } from "@/lib/ui-filter-classes";
 
 type Sale = {
@@ -58,8 +59,63 @@ export function SalesClient() {
   const [search, setSearch] = useState("");
   const [clients, setClients] = useState<{ id: string; name: string }[]>([]);
   const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
+  const [clientsFilterLoadFailed, setClientsFilterLoadFailed] = useState(false);
+  const [projectsFilterLoadFailed, setProjectsFilterLoadFailed] = useState(false);
   const [dueCount, setDueCount] = useState(0);
   const limit = 20;
+
+  const loadFilterDropdownData = useCallback(async () => {
+    setClientsFilterLoadFailed(false);
+    setProjectsFilterLoadFailed(false);
+    await Promise.all([
+      (async () => {
+        try {
+          const res = await fetch("/api/clients?limit=500");
+          const text = await res.text();
+          let d: { clients?: unknown } = {};
+          try {
+            if (text) d = JSON.parse(text) as { clients?: unknown };
+          } catch {
+            setClients([]);
+            setClientsFilterLoadFailed(true);
+            return;
+          }
+          if (res.ok && Array.isArray(d.clients)) {
+            setClients(d.clients as { id: string; name: string }[]);
+          } else {
+            setClients([]);
+            setClientsFilterLoadFailed(true);
+          }
+        } catch {
+          setClients([]);
+          setClientsFilterLoadFailed(true);
+        }
+      })(),
+      (async () => {
+        try {
+          const res = await fetch("/api/saas/projects?limit=500");
+          const text = await res.text();
+          let d: { projects?: unknown } = {};
+          try {
+            if (text) d = JSON.parse(text) as { projects?: unknown };
+          } catch {
+            setProjects([]);
+            setProjectsFilterLoadFailed(true);
+            return;
+          }
+          if (res.ok && Array.isArray(d.projects)) {
+            setProjects(d.projects as { id: string; name: string }[]);
+          } else {
+            setProjects([]);
+            setProjectsFilterLoadFailed(true);
+          }
+        } catch {
+          setProjects([]);
+          setProjectsFilterLoadFailed(true);
+        }
+      })(),
+    ]);
+  }, []);
 
   const fetchSales = useCallback(async () => {
     setLoading(true);
@@ -95,29 +151,8 @@ export function SalesClient() {
   }, [fetchSales]);
 
   useEffect(() => {
-    fetch("/api/clients?limit=500")
-      .then(async (r) => {
-        try {
-          const text = await r.text();
-          const d = text ? JSON.parse(text) : {};
-          if (Array.isArray(d.clients)) setClients(d.clients);
-        } catch {
-          // ignore
-        }
-      })
-      .catch(() => {});
-    fetch("/api/saas/projects?limit=500")
-      .then(async (r) => {
-        try {
-          const text = await r.text();
-          const d = text ? JSON.parse(text) : {};
-          if (Array.isArray(d.projects)) setProjects(d.projects);
-        } catch {
-          // ignore
-        }
-      })
-      .catch(() => {});
-  }, []);
+    void loadFilterDropdownData();
+  }, [loadFilterDropdownData]);
 
   useEffect(() => {
     fetch("/api/sales/notifications/due?days=7")
@@ -161,6 +196,28 @@ export function SalesClient() {
           </Button>
         )}
       </div>
+
+      {(clientsFilterLoadFailed || projectsFilterLoadFailed) && (
+        <Alert variant="destructive" className="border-destructive/40">
+          <AlertTriangle className="h-4 w-4" aria-hidden />
+          <AlertTitle>{t("partner.sales.filterOptionsLoadTitle")}</AlertTitle>
+          <AlertDescription className="mt-2 space-y-3">
+            <ul className="list-disc space-y-1 pl-5 text-sm text-destructive/95">
+              {clientsFilterLoadFailed && <li>{t("partner.sales.filterClientsLoadFailed")}</li>}
+              {projectsFilterLoadFailed && <li>{t("partner.sales.filterProjectsLoadFailed")}</li>}
+            </ul>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="border-destructive/50 text-destructive hover:bg-destructive/10"
+              onClick={() => void loadFilterDropdownData()}
+            >
+              {t("partner.sales.filterOptionsRetry")}
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
 
       <div className="flex flex-wrap gap-2 items-center">
         <div className="relative w-full min-w-[200px] max-w-xs sm:w-auto sm:flex-1">

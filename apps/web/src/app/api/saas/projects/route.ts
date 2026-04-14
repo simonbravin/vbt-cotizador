@@ -24,7 +24,21 @@ async function getHandler(req: Request) {
       limit: url.searchParams.get("limit"),
       offset: url.searchParams.get("offset"),
     });
-    if (!parsed.success) throw parsed.error;
+    if (!parsed.success) {
+      return NextResponse.json(
+        {
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "Invalid query parameters",
+            details: parsed.error.issues.map((i) => ({
+              path: i.path.join(".") || undefined,
+              message: i.message,
+            })),
+          },
+        },
+        { status: 400 }
+      );
+    }
     const tenantCtx = {
       userId: ctx!.userId,
       organizationId: ctx!.activeOrgId ?? null,

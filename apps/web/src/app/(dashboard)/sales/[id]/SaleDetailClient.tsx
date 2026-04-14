@@ -47,6 +47,13 @@ type Sale = {
   createdAt: string;
   client: { id: string; name: string; email: string | null };
   project: { id: string; name: string };
+  projects?: Array<{
+    id: string;
+    name: string;
+    quoteId?: string | null;
+    containerSharePct?: number | null;
+    quote?: { id: string; quoteNumber: string | null } | null;
+  }>;
   quote: { id: string; quoteNumber: string | null } | null;
   invoices: { id: string; entityId: string; amountUsd: number; dueDate: string | null; sequence: number; referenceNumber: string | null; notes: string | null; entity: { name: string; slug: string } }[];
   payments: { id: string; entityId: string; amountUsd: number; amountLocal: number | null; currencyLocal: string | null; exchangeRate: number | null; paidAt: string; notes: string | null; entity: { name: string; slug: string } }[];
@@ -347,6 +354,13 @@ export function SaleDetailClient({
     );
   }
 
+  const projectLines = Array.isArray(sale.projects) ? sale.projects : [];
+  const isMultiProject = projectLines.length > 1;
+  const headerQuote =
+    projectLines.length === 1 && projectLines[0]?.quote
+      ? projectLines[0].quote
+      : sale.quote;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-4">
@@ -384,14 +398,43 @@ export function SaleDetailClient({
         <p className="text-muted-foreground text-sm mt-0.5">
           {t("partner.sales.detail.client")}: <Link href={`/clients/${sale.clientId}`} className="text-primary hover:underline">{sale.client.name}</Link>
           {" · "}
-          {t("partner.sales.detail.project")}: <Link href={`/projects/${sale.projectId}`} className="text-primary hover:underline">{sale.project.name}</Link>
-          {sale.quote && (
+          {isMultiProject ? (
             <>
-              {" · "}
-              {t("partner.sales.detail.quote")}:{" "}
-              <Link href={`${quoteLinkPrefix}/${sale.quote.id}`} className="text-primary hover:underline">
-                {sale.quote.quoteNumber ?? sale.quote.id}
+              {t("partner.sales.detail.projects")}:{" "}
+              {projectLines.map((p, idx) => (
+                <span key={p.id}>
+                  {idx > 0 ? ", " : ""}
+                  <Link href={`/projects/${p.id}`} className="text-primary hover:underline">
+                    {p.name}
+                  </Link>
+                  {p.quote ? (
+                    <>
+                      {" ("}
+                      {t("partner.sales.detail.quote")}:{" "}
+                      <Link href={`${quoteLinkPrefix}/${p.quote.id}`} className="text-primary hover:underline">
+                        {p.quote.quoteNumber ?? p.quote.id}
+                      </Link>
+                      {")"}
+                    </>
+                  ) : null}
+                </span>
+              ))}
+            </>
+          ) : (
+            <>
+              {t("partner.sales.detail.project")}:{" "}
+              <Link href={`/projects/${sale.projectId}`} className="text-primary hover:underline">
+                {sale.project.name}
               </Link>
+              {headerQuote ? (
+                <>
+                  {" · "}
+                  {t("partner.sales.detail.quote")}:{" "}
+                  <Link href={`${quoteLinkPrefix}/${headerQuote.id}`} className="text-primary hover:underline">
+                    {headerQuote.quoteNumber ?? headerQuote.id}
+                  </Link>
+                </>
+              ) : null}
             </>
           )}
           {" · "}

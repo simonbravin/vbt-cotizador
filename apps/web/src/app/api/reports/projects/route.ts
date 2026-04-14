@@ -108,6 +108,9 @@ export async function GET(req: Request) {
       where,
       include: {
         client: { select: { id: true, name: true } },
+        baselineQuote: {
+          select: { id: true, quoteNumber: true, totalPrice: true, status: true, updatedAt: true },
+        },
         quotes: {
           orderBy: { updatedAt: "desc" },
           take: 1,
@@ -174,7 +177,10 @@ export async function GET(req: Request) {
   };
 
   const rows = projects.map((p) => {
-    const accepted = p.quotes[0] ?? valueSoldByProject.get(p.id);
+    const soldFallback = valueSoldByProject.get(p.id);
+    const acceptedRow = p.baselineQuote ?? p.quotes[0];
+    const accepted = acceptedRow ?? soldFallback;
+    const quoteForMeta = p.baselineQuote ?? p.quotes[0];
     return {
       id: p.id,
       name: p.projectName,
@@ -187,13 +193,21 @@ export async function GET(req: Request) {
       status: p.status,
       baselineQuote: accepted
         ? {
-            id: (p.quotes[0] as { id?: string })?.id,
-            quoteNumber: (p.quotes[0] as { quoteNumber?: string })?.quoteNumber ?? null,
-            fobUsd: (p.quotes[0] as { totalPrice?: number })?.totalPrice ?? (accepted as { totalPrice?: number })?.totalPrice ?? null,
+            id: (quoteForMeta as { id?: string })?.id ?? "",
+            quoteNumber: (quoteForMeta as { quoteNumber?: string })?.quoteNumber ?? null,
+            fobUsd:
+              (quoteForMeta as { totalPrice?: number })?.totalPrice ??
+              (soldFallback as { totalPrice?: number })?.totalPrice ??
+              null,
           }
         : null,
-      soldAt: (accepted as { updatedAt?: Date })?.updatedAt ?? (p.status === "won" ? (accepted as { updatedAt?: Date })?.updatedAt : null),
-      finalAmountUsd: p.status === "won" && accepted ? ((accepted as { totalPrice?: number }).totalPrice ?? (accepted as { totalPrice?: number })?.totalPrice) : null,
+      soldAt:
+        (accepted as { updatedAt?: Date })?.updatedAt ??
+        (p.status === "won" ? (accepted as { updatedAt?: Date })?.updatedAt : null),
+      finalAmountUsd:
+        p.status === "won" && accepted
+          ? (accepted as { totalPrice?: number }).totalPrice ?? (accepted as { totalPrice?: number })?.totalPrice
+          : null,
       _count: p._count,
     };
   });

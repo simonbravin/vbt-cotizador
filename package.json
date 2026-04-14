@@ -26,6 +26,9 @@
     "pnpm": ">=8.0.0"
   },
   "pnpm": {
+    "overrides": {
+      "zod": "^3.23.8"
+    },
     "onlyBuiltDependencies": [
       "@prisma/client",
       "@prisma/engines",

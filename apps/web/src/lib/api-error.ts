@@ -1,4 +1,4 @@
-import { ZodError } from "zod";
+import { ZodError, type ZodIssue } from "zod";
 import { InvalidDocumentOrgIdsError, QuoteMissingTaxSnapshotError } from "@vbt/core";
 import { TenantError } from "./tenant";
 import { tenantErrorStatus } from "./tenant";
@@ -11,6 +11,18 @@ export type ApiErrorPayload = {
     details: Array<{ path?: string; message: string }>;
   };
 };
+
+/**
+ * Zod from `@vbt/core` vs `web` can resolve to different module instances; `instanceof ZodError` then fails
+ * and the error was misclassified as a generic 500. Treat Zod-like shapes as validation errors.
+ */
+function zodIssuesFromUnknown(error: unknown): ZodIssue[] | null {
+  if (error instanceof ZodError) return error.issues;
+  if (!error || typeof error !== "object") return null;
+  const rec = error as Record<string, unknown>;
+  if (rec.name !== "ZodError" || !Array.isArray(rec.issues)) return null;
+  return rec.issues as ZodIssue[];
+}
 
 /**
  * Normalize unknown errors into a consistent API error shape.
@@ -69,14 +81,15 @@ export function normalizeApiError(error: unknown): { status: number; payload: Ap
     };
   }
 
-  if (error instanceof ZodError) {
+  const zodIssues = zodIssuesFromUnknown(error);
+  if (zodIssues) {
     return {
       status: 400,
       payload: {
         error: {
           code: "VALIDATION_ERROR",
           message: "Validation failed",
-          details: error.issues.map((issue) => ({
+          details: zodIssues.map((issue) => ({
             path: issue.path.join(".") || undefined,
             message: issue.message,
           })),

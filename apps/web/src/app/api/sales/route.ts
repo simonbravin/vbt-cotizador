@@ -16,38 +16,77 @@ import {
   refreshSaleComputedStatus,
   serializeSaleListRow,
 } from "@/lib/partner-sales";
+import { resolveMultiProjectSaleLines } from "@/lib/sale-multi-project";
+import { parseSaleListDateEnd, parseSaleListDateStart } from "@/lib/sale-list-date-filters";
 
-const postSchema = z.object({
-  clientId: z.string().min(1),
+const projectLineSchema = z.object({
   projectId: z.string().min(1),
-  quoteId: z.string().optional(),
-  quantity: z.number().int().min(1).default(1),
-  status: z.enum(["DRAFT", "CONFIRMED"]).default("DRAFT"),
-  exwUsd: z.number(),
-  commissionPct: z.number(),
-  commissionAmountUsd: z.number(),
-  fobUsd: z.number(),
-  freightUsd: z.number(),
-  cifUsd: z.number(),
-  taxesFeesUsd: z.number(),
-  landedDdpUsd: z.number(),
-  invoicedBasis: z.enum(["EXW", "FOB", "CIF", "DDP"]).optional(),
-  notes: z.string().optional(),
-  /** Platform superadmin: create sale in this org (alternatively ?organizationId= or active-org cookie). */
-  organizationId: z.string().optional(),
-  invoices: z
-    .array(
-      z.object({
-        entityId: z.string().min(1),
-        amountUsd: z.number().min(0),
-        dueDate: z.string().optional().nullable(),
-        sequence: z.number().int().min(1).optional(),
-        referenceNumber: z.string().optional().nullable(),
-        notes: z.string().optional().nullable(),
-      })
-    )
-    .optional(),
+  containerSharePct: z.number().min(0).max(100).nullable().optional(),
 });
+
+const postSchema = z
+  .object({
+    clientId: z.string().min(1),
+    projectId: z.string().optional(),
+    projectLines: z.preprocess(
+      (val) => (Array.isArray(val) && val.length === 0 ? undefined : val),
+      z.array(projectLineSchema).min(1).optional()
+    ),
+    quoteId: z.string().optional(),
+    quantity: z.number().int().min(1).default(1),
+    status: z.enum(["DRAFT", "CONFIRMED"]).default("DRAFT"),
+    exwUsd: z.number().optional(),
+    commissionPct: z.number().optional(),
+    commissionAmountUsd: z.number().optional(),
+    fobUsd: z.number().optional(),
+    freightUsd: z.number().optional(),
+    cifUsd: z.number().optional(),
+    taxesFeesUsd: z.number().optional(),
+    landedDdpUsd: z.number().optional(),
+    invoicedBasis: z.enum(["EXW", "FOB", "CIF", "DDP"]).optional(),
+    notes: z.string().optional(),
+    /** Platform superadmin: create sale in this org (alternatively ?organizationId= or active-org cookie). */
+    organizationId: z.string().optional(),
+    invoices: z
+      .array(
+        z.object({
+          entityId: z.string().min(1),
+          amountUsd: z.number().min(0),
+          dueDate: z.string().optional().nullable(),
+          sequence: z.number().int().min(1).optional(),
+          referenceNumber: z.string().optional().nullable(),
+          notes: z.string().optional().nullable(),
+        })
+      )
+      .optional(),
+  })
+  .superRefine((val, ctx) => {
+    const multi = (val.projectLines?.length ?? 0) > 0;
+    const single = Boolean(val.projectId?.trim());
+    if (multi && single) {
+      ctx.addIssue({ code: "custom", message: "Send either projectId or projectLines, not both", path: ["projectLines"] });
+    }
+    if (!multi && !single) {
+      ctx.addIssue({ code: "custom", message: "projectId or projectLines is required", path: ["projectId"] });
+    }
+    if (!multi) {
+      const need: (keyof typeof val)[] = [
+        "exwUsd",
+        "commissionPct",
+        "commissionAmountUsd",
+        "fobUsd",
+        "freightUsd",
+        "cifUsd",
+        "taxesFeesUsd",
+        "landedDdpUsd",
+      ];
+      for (const k of need) {
+        if (val[k] === undefined) {
+          ctx.addIssue({ code: "custom", message: `${String(k)} is required`, path: [String(k)] });
+        }
+      }
+    }
+  });
 
 function parseStatus(s: string | null): SaleOrderStatus | undefined {
   if (!s) return undefined;
@@ -81,23 +120,41 @@ export async function GET(req: Request) {
 
   const status = parseStatus(statusParam);
   const createdAt: { gte?: Date; lte?: Date } = {};
-  if (from) createdAt.gte = new Date(from + "T00:00:00.000Z");
-  if (to) createdAt.lte = new Date(to + "T23:59:59.999Z");
+  const gte = parseSaleListDateStart(from);
+  const lte = parseSaleListDateEnd(to);
+  if (gte) createdAt.gte = gte;
+  if (lte) createdAt.lte = lte;
+  const hasCreatedAtFilter = Boolean(createdAt.gte ?? createdAt.lte);
 
   const where: Prisma.SaleWhereInput = {
     ...baseWhere,
     ...(status ? { status } : {}),
     ...(clientId ? { clientId } : {}),
-    ...(projectId ? { projectId } : {}),
-    ...(from || to ? { createdAt } : {}),
+    ...(hasCreatedAtFilter ? { createdAt } : {}),
   };
 
+  const andExtra: Prisma.SaleWhereInput[] = [];
+  if (projectId) {
+    andExtra.push({
+      OR: [{ projectId }, { saleProjectLines: { some: { projectId } } }],
+    });
+  }
   if (search) {
-    where.OR = [
-      { saleNumber: { contains: search, mode: "insensitive" } },
-      { client: { name: { contains: search, mode: "insensitive" } } },
-      { project: { projectName: { contains: search, mode: "insensitive" } } },
-    ];
+    andExtra.push({
+      OR: [
+        { saleNumber: { contains: search, mode: "insensitive" } },
+        { client: { name: { contains: search, mode: "insensitive" } } },
+        { project: { projectName: { contains: search, mode: "insensitive" } } },
+        {
+          saleProjectLines: {
+            some: { project: { projectName: { contains: search, mode: "insensitive" } } },
+          },
+        },
+      ],
+    });
+  }
+  if (andExtra.length) {
+    where.AND = [...(Array.isArray(where.AND) ? where.AND : []), ...andExtra];
   }
 
   const [total, rows] = await Promise.all([
@@ -108,6 +165,10 @@ export async function GET(req: Request) {
         client: { select: { id: true, name: true } },
         project: { select: { id: true, projectName: true } },
         quote: { select: { id: true, quoteNumber: true } },
+        saleProjectLines: {
+          orderBy: { sortOrder: "asc" },
+          include: { project: { select: { id: true, projectName: true } } },
+        },
         organization: { select: { id: true, name: true } },
         _count: { select: { invoices: true, payments: true } },
       },
@@ -150,16 +211,84 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: orgResolved.error }, { status: orgResolved.status });
   }
   const organizationId = orgResolved.organizationId;
-  const [client, project, quoteRow] = await Promise.all([
-    prisma.client.findFirst({ where: { id: data.clientId, organizationId }, select: { id: true } }),
-    prisma.project.findFirst({ where: { id: data.projectId, organizationId }, select: { id: true } }),
-    data.quoteId
-      ? prisma.quote.findFirst({ where: { id: data.quoteId, organizationId }, select: { id: true } })
-      : Promise.resolve(null),
-  ]);
-  if (!client) return NextResponse.json({ error: "Client not found" }, { status: 400 });
-  if (!project) return NextResponse.json({ error: "Project not found" }, { status: 400 });
-  if (data.quoteId && !quoteRow) return NextResponse.json({ error: "Quote not found" }, { status: 400 });
+  const clientRow = await prisma.client.findFirst({
+    where: { id: data.clientId, organizationId },
+    select: { id: true },
+  });
+  if (!clientRow) return NextResponse.json({ error: "Client not found" }, { status: 400 });
+
+  const isMulti = (data.projectLines?.length ?? 0) > 0;
+
+  let primaryProjectId: string;
+  let headerQuoteId: string | null;
+  let exwUsd: number;
+  let commissionPct: number;
+  let commissionAmountUsd: number;
+  let fobUsd: number;
+  let freightUsd: number;
+  let cifUsd: number;
+  let taxesFeesUsd: number;
+  let landedDdpUsd: number;
+  let resolvedLinesForCreate: { projectId: string; quoteId: string | null; containerSharePct: number | null; sortOrder: number }[];
+
+  if (isMulti) {
+    try {
+      const { financials, resolvedLines } = await resolveMultiProjectSaleLines(
+        prisma,
+        organizationId,
+        data.clientId,
+        data.projectLines!,
+        data.quantity,
+        !user.isPlatformSuperadmin
+      );
+      primaryProjectId = resolvedLines[0]!.projectId;
+      headerQuoteId = resolvedLines[0]!.quoteId;
+      exwUsd = financials.exwUsd;
+      commissionPct = financials.commissionPct;
+      commissionAmountUsd = financials.commissionAmountUsd;
+      fobUsd = financials.fobUsd;
+      freightUsd = financials.freightUsd;
+      cifUsd = financials.cifUsd;
+      taxesFeesUsd = financials.taxesFeesUsd;
+      landedDdpUsd = financials.landedDdpUsd;
+      resolvedLinesForCreate = resolvedLines.map((l) => ({
+        projectId: l.projectId,
+        quoteId: l.quoteId,
+        containerSharePct: l.containerSharePct,
+        sortOrder: l.sortOrder,
+      }));
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Invalid multi-project sale";
+      return NextResponse.json({ error: msg }, { status: 400 });
+    }
+  } else {
+    const [project, quoteRow] = await Promise.all([
+      prisma.project.findFirst({ where: { id: data.projectId!, organizationId }, select: { id: true } }),
+      data.quoteId
+        ? prisma.quote.findFirst({ where: { id: data.quoteId, organizationId }, select: { id: true } })
+        : Promise.resolve(null),
+    ]);
+    if (!project) return NextResponse.json({ error: "Project not found" }, { status: 400 });
+    if (data.quoteId && !quoteRow) return NextResponse.json({ error: "Quote not found" }, { status: 400 });
+    primaryProjectId = data.projectId!;
+    headerQuoteId = data.quoteId ?? null;
+    exwUsd = data.exwUsd!;
+    commissionPct = data.commissionPct!;
+    commissionAmountUsd = data.commissionAmountUsd!;
+    fobUsd = data.fobUsd!;
+    freightUsd = data.freightUsd!;
+    cifUsd = data.cifUsd!;
+    taxesFeesUsd = data.taxesFeesUsd!;
+    landedDdpUsd = data.landedDdpUsd!;
+    resolvedLinesForCreate = [
+      {
+        projectId: primaryProjectId,
+        quoteId: headerQuoteId,
+        containerSharePct: null,
+        sortOrder: 0,
+      },
+    ];
+  }
 
   await ensureBillingEntities(organizationId);
 
@@ -179,22 +308,30 @@ export async function POST(req: Request) {
         data: {
           organizationId,
           clientId: data.clientId,
-          projectId: data.projectId,
-          quoteId: data.quoteId ?? null,
+          projectId: primaryProjectId,
+          quoteId: headerQuoteId,
           saleNumber,
           quantity: data.quantity,
           status: statusEnum,
-          exwUsd: data.exwUsd,
-          commissionPct: data.commissionPct,
-          commissionAmountUsd: data.commissionAmountUsd,
-          fobUsd: data.fobUsd,
-          freightUsd: data.freightUsd,
-          cifUsd: data.cifUsd,
-          taxesFeesUsd: data.taxesFeesUsd,
-          landedDdpUsd: data.landedDdpUsd,
+          exwUsd,
+          commissionPct,
+          commissionAmountUsd,
+          fobUsd,
+          freightUsd,
+          cifUsd,
+          taxesFeesUsd,
+          landedDdpUsd,
           invoicedBasis: data.invoicedBasis ?? "DDP",
           notes: data.notes ?? null,
           createdByUserId: user.id ?? null,
+          saleProjectLines: {
+            create: resolvedLinesForCreate.map((l) => ({
+              projectId: l.projectId,
+              quoteId: l.quoteId,
+              containerSharePct: l.containerSharePct,
+              sortOrder: l.sortOrder,
+            })),
+          },
           invoices:
             invoiceLines.length > 0
               ? {
@@ -216,8 +353,9 @@ export async function POST(req: Request) {
     await refreshSaleComputedStatus(sale.id);
 
     if (data.status === "CONFIRMED") {
+      const projectIds = [...new Set(resolvedLinesForCreate.map((l) => l.projectId))];
       await prisma.project.updateMany({
-        where: { id: data.projectId, organizationId, status: { not: "lost" } },
+        where: { id: { in: projectIds }, organizationId, status: { not: "lost" } },
         data: { status: "won" },
       });
     }

@@ -138,8 +138,14 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     await refreshSaleComputedStatus(id);
 
     if (data.status === "CONFIRMED") {
+      const lineProjectIds = await prisma.saleProjectLine.findMany({
+        where: { saleId: id },
+        select: { projectId: true },
+      });
+      const projectIds = [...new Set(lineProjectIds.map((x) => x.projectId))];
+      if (projectIds.length === 0) projectIds.push(existing.projectId);
       await prisma.project.updateMany({
-        where: { id: existing.projectId, organizationId, status: { not: "lost" } },
+        where: { id: { in: projectIds }, organizationId, status: { not: "lost" } },
         data: { status: "won" },
       });
     }

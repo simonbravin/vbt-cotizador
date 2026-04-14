@@ -85,6 +85,13 @@ const saleDetailInclude = {
   client: { select: { id: true, name: true, email: true } },
   project: { select: { id: true, projectName: true } },
   quote: { select: { id: true, quoteNumber: true } },
+  saleProjectLines: {
+    orderBy: { sortOrder: "asc" as const },
+    include: {
+      project: { select: { id: true, projectName: true } },
+      quote: { select: { id: true, quoteNumber: true } },
+    },
+  },
   invoices: { include: { billingEntity: { select: { id: true, name: true, slug: true } } } },
   payments: { include: { billingEntity: { select: { id: true, name: true, slug: true } } } },
 } as const;
@@ -113,7 +120,25 @@ function invoiceStatusByEntity(sale: SaleDetailRecord): Record<string, { paid: n
   return by;
 }
 
+export function saleProjectLinesSummary(
+  lines: { project: { id: string; projectName: string } }[],
+  fallbackName: string
+): string {
+  if (lines.length === 0) return fallbackName;
+  if (lines.length === 1) return lines[0]!.project.projectName;
+  return `${lines[0]!.project.projectName} +${lines.length - 1}`;
+}
+
 export function serializeSaleDetail(sale: SaleDetailRecord) {
+  const lines = sale.saleProjectLines ?? [];
+  const projectsPayload = lines.map((l) => ({
+    id: l.project.id,
+    name: l.project.projectName,
+    quoteId: l.quoteId,
+    containerSharePct: l.containerSharePct,
+    quote: l.quote ? { id: l.quote.id, quoteNumber: l.quote.quoteNumber } : null,
+  }));
+  const summaryName = saleProjectLinesSummary(lines, sale.project.projectName);
   return {
     id: sale.id,
     organizationId: sale.organizationId,
@@ -134,7 +159,8 @@ export function serializeSaleDetail(sale: SaleDetailRecord) {
     notes: sale.notes,
     createdAt: sale.createdAt.toISOString(),
     client: sale.client,
-    project: { id: sale.project.id, name: sale.project.projectName },
+    project: { id: sale.project.id, name: summaryName },
+    projects: projectsPayload,
     quote: sale.quote
       ? { id: sale.quote.id, quoteNumber: sale.quote.quoteNumber }
       : null,
@@ -168,11 +194,19 @@ type SaleListRowDb = Prisma.SaleGetPayload<{
     client: { select: { id: true; name: true } };
     project: { select: { id: true; projectName: true } };
     quote: { select: { id: true; quoteNumber: true } };
+    saleProjectLines: {
+      include: { project: { select: { id: true; projectName: true } } };
+    };
     _count: { select: { invoices: true; payments: true } };
   };
 }> & { organization?: { id: string; name: string } | null };
 
 export function serializeSaleListRow(sale: SaleListRowDb) {
+  const lines = sale.saleProjectLines ?? [];
+  const summaryName = saleProjectLinesSummary(
+    lines.map((l) => ({ project: l.project })),
+    sale.project.projectName
+  );
   return {
     id: sale.id,
     saleNumber: sale.saleNumber,
@@ -191,7 +225,8 @@ export function serializeSaleListRow(sale: SaleListRowDb) {
     landedDdpUsd: sale.landedDdpUsd,
     createdAt: sale.createdAt.toISOString(),
     client: sale.client,
-    project: { id: sale.project.id, name: sale.project.projectName },
+    project: { id: sale.project.id, name: summaryName },
+    projects: lines.map((l) => ({ id: l.project.id, name: l.project.projectName })),
     quote: sale.quote ? { id: sale.quote.id, quoteNumber: sale.quote.quoteNumber } : null,
     organization: sale.organization ? { id: sale.organization.id, name: sale.organization.name } : undefined,
     _count: sale._count,
@@ -236,6 +271,10 @@ export async function buildStatementsResponse(
     include: {
       client: { select: { id: true, name: true } },
       project: { select: { id: true, projectName: true } },
+      saleProjectLines: {
+        orderBy: { sortOrder: "asc" },
+        include: { project: { select: { id: true, projectName: true } } },
+      },
       invoices: true,
       payments: true,
     },
@@ -283,7 +322,10 @@ export async function buildStatementsResponse(
       fobUsd: s.fobUsd,
       cifUsd: s.cifUsd,
       landedDdpUsd: s.landedDdpUsd,
-      project: { id: s.project.id, name: s.project.projectName },
+      project: {
+        id: s.project.id,
+        name: saleProjectLinesSummary(s.saleProjectLines ?? [], s.project.projectName),
+      },
       payments: s.payments
         .filter((p) => !filters.entityId || p.billingEntityId === filters.entityId)
         .map((p) => ({ amountUsd: p.amountUsd })),

@@ -1,3 +1,5 @@
+export * from "./sales-aggregate";
+export * from "./sale-project-lines-validation";
 export * from "./calculations";
 export * from "./csv-parser";
 export * from "./normalizer";

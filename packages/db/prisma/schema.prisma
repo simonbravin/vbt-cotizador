@@ -551,18 +551,22 @@ model Project {
   assignedToUserId       String?       @map("assigned_to_user_id")
   isProjectProtected     Boolean       @default(false) @map("is_project_protected")
   projectProtectionUntil DateTime?     @map("project_protection_until")
+  /// Baseline quote for sales, reports, and multi-project sale lines (must belong to this project).
+  baselineQuoteId        String?       @unique @map("baseline_quote_id")
   createdAt              DateTime      @default(now()) @map("created_at")
   updatedAt              DateTime      @updatedAt @map("updated_at")
 
   organization          Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   client                Client?               @relation(fields: [clientId], references: [id])
   assignedToUser        User?                 @relation("ProjectAssignedTo", fields: [assignedToUserId], references: [id])
+  baselineQuote         Quote?                @relation("ProjectBaselineQuote", fields: [baselineQuoteId], references: [id], onDelete: SetNull)
   claims                ProjectClaim[]
   quotes                Quote[]
   engineeringRequests   EngineeringRequest[]
   inventoryTransactions InventoryTransaction[]
   documents             Document[]
   sales                 Sale[]
+  saleProjectLines      SaleProjectLine[]
 
   @@index([organizationId])
   @@index([clientId])
@@ -635,6 +639,8 @@ model Quote {
   items          QuoteItem[]
   inventoryTransactions InventoryTransaction[]
   sales          Sale[]
+  projectAsBaseline Project?          @relation("ProjectBaselineQuote")
+  saleProjectLines  SaleProjectLine[]
 
   @@unique([organizationId, quoteNumber, version])
   @@index([organizationId])
@@ -723,6 +729,7 @@ model Sale {
   createdByUser User?        @relation("SaleCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
   invoices      SaleInvoice[]
   payments      Payment[]
+  saleProjectLines SaleProjectLine[]
 
   @@unique([organizationId, saleNumber])
   @@index([organizationId])
@@ -731,6 +738,28 @@ model Sale {
   @@index([status])
   @@index([createdAt])
   @@map("sales")
+}
+
+/// One row per project included in a sale; quote is the project baseline when set (required for new multi-project sales in app logic).
+model SaleProjectLine {
+  id                  String   @id @default(cuid())
+  saleId              String   @map("sale_id")
+  projectId           String   @map("project_id")
+  quoteId             String?  @map("quote_id")
+  containerSharePct   Float?   @map("container_share_pct")
+  sortOrder           Int      @default(0) @map("sort_order")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  sale    Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  quote   Quote?  @relation(fields: [quoteId], references: [id], onDelete: SetNull)
+
+  @@unique([saleId, projectId])
+  @@index([saleId])
+  @@index([projectId])
+  @@index([quoteId])
+  @@map("sale_project_lines")
 }
 
 model SaleInvoice {

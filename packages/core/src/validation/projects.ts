@@ -31,6 +31,8 @@ export const updateProjectSchema = createProjectSchema
     expectedCloseDate: z
       .union([z.string().datetime(), z.string(), z.null()])
       .optional(),
+    /** Cotización base del proyecto (ventas multi-proyecto e informes). Debe pertenecer al mismo proyecto. */
+    baselineQuoteId: z.string().min(1).nullable().optional(),
   });
 
 export const listProjectsQuerySchema = z.object({
@@ -39,7 +41,7 @@ export const listProjectsQuerySchema = z.object({
   organizationId: z.string().optional(),
   countryCode: z.string().optional(),
   search: z.string().optional(),
-  limit: z.coerce.number().int().min(1).max(100).optional(),
+  limit: z.coerce.number().int().min(1).max(500).optional(),
   offset: z.coerce.number().int().min(0).optional(),
 });
 

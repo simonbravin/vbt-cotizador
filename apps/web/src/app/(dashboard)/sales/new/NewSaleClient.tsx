@@ -6,12 +6,20 @@ import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
 import { INVOICED_BASIS_OPTIONS } from "@/lib/sales";
 import { saasQuoteRowToLegacySaleShape, type LegacySaleQuoteRow } from "@/lib/saas-quote-legacy-sale-shape";
+import { aggregateSaleFinancialsFromQuoteRows, type SaleQuoteFinancialRow } from "@vbt/core";
 import { useT } from "@/lib/i18n/context";
 import { FilterSelect } from "@/components/ui/filter-select";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 
 type Client = { id: string; name: string };
-type Project = { id: string; name: string; clientId: string | null };
+type Project = {
+  id: string;
+  name: string;
+  clientId: string | null;
+  projectName?: string;
+  baselineQuoteId?: string | null;
+  baselineQuote?: { id: string; quoteNumber: string } | null;
+};
 type Quote = LegacySaleQuoteRow;
 type Entity = { id: string; name: string; slug: string };
 
@@ -39,7 +47,7 @@ export function NewSaleClient({
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [entities, setEntities] = useState<Entity[]>([]);
   const [clientId, setClientId] = useState("");
-  const [projectId, setProjectId] = useState("");
+  const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([]);
   const [quoteId, setQuoteId] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [status, setStatus] = useState<"DRAFT" | "CONFIRMED">("DRAFT");
@@ -78,8 +86,10 @@ export function NewSaleClient({
   const qId = searchParams.get("quoteId");
   const pId = searchParams.get("projectId");
   const cId = searchParams.get("clientId");
+  const projectId = selectedProjectIds[0] ?? "";
+
   useEffect(() => {
-    if (pId) setProjectId(pId);
+    if (pId) setSelectedProjectIds([pId]);
     if (cId) setClientId(cId);
     if (qId) setQuoteId(qId);
   }, [qId, pId, cId]);
@@ -89,9 +99,9 @@ export function NewSaleClient({
     : projects;
 
   useEffect(() => {
-    if (!projectId) {
+    if (!projectId || selectedProjectIds.length !== 1) {
       setQuotes([]);
-      setQuoteId("");
+      if (selectedProjectIds.length !== 1) setQuoteId("");
       return;
     }
     fetch(
@@ -109,9 +119,52 @@ export function NewSaleClient({
         else if (!searchParams.get("quoteId")) setQuoteId("");
       })
       .catch(() => setQuotes([]));
-  }, [projectId, searchParams, scopedOrganizationId]);
+  }, [projectId, selectedProjectIds.length, searchParams, scopedOrganizationId]);
 
   useEffect(() => {
+    if (selectedProjectIds.length < 2 || !clientId) return;
+    let cancelled = false;
+    (async () => {
+      const rows: SaleQuoteFinancialRow[] = [];
+      for (const pid of selectedProjectIds) {
+        const proj = projects.find((p) => p.id === pid);
+        const bid = proj?.baselineQuoteId ?? proj?.baselineQuote?.id;
+        if (!bid) continue;
+        const qUrl = `/api/saas/quotes/${bid}${
+          scopedOrganizationId ? `?organizationId=${encodeURIComponent(scopedOrganizationId)}` : ""
+        }`;
+        const res = await fetch(qUrl);
+        const raw = await res.json().catch(() => ({}));
+        if (!res.ok || cancelled) continue;
+        const legacy = saasQuoteRowToLegacySaleShape(raw as Record<string, unknown>);
+        rows.push({
+          factoryCostUsd: legacy.factoryCostUsd,
+          commissionPct: legacy.commissionPct,
+          fobUsd: legacy.fobUsd,
+          freightCostUsd: legacy.freightCostUsd,
+          cifUsd: legacy.cifUsd,
+          taxesFeesUsd: legacy.taxesFeesUsd,
+          landedDdpUsd: legacy.landedDdpUsd,
+        });
+      }
+      if (cancelled || rows.length !== selectedProjectIds.length) return;
+      const agg = aggregateSaleFinancialsFromQuoteRows(rows, quantity);
+      setExwUsd(agg.exwUsd);
+      setCommissionPct(agg.commissionPct);
+      setCommissionAmountUsd(agg.commissionAmountUsd);
+      setFobUsd(agg.fobUsd);
+      setFreightUsd(agg.freightUsd);
+      setCifUsd(agg.cifUsd);
+      setTaxesFeesUsd(agg.taxesFeesUsd);
+      setLandedDdpUsd(agg.landedDdpUsd);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedProjectIds, quantity, projects, clientId, scopedOrganizationId]);
+
+  useEffect(() => {
+    if (selectedProjectIds.length !== 1) return;
     if (!quoteId || quotes.length === 0) return;
     const q = quotes.find((x) => x.id === quoteId);
     if (!q) return;
@@ -125,7 +178,7 @@ export function NewSaleClient({
     setCifUsd(round2(q.cifUsd * mult));
     setTaxesFeesUsd(round2(q.taxesFeesUsd * mult));
     setLandedDdpUsd(round2(q.landedDdpUsd * mult));
-  }, [quoteId, quantity, quotes]);
+  }, [quoteId, quantity, quotes, selectedProjectIds.length]);
 
   const validateFinancials = () => {
     if (exwUsd < 0 || fobUsd < 0 || cifUsd < 0 || landedDdpUsd < 0) return t("partner.sales.new.validation.nonNegative");
@@ -143,12 +196,26 @@ export function NewSaleClient({
     return landedDdpUsd;
   };
 
+  const toggleProjectSelection = (id: string) => {
+    const proj = projectsForClient.find((p) => p.id === id);
+    const hasBase = Boolean(proj?.baselineQuoteId ?? proj?.baselineQuote?.id);
+    if (!hasBase) return;
+    setSelectedProjectIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (!clientId || !projectId) {
+    if (!clientId || selectedProjectIds.length === 0) {
       setError(t("partner.sales.new.errorClientProjectRequired"));
       return;
+    }
+    for (const id of selectedProjectIds) {
+      const p = projects.find((x) => x.id === id);
+      if (!(p?.baselineQuoteId ?? p?.baselineQuote?.id)) {
+        setError(t("partner.sales.new.projectNeedsBaseline"));
+        return;
+      }
     }
     const validationErr = validateFinancials();
     if (validationErr) {
@@ -169,42 +236,49 @@ export function NewSaleClient({
     }
     setSaving(true);
     try {
+      const isMulti = selectedProjectIds.length >= 2;
+      const payload: Record<string, unknown> = {
+        clientId,
+        quantity,
+        status,
+        invoicedBasis,
+        notes: notes || undefined,
+        ...(scopedOrganizationId ? { organizationId: scopedOrganizationId } : {}),
+        invoices: invoices
+          .filter((inv) => inv.entityId && inv.amountUsd >= 0)
+          .map((inv) => ({
+            entityId: inv.entityId,
+            amountUsd: Number(Number(inv.amountUsd).toFixed(2)),
+            dueDate: inv.dueDate || undefined,
+            sequence: inv.sequence || 1,
+            referenceNumber: inv.referenceNumber?.trim() || undefined,
+            notes: inv.notes || undefined,
+          })),
+      };
+      if (isMulti) {
+        payload.projectLines = selectedProjectIds.map((pid) => ({ projectId: pid }));
+      } else {
+        payload.projectId = selectedProjectIds[0];
+        payload.quoteId = quoteId || undefined;
+        payload.exwUsd = Number(exwUsd.toFixed(2));
+        payload.commissionPct = Number(commissionPct.toFixed(2));
+        payload.commissionAmountUsd = Number(commissionAmountUsd.toFixed(2));
+        payload.fobUsd = Number(fobUsd.toFixed(2));
+        payload.freightUsd = Number(freightUsd.toFixed(2));
+        payload.cifUsd = Number(cifUsd.toFixed(2));
+        payload.taxesFeesUsd = Number(taxesFeesUsd.toFixed(2));
+        payload.landedDdpUsd = Number(landedDdpUsd.toFixed(2));
+      }
+
       const res = await fetch("/api/sales", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          clientId,
-          projectId,
-          quoteId: quoteId || undefined,
-          quantity,
-          status,
-          exwUsd: Number(exwUsd.toFixed(2)),
-          commissionPct: Number(commissionPct.toFixed(2)),
-          commissionAmountUsd: Number(commissionAmountUsd.toFixed(2)),
-          fobUsd: Number(fobUsd.toFixed(2)),
-          freightUsd: Number(freightUsd.toFixed(2)),
-          cifUsd: Number(cifUsd.toFixed(2)),
-          taxesFeesUsd: Number(taxesFeesUsd.toFixed(2)),
-          landedDdpUsd: Number(landedDdpUsd.toFixed(2)),
-          invoicedBasis,
-          notes: notes || undefined,
-          ...(scopedOrganizationId ? { organizationId: scopedOrganizationId } : {}),
-          invoices: invoices
-            .filter((inv) => inv.entityId && inv.amountUsd >= 0)
-            .map((inv) => ({
-              entityId: inv.entityId,
-              amountUsd: Number(Number(inv.amountUsd).toFixed(2)),
-              dueDate: inv.dueDate || undefined,
-              sequence: inv.sequence || 1,
-              referenceNumber: inv.referenceNumber?.trim() || undefined,
-              notes: inv.notes || undefined,
-            })),
-        }),
+        body: JSON.stringify(payload),
       });
       const text = await res.text();
       const data = text ? (() => { try { return JSON.parse(text); } catch { return {}; } })() : {};
       if (!res.ok) throw new Error((data as { error?: string }).error ?? t("partner.sales.new.failedToCreate"));
-      router.push(`/sales/${(data as { id: string }).id}`);
+      router.push(successPath((data as { id: string }).id));
     } catch (err: any) {
       setError(err.message ?? t("partner.sales.new.failedToSave"));
     } finally {
@@ -235,7 +309,8 @@ export function NewSaleClient({
               value={clientId}
               onValueChange={(v) => {
                 setClientId(v);
-                setProjectId("");
+                setSelectedProjectIds([]);
+                setQuoteId("");
               }}
               emptyOptionLabel={t("partner.sales.new.selectClient")}
               options={clients.map((c) => ({ value: c.id, label: c.name }))}
@@ -243,35 +318,57 @@ export function NewSaleClient({
               triggerClassName="h-10 w-full min-w-0 max-w-full text-sm"
             />
           </div>
-          <div>
+          <div className="md:col-span-2">
             <label className="block text-sm font-medium text-foreground mb-1">{t("partner.sales.new.projectLabel")}</label>
-            <FilterSelect
-              value={projectId}
-              onValueChange={setProjectId}
-              emptyOptionLabel={t("partner.sales.new.selectProject")}
-              options={projectsForClient.map((p) => ({
-                value: p.id,
-                label:
-                  (p as { projectName?: string; name?: string }).projectName ?? p.name ?? p.id.slice(0, 8),
-              }))}
-              aria-label={t("partner.sales.new.projectLabel")}
-              triggerClassName="h-10 w-full min-w-0 max-w-full text-sm"
-            />
+            <p className="text-xs text-muted-foreground mb-2">{t("partner.sales.new.projectsMultiHint")}</p>
+            {!clientId ? (
+              <p className="text-sm text-muted-foreground">{t("partner.sales.new.selectClient")}</p>
+            ) : projectsForClient.length === 0 ? (
+              <p className="text-sm text-muted-foreground">{t("partner.sales.new.noProjectsForClient")}</p>
+            ) : (
+              <ul className="max-h-52 space-y-2 overflow-y-auto rounded-lg border border-border/60 p-3">
+                {projectsForClient.map((p) => {
+                  const label = p.projectName ?? p.name ?? p.id.slice(0, 8);
+                  const hasBase = Boolean(p.baselineQuoteId ?? p.baselineQuote?.id);
+                  const checked = selectedProjectIds.includes(p.id);
+                  return (
+                    <li key={p.id} className="flex items-start gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        id={`sale-proj-${p.id}`}
+                        checked={checked}
+                        disabled={!hasBase}
+                        onChange={() => toggleProjectSelection(p.id)}
+                        className="mt-1"
+                      />
+                      <label htmlFor={`sale-proj-${p.id}`} className={hasBase ? "cursor-pointer text-foreground" : "text-muted-foreground"}>
+                        {label}
+                        {!hasBase && (
+                          <span className="ml-2 text-xs text-muted-foreground">({t("partner.sales.new.projectNeedsBaselineShort")})</span>
+                        )}
+                      </label>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </div>
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1">{t("partner.sales.new.quoteOptional")}</label>
-            <FilterSelect
-              value={quoteId}
-              onValueChange={setQuoteId}
-              emptyOptionLabel={t("partner.sales.new.quoteNoneManual")}
-              options={quotes.map((q) => ({
-                value: q.id,
-                label: `${q.quoteNumber ?? q.id.slice(0, 8)} – ${formatCurrency(q.landedDdpUsd)}`,
-              }))}
-              aria-label={t("partner.sales.new.quoteOptional")}
-              triggerClassName="h-10 w-full min-w-0 max-w-full text-sm"
-            />
-          </div>
+          {selectedProjectIds.length === 1 && (
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1">{t("partner.sales.new.quoteOptional")}</label>
+              <FilterSelect
+                value={quoteId}
+                onValueChange={setQuoteId}
+                emptyOptionLabel={t("partner.sales.new.quoteNoneManual")}
+                options={quotes.map((q) => ({
+                  value: q.id,
+                  label: `${q.quoteNumber ?? q.id.slice(0, 8)} – ${formatCurrency(q.landedDdpUsd)}`,
+                }))}
+                aria-label={t("partner.sales.new.quoteOptional")}
+                triggerClassName="h-10 w-full min-w-0 max-w-full text-sm"
+              />
+            </div>
+          )}
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">{t("partner.sales.new.quantity")}</label>
             <input
@@ -311,6 +408,9 @@ export function NewSaleClient({
 
       <div className="surface-card p-6 space-y-4">
         <h2 className="font-semibold text-foreground">{t("partner.sales.new.sectionFinancials")}</h2>
+        {selectedProjectIds.length >= 2 && (
+          <p className="text-xs text-muted-foreground">{t("partner.sales.new.financialsMultiHint")}</p>
+        )}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {(
             [
@@ -333,9 +433,10 @@ export function NewSaleClient({
                     type="number"
                     min={0}
                     step={0.01}
+                    disabled={selectedProjectIds.length >= 2}
                     value={typeof val === "number" ? Number(val.toFixed(2)) : ""}
                     onChange={(e) => (setter as (n: number) => void)(e.target.value === "" ? 0 : parseFloat(e.target.value) || 0)}
-                    className="w-full pl-7 pr-3 py-2 rounded-lg border-0 text-sm bg-transparent"
+                    className="w-full pl-7 pr-3 py-2 rounded-lg border-0 text-sm bg-transparent disabled:opacity-60"
                   />
                 </div>
               ) : (
@@ -343,9 +444,10 @@ export function NewSaleClient({
                   type="number"
                   min={0}
                   step={0.1}
+                  disabled={selectedProjectIds.length >= 2}
                   value={typeof val === "number" ? Number(val.toFixed(2)) : ""}
                   onChange={(e) => (setter as (n: number) => void)(e.target.value === "" ? 0 : parseFloat(e.target.value) || 0)}
-                  className="w-full px-3 py-2 border border-input rounded-lg text-sm"
+                  className="w-full px-3 py-2 border border-input rounded-lg text-sm disabled:opacity-60"
                 />
               )}
             </div>

@@ -38,6 +38,7 @@ export async function listProjects(
         organization: { select: { id: true, name: true } },
         client: { select: { id: true, name: true } },
         assignedToUser: { select: { id: true, fullName: true } },
+        baselineQuote: { select: { id: true, quoteNumber: true } },
         _count: { select: { quotes: true } },
       },
       orderBy: { updatedAt: "desc" },
@@ -60,7 +61,10 @@ export async function getProjectById(
     include: {
       client: true,
       assignedToUser: { select: { id: true, fullName: true, email: true } },
-      quotes: { orderBy: { version: "desc" }, take: 10 },
+      baselineQuote: {
+        select: { id: true, quoteNumber: true, version: true, totalPrice: true, status: true },
+      },
+      quotes: { orderBy: { version: "desc" }, take: 50 },
     },
   });
 }
@@ -83,6 +87,7 @@ export type CreateProjectInput = {
   probabilityPct?: number | null;
   expectedCloseDate?: Date | null;
   assignedToUserId?: string | null;
+  baselineQuoteId?: string | null;
 };
 
 export async function createProject(
@@ -147,6 +152,23 @@ export async function updateProject(
       throw new Error("Client does not belong to this project's organization");
     }
   }
+  if (data.baselineQuoteId !== undefined) {
+    if (data.baselineQuoteId === null) {
+      // cleared below
+    } else {
+      const q = await prisma.quote.findFirst({
+        where: {
+          id: data.baselineQuoteId,
+          projectId,
+          organizationId: existing.organizationId,
+        },
+        select: { id: true },
+      });
+      if (!q) {
+        throw new Error("Baseline quote not found or does not belong to this project");
+      }
+    }
+  }
   return prisma.project.update({
     where: { id: projectId },
     data: {
@@ -167,6 +189,7 @@ export async function updateProject(
       ...(data.probabilityPct !== undefined && { probabilityPct: data.probabilityPct }),
       ...(data.expectedCloseDate !== undefined && { expectedCloseDate: data.expectedCloseDate }),
       ...(data.assignedToUserId !== undefined && { assignedToUserId: data.assignedToUserId }),
+      ...(data.baselineQuoteId !== undefined && { baselineQuoteId: data.baselineQuoteId }),
     },
   });
 }

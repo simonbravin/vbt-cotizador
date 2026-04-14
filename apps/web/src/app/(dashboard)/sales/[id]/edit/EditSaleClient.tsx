@@ -194,6 +194,13 @@ export function EditSaleClient({ saleId }: { saleId: string }) {
   if (loading) return <div className="py-8 text-center text-muted-foreground">{t("partner.sales.loading")}</div>;
   if (!sale) return <div className="py-8 text-center text-muted-foreground">{t("partner.sales.saleNotFound")}</div>;
 
+  const projectLines = Array.isArray(sale.projects) ? sale.projects : [];
+  const isMultiProject = projectLines.length > 1;
+  const headerQuote =
+    projectLines.length === 1 && projectLines[0]?.quote
+      ? projectLines[0].quote
+      : sale.quote;
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6 max-w-4xl">
       <div className="flex gap-4">
@@ -209,13 +216,17 @@ export function EditSaleClient({ saleId }: { saleId: string }) {
       <div className="surface-card p-6">
         <h2 className="font-semibold text-foreground mb-2">{t("partner.sales.edit.saleCardTitle")}</h2>
         <p className="text-sm text-muted-foreground">
-          {sale.saleNumber} · {sale.client?.name} · {sale.project?.name}
-          {sale.quote
-            ? ` · ${t("partner.sales.detail.quote")}: ${sale.quote.quoteNumber ?? sale.quote.id}`
-            : ""}
+          {sale.saleNumber} · {sale.client?.name} ·{" "}
+          {isMultiProject
+            ? `${t("partner.sales.detail.projects")}: ${projectLines.map((p: { name: string }) => p.name).join(", ")}`
+            : sale.project?.name}
+          {headerQuote ? ` · ${t("partner.sales.detail.quote")}: ${headerQuote.quoteNumber ?? headerQuote.id}` : ""}
           {" · "}
           {t("partner.sales.detail.qty")}: {sale.quantity}
         </p>
+        {isMultiProject && (
+          <p className="mt-2 text-xs text-muted-foreground">{t("partner.sales.edit.multiProjectTotalsHint")}</p>
+        )}
       </div>
 
       <div className="surface-card p-6 space-y-4">

@@ -36,6 +36,8 @@ type Project = {
   estimatedTotalAreaM2?: number | null;
   estimatedWallAreaM2?: number | null;
   expectedCloseDate?: string | null;
+  baselineQuoteId?: string | null;
+  baselineQuote?: { id: string; quoteNumber: string } | null;
   quotes: Quote[];
 };
 
@@ -77,6 +79,11 @@ export function ProjectDetailClient({ initialProject }: { initialProject: Projec
   const [savingClient, setSavingClient] = useState(false);
   const [newClientError, setNewClientError] = useState<string | null>(null);
   const [sales, setSales] = useState<SaleRow[]>([]);
+  const [baselineQuoteId, setBaselineQuoteId] = useState(
+    () => project.baselineQuoteId ?? project.baselineQuote?.id ?? ""
+  );
+  const [baselineSaving, setBaselineSaving] = useState(false);
+  const [baselineError, setBaselineError] = useState<string | null>(null);
   const projectName = project.projectName ?? (project as any).name ?? "";
   const projectClientId = project.clientId ?? project.client?.id ?? (project as any).clientRecord?.id ?? "";
   const [form, setForm] = useState({
@@ -118,6 +125,42 @@ export function ProjectDetailClient({ initialProject }: { initialProject: Projec
       .then((d) => setSales(d.sales ?? []))
       .catch(() => setSales([]));
   }, [project.id]);
+
+  useEffect(() => {
+    setBaselineQuoteId(project.baselineQuoteId ?? project.baselineQuote?.id ?? "");
+    setBaselineError(null);
+  }, [project.id, project.baselineQuoteId, project.baselineQuote?.id]);
+
+  const saveBaseline = async () => {
+    setBaselineSaving(true);
+    setBaselineError(null);
+    try {
+      const res = await fetch(`/api/saas/projects/${project.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ baselineQuoteId: baselineQuoteId.trim() ? baselineQuoteId.trim() : null }),
+      });
+      let errBody: { error?: string } = {};
+      try {
+        errBody = await res.json();
+      } catch {
+        errBody = {};
+      }
+      if (!res.ok) {
+        setBaselineError(typeof errBody.error === "string" ? errBody.error : t("auth.errorUnexpected"));
+        return;
+      }
+      const fullRes = await fetch(`/api/saas/projects/${project.id}`);
+      const full = await fullRes.json();
+      if (fullRes.ok && full && typeof full === "object" && "id" in full) {
+        setProject(full as Project);
+      }
+    } catch {
+      setBaselineError(t("auth.errorUnexpected"));
+    } finally {
+      setBaselineSaving(false);
+    }
+  };
 
   const openEdit = () => {
     setForm({
@@ -332,6 +375,36 @@ export function ProjectDetailClient({ initialProject }: { initialProject: Projec
             </>
           )}
         </dl>
+        <div className="border-t border-border/60 pt-4 mt-4 space-y-3">
+          <h3 className="text-sm font-semibold text-foreground">{t("projects.baselineQuoteSection")}</h3>
+          <p className="text-xs text-muted-foreground">{t("projects.baselineQuoteHelp")}</p>
+          {baselineError && (
+            <div className="rounded-lg border border-destructive/25 bg-destructive/5 p-2 text-sm text-destructive">{baselineError}</div>
+          )}
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+            <div className="min-w-0 flex-1">
+              <FilterSelect
+                value={baselineQuoteId}
+                onValueChange={setBaselineQuoteId}
+                emptyOptionLabel={t("projects.baselineQuoteNone")}
+                options={project.quotes.map((q) => ({
+                  value: q.id,
+                  label: `${q.quoteNumber ?? q.id.slice(0, 8)}${q.version != null ? ` · v${q.version}` : ""}`,
+                }))}
+                aria-label={t("projects.baselineQuoteSection")}
+                triggerClassName="h-10 w-full min-w-0 max-w-full text-sm"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={saveBaseline}
+              disabled={baselineSaving}
+              className="shrink-0 rounded-lg border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
+            >
+              {baselineSaving ? t("projects.baselineQuoteSaving") : t("projects.baselineQuoteSave")}
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Quotes */}
