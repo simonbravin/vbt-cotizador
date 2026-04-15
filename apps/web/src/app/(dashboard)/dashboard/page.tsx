@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
-import { FileText, FolderOpen, Package, TrendingUp, Plus, DollarSign, Send } from "lucide-react";
+import { FileText, FolderOpen, Package, TrendingUp, Plus, DollarSign, Send, ListOrdered } from "lucide-react";
 import { SaleOrderStatus } from "@vbt/db";
 import { GoalKpiCard } from "@/components/dashboard/GoalKpiCard";
 import { RefreshPageButton } from "@/components/dashboard/RefreshPageButton";
@@ -177,7 +177,7 @@ export default async function DashboardPage(props: PageProps) {
             {t("dashboard.welcome")}, {displayName ?? fallbackDisplayName}
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <Link
             href="/projects/new"
             className="inline-flex items-center gap-2 rounded-full border border-transparent bg-primary px-5 py-2.5 text-[17px] font-normal text-primary-foreground transition-opacity hover:opacity-[0.88]"
@@ -191,6 +191,13 @@ export default async function DashboardPage(props: PageProps) {
           >
             <Plus className="w-4 h-4" />
             {t("dashboard.newQuote")}
+          </Link>
+          <Link
+            href="/quotes/wizard"
+            className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-card px-5 py-2.5 text-[17px] font-normal text-foreground transition-colors hover:bg-muted/50"
+          >
+            <ListOrdered className="w-4 h-4 text-primary" />
+            {t("quotes.assistantCtaShort")}
           </Link>
         </div>
       </div>
@@ -297,9 +304,14 @@ export default async function DashboardPage(props: PageProps) {
               <div className="p-8 text-center">
                 <FileText className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
                 <p className="text-muted-foreground text-sm">{t("dashboard.noQuotes")}</p>
-                <Link href="/quotes/create" className="text-primary text-sm hover:underline mt-1 block">
-                  {t("dashboard.createFirstQuote")}
-                </Link>
+                <div className="mt-2 flex flex-col gap-1 text-sm">
+                  <Link href="/quotes/create" className="text-primary hover:underline">
+                    {t("dashboard.createFirstQuote")}
+                  </Link>
+                  <Link href="/quotes/wizard" className="text-primary hover:underline">
+                    {t("quotes.createFirstWizardLink")}
+                  </Link>
+                </div>
               </div>
             ) : (
               recentQuotes.map((quote) => (

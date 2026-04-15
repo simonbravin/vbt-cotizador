@@ -157,9 +157,14 @@ export function QuotesClient({ quotes: initialQuotes, initialStatus }: { quotes:
             {search.trim() ? t("quotes.noSearchResults") : t("quotes.noQuotes")}
           </p>
           {!search.trim() && (
-            <Link href="/quotes/create" className="text-primary text-sm hover:underline mt-2 block">
-              {t("quotes.createFirstLink")}
-            </Link>
+            <div className="mt-2 flex flex-col gap-1 text-sm">
+              <Link href="/quotes/create" className="text-primary hover:underline">
+                {t("quotes.createFirstLink")}
+              </Link>
+              <Link href="/quotes/wizard" className="text-primary hover:underline">
+                {t("quotes.createFirstWizardLink")}
+              </Link>
+            </div>
           )}
         </div>
       ) : view === "table" ? (

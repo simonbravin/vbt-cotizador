@@ -116,6 +116,20 @@ export type CreateQuoteInput = {
   items?: CreateQuoteItemInput[];
   /** Tax rules JSON snapshot at pricing write (canonical historical basis). */
   taxRulesSnapshotJson?: Prisma.InputJsonValue;
+  /** Quote wizard / CSV import (optional). */
+  revitImportId?: string | null;
+  quoteCostMethod?: string | null;
+  wallAreaM2S80?: number;
+  wallAreaM2S150?: number;
+  wallAreaM2S200?: number;
+  wallAreaM2Total?: number;
+  totalKits?: number;
+  numContainers?: number;
+  kitsPerContainer?: number;
+  totalWeightKg?: number | null;
+  totalVolumeM3?: number | null;
+  concreteM3?: number | null;
+  steelKgEst?: number | null;
 };
 
 function toQuoteData(input: CreateQuoteInput, organizationId: string, preparedByUserId: string | null) {
@@ -141,6 +155,19 @@ function toQuoteData(input: CreateQuoteInput, organizationId: string, preparedBy
     ...(input.taxRulesSnapshotJson !== undefined
       ? { taxRulesSnapshotJson: input.taxRulesSnapshotJson }
       : {}),
+    ...(input.revitImportId !== undefined ? { revitImportId: input.revitImportId } : {}),
+    ...(input.quoteCostMethod !== undefined ? { quoteCostMethod: input.quoteCostMethod } : {}),
+    ...(input.wallAreaM2S80 !== undefined ? { wallAreaM2S80: input.wallAreaM2S80 } : {}),
+    ...(input.wallAreaM2S150 !== undefined ? { wallAreaM2S150: input.wallAreaM2S150 } : {}),
+    ...(input.wallAreaM2S200 !== undefined ? { wallAreaM2S200: input.wallAreaM2S200 } : {}),
+    ...(input.wallAreaM2Total !== undefined ? { wallAreaM2Total: input.wallAreaM2Total } : {}),
+    ...(input.totalKits !== undefined ? { totalKits: input.totalKits } : {}),
+    ...(input.numContainers !== undefined ? { numContainers: input.numContainers } : {}),
+    ...(input.kitsPerContainer !== undefined ? { kitsPerContainer: input.kitsPerContainer } : {}),
+    ...(input.totalWeightKg !== undefined ? { totalWeightKg: input.totalWeightKg } : {}),
+    ...(input.totalVolumeM3 !== undefined ? { totalVolumeM3: input.totalVolumeM3 } : {}),
+    ...(input.concreteM3 !== undefined ? { concreteM3: input.concreteM3 } : {}),
+    ...(input.steelKgEst !== undefined ? { steelKgEst: input.steelKgEst } : {}),
   };
 }
 

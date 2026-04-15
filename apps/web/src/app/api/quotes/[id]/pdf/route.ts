@@ -97,7 +97,7 @@ export async function GET(
       sentAt: q.sentAt ? new Date(q.sentAt).toLocaleDateString() : undefined,
       project: { name: projectName, client: clientName, location: project.location ?? undefined },
       country: q.country ? { name: q.country.name, code: q.country.code } : undefined,
-      costMethod: q.costMethod ?? "M2_TOTAL",
+      costMethod: q.quoteCostMethod ?? q.costMethod ?? "M2_TOTAL",
       baseUom: q.baseUom ?? "M",
       lines,
       wallAreaM2S80: Number(q.wallAreaM2S80) || 0,

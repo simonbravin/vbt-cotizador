@@ -12,6 +12,8 @@ export const translations = {
     "common.saving": "Saving...",
     "common.deleting": "Deleting...",
     "common.loading": "Loading...",
+    "common.back": "Back",
+    "common.next": "Next",
     "common.active": "Active",
     "common.inactive": "Inactive",
     "common.actions": "Actions",
@@ -538,6 +540,22 @@ export const translations = {
     "quotes.stepCommission": "Commission",
     "quotes.stepDestination": "Destination",
     "quotes.stepPreview": "Preview",
+    "quotes.wizardTitle": "Quote assistant",
+    "quotes.wizardSubtitle": "Import a Revit CSV or enter wall area by system, then review costs before saving.",
+    "quotes.wizardCommissionPartnerNote":
+      "Commission percentage is only editable for platform administrators. Your organization uses the configured partner markup.",
+    "quotes.newQuoteHubTitle": "New quote",
+    "quotes.newQuoteHubSubtitle": "Choose how you want to create the quote.",
+    "quotes.startWizardAssistant": "Multi-step assistant (CSV / m²)",
+    "quotes.startWizardAssistantDesc": "Full wizard with Revit CSV import or wall area by system.",
+    "quotes.startQuickDraft": "Quick draft",
+    "quotes.startQuickDraftDesc": "Empty draft; add lines on the quote detail page.",
+    "quotes.wizardFromCreateHint": "Need CSV import or wall area by system?",
+    "quotes.openAssistantLink": "Open quote assistant →",
+    "quotes.wizardPartnerRatesLine":
+      "Organization reference (USD/m², incl. VL commission): VBT 80 {{r80}}, 150 {{r150}}, 200 {{r200}}. Used for the estimate below; final pricing uses server rules.",
+    "quotes.assistantCtaShort": "Assistant (CSV / m²)",
+    "quotes.createFirstWizardLink": "Use the quote assistant (CSV / m²) →",
     "quotes.emailPlaceholder": "client@example.com",
 
     // Quote wizard (steps 1–6)
@@ -2256,6 +2274,8 @@ export const translations = {
     "common.saving": "Guardando...",
     "common.deleting": "Eliminando...",
     "common.loading": "Cargando...",
+    "common.back": "Atrás",
+    "common.next": "Siguiente",
     "common.active": "Activo",
     "common.inactive": "Inactivo",
     "common.actions": "Acciones",
@@ -2782,6 +2802,22 @@ export const translations = {
     "quotes.stepCommission": "Comisión",
     "quotes.stepDestination": "Destino",
     "quotes.stepPreview": "Vista previa",
+    "quotes.wizardTitle": "Asistente de cotización",
+    "quotes.wizardSubtitle": "Importe un CSV de Revit o ingrese m² por sistema; revise costos antes de guardar.",
+    "quotes.wizardCommissionPartnerNote":
+      "El porcentaje de comisión solo lo editan administradores de la plataforma. Su organización usa el margen partner configurado.",
+    "quotes.newQuoteHubTitle": "Nueva cotización",
+    "quotes.newQuoteHubSubtitle": "Elija cómo desea iniciar la cotización.",
+    "quotes.startWizardAssistant": "Asistente por pasos (CSV / m²)",
+    "quotes.startWizardAssistantDesc": "Asistente completo con importación CSV de Revit o m² por sistema.",
+    "quotes.startQuickDraft": "Borrador rápido",
+    "quotes.startQuickDraftDesc": "Borrador vacío; agregue líneas en el detalle de la cotización.",
+    "quotes.wizardFromCreateHint": "¿Necesita CSV de Revit o m² por sistema?",
+    "quotes.openAssistantLink": "Abrir asistente de cotización →",
+    "quotes.wizardPartnerRatesLine":
+      "Referencia de la organización (USD/m², incl. comisión VL): VBT 80 {{r80}}, 150 {{r150}}, 200 {{r200}}. Sirve para la estimación; el servidor aplica reglas finales.",
+    "quotes.assistantCtaShort": "Asistente (CSV / m²)",
+    "quotes.createFirstWizardLink": "Usar el asistente (CSV / m²) →",
     "quotes.emailPlaceholder": "cliente@ejemplo.com",
 
     // Quote wizard (steps 1–6)

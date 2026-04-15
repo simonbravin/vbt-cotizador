@@ -3,7 +3,7 @@ import { getEffectiveActiveOrgId, getEffectiveOrganizationId } from "@/lib/tenan
 import { prisma } from "@/lib/db";
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { Plus } from "lucide-react";
+import { Plus, ListOrdered } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { QuotesClient } from "./QuotesClient";
 import type { SessionUser } from "@/lib/auth";
@@ -83,11 +83,18 @@ export default async function QuotesPage({ searchParams }: { searchParams: { sta
             {t("quotes.quotesCount", { count: quotes.length })}
           </p>
         </div>
-        <Button asChild className="shrink-0 gap-2 self-start border border-primary/20 sm:self-auto">
-          <Link href="/quotes/create">
-            <Plus className="h-4 w-4 shrink-0" /> {t("quotes.newQuote")}
-          </Link>
-        </Button>
+        <div className="flex flex-wrap gap-2 self-start sm:self-auto">
+          <Button asChild className="shrink-0 gap-2 border border-primary/20">
+            <Link href="/quotes/create">
+              <Plus className="h-4 w-4 shrink-0" /> {t("quotes.newQuote")}
+            </Link>
+          </Button>
+          <Button asChild variant="outline" className="shrink-0 gap-2">
+            <Link href="/quotes/wizard">
+              <ListOrdered className="h-4 w-4 shrink-0" /> {t("quotes.assistantCtaShort")}
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {/* Status filters: same pattern as ViewLayoutToggle — flex + gap + pill active state */}

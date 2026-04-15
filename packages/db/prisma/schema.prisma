@@ -214,6 +214,7 @@ model User {
   quizAttempts                   QuizAttempt[]
   trainingCertificates           TrainingCertificate[]
   activityLogs            ActivityLog[]
+  revitImportsUploaded    RevitImport[]           @relation("RevitImportUploadedBy")
   invitedOrgMembers       OrgMember[]             @relation("InvitedBy")
   approvedProjectClaims   ProjectClaim[]
   passwordResetTokens     PasswordResetToken[]
@@ -287,6 +288,7 @@ model Organization {
   quizAllowances                QuizQuizAllowedOrganization[]
   activityLogs        ActivityLog[]
   warehouses          Warehouse[]
+  revitImports        RevitImport[]
   freightProfiles     FreightProfile[]
   taxRuleSets         TaxRuleSet[]
   inventoryTransactions InventoryTransaction[]
@@ -562,6 +564,7 @@ model Project {
   baselineQuote         Quote?                @relation("ProjectBaselineQuote", fields: [baselineQuoteId], references: [id], onDelete: SetNull)
   claims                ProjectClaim[]
   quotes                Quote[]
+  revitImports          RevitImport[]
   engineeringRequests   EngineeringRequest[]
   inventoryTransactions InventoryTransaction[]
   documents             Document[]
@@ -628,11 +631,27 @@ model Quote {
   reviewedAt            DateTime? @map("reviewed_at")
   // Internal / partner-visible notes (optional PDF later).
   notes                 String?   @db.Text @map("notes")
+  /// Revit CSV import used to build line items (optional).
+  revitImportId         String?   @map("revit_import_id")
+  /// CSV | M2_BY_SYSTEM — set by quote wizard.
+  quoteCostMethod       String?   @map("quote_cost_method")
+  wallAreaM2S80         Float     @default(0) @map("wall_area_m2_s80")
+  wallAreaM2S150        Float     @default(0) @map("wall_area_m2_s150")
+  wallAreaM2S200        Float     @default(0) @map("wall_area_m2_s200")
+  wallAreaM2Total       Float     @default(0) @map("wall_area_m2_total")
+  totalKits             Int       @default(0) @map("total_kits")
+  numContainers         Int       @default(1) @map("num_containers")
+  kitsPerContainer      Int       @default(0) @map("kits_per_container")
+  totalWeightKg         Float?    @map("total_weight_kg")
+  totalVolumeM3         Float?    @map("total_volume_m3")
+  concreteM3            Float?    @map("concrete_m3")
+  steelKgEst            Float?    @map("steel_kg_est")
   createdAt             DateTime  @default(now()) @map("created_at")
   updatedAt             DateTime  @updatedAt @map("updated_at")
 
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   project        Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  revitImport    RevitImport? @relation(fields: [revitImportId], references: [id], onDelete: SetNull)
   engineeringRequest EngineeringRequest? @relation(fields: [engineeringRequestId], references: [id], onDelete: SetNull)
   preparedByUser User?        @relation("QuotePreparedBy", fields: [preparedByUserId], references: [id])
   approvedByUser User?        @relation("QuoteApprovedBy", fields: [approvedByUserId], references: [id])
@@ -646,9 +665,71 @@ model Quote {
   @@index([organizationId])
   @@index([projectId])
   @@index([engineeringRequestId])
+  @@index([revitImportId])
   @@index([status])
   @@index([createdAt])
   @@map("quotes")
+}
+
+// ─── Revit wall schedule CSV imports (quote wizard) ─────────────────────────
+
+model RevitImport {
+  id               String   @id @default(cuid())
+  organizationId   String   @map("organization_id")
+  projectId        String?  @map("project_id")
+  filename         String
+  uploadedByUserId String?  @map("uploaded_by_user_id")
+  rowCount         Int      @default(0) @map("row_count")
+  matchedCount     Int      @default(0) @map("matched_count")
+  unmappedCount    Int      @default(0) @map("unmapped_count")
+  status           String   @default("PENDING")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  project      Project?     @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  uploadedBy   User?        @relation("RevitImportUploadedBy", fields: [uploadedByUserId], references: [id], onDelete: SetNull)
+  lines        RevitImportLine[]
+  quotes       Quote[]
+
+  @@index([organizationId])
+  @@index([projectId])
+  @@map("revit_imports")
+}
+
+model RevitImportLine {
+  id                  String   @id @default(cuid())
+  importId            String   @map("import_id")
+  rowNum              Int      @map("row_num")
+  rawPieceCode        String?  @map("raw_piece_code")
+  rawPieceName        String   @map("raw_piece_name")
+  rawQty              Float    @map("raw_qty")
+  rawHeightMm         Float    @map("raw_height_mm")
+  catalogPieceId      String?  @map("catalog_piece_id")
+  matchMethod         String?  @map("match_method")
+  isIgnored           Boolean  @default(false) @map("is_ignored")
+  linearM             Float?   @map("linear_m")
+  linearFt            Float?   @map("linear_ft")
+  m2Line              Float?   @map("m2_line")
+  weightLbsCored      Float?   @map("weight_lbs_cored")
+  weightLbsUncored    Float?   @map("weight_lbs_uncored")
+  weightKgCored       Float?   @map("weight_kg_cored")
+  weightKgUncored     Float?   @map("weight_kg_uncored")
+  volumeM3            Float?   @map("volume_m3")
+  pricePerM           Float?   @map("price_per_m")
+  pricePerFt          Float?   @map("price_per_ft")
+  lineTotal           Float?   @map("line_total")
+  markupPct           Float    @default(0) @map("markup_pct")
+  lineTotalWithMarkup Float?   @map("line_total_with_markup")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  import       RevitImport   @relation(fields: [importId], references: [id], onDelete: Cascade)
+  catalogPiece CatalogPiece? @relation(fields: [catalogPieceId], references: [id], onDelete: SetNull)
+
+  @@index([importId])
+  @@index([catalogPieceId])
+  @@map("revit_import_lines")
 }
 
 // ─── Quote Items ─────────────────────────────────────────────────────────────
@@ -1369,6 +1450,7 @@ model CatalogPiece {
   inventoryLevels      InventoryLevel[]
   inventoryTransactions InventoryTransaction[]
   quoteItems           QuoteItem[]
+  revitImportLines     RevitImportLine[]
 
   @@unique([canonicalName, systemCode])
   @@index([systemCode])

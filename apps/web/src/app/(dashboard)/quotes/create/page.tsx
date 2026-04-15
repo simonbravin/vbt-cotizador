@@ -106,8 +106,12 @@ function CreateQuotePage() {
         </button>
       </div>
 
+      <p className="text-xs text-muted-foreground">{t("quotes.createDraftHint")}</p>
       <p className="text-xs text-muted-foreground">
-        {t("quotes.createDraftHint")}
+        {t("quotes.wizardFromCreateHint")}{" "}
+        <Link href="/quotes/wizard" className="text-primary hover:underline">
+          {t("quotes.openAssistantLink")}
+        </Link>
       </p>
     </div>
   );

@@ -458,7 +458,7 @@ export function ProjectDetailClient({ initialProject }: { initialProject: Projec
         <div className="p-5 border-b border-border/60 flex items-center justify-between">
           <h2 className="font-semibold text-foreground">{t("projects.quotesWithCount", { count: project.quotes.length })}</h2>
           <Link
-            href={`/quotes/create?projectId=${project.id}`}
+            href={`/quotes/new?projectId=${project.id}`}
             className="inline-flex items-center gap-2 rounded-full border border-transparent bg-primary px-4 py-2 text-[17px] font-normal text-primary-foreground hover:opacity-[0.88]"
           >
             <Plus className="w-3.5 h-3.5" /> {t("quotes.newQuote")}
