@@ -9,8 +9,8 @@ La plataforma existe para que la **red de distribuidores (partners)** pueda **co
 
 ## Qué debe permanecer (salvo decisión explícita de producto)
 
-- **Asistente de cotización** (CSV Revit / m² por sistema): UI bajo rutas como `/quotes/wizard`, hub en `/quotes/new`, y creación vía **`POST /api/saas/quotes/from-wizard`** (motor `buildQuoteSnapshot` + `canonicalizeSaaSQuotePayload` + `createQuote`).
-- **Borrador rápido** (`/quotes/create`, `POST /api/saas/quotes`) como camino corto; convive con el asistente, no lo reemplaza conceptualmente.
+- **Asistente de cotización** (CSV Revit / m² por sistema): entrada principal **`/quotes/wizard`**; **`/quotes/new`** y **`/quotes/create`** redirigen al wizard (compatibilidad de enlaces viejos). Creación vía **`POST /api/saas/quotes/from-wizard`** (`buildQuoteSnapshot` + `canonicalizeSaaSQuotePayload` + `createQuote`).
+- **`POST /api/saas/quotes`** puede seguir existiendo para integraciones o flujos internos; la **UI partner** no ofrece ya “solo borrador sin asistente”: el camino humano canónico es el wizard.
 - **Import CSV tenant-scoped**: `POST /api/import/csv`, `GET /api/import/[id]`, `POST /api/import/[id]/map` con org efectiva (`getTenantContext` / cookie superadmin).
 - **Persistencia**: modelos `RevitImport` / `RevitImportLine` y campos de desglose en `Quote` (muros, kits, método, etc.) alineados a detalle de cotización y PDF.
 
@@ -18,4 +18,4 @@ La plataforma existe para que la **red de distribuidores (partners)** pueda **co
 
 - **No** sustituir estas rutas por stubs 501/404 ni eliminar el wizard “por simplificar” sin acuerdo explícito y plan de reemplazo equivalente para partners.
 - Refactors de UX o nombres de ruta están bien; **preservar la semántica**: import → snapshot → cotización SaaS con impuestos y defaults de org.
-- Tras cambios de schema: **solo migraciones versionadas** en el repo; el despliegue en **Neon** es responsabilidad del equipo (`migrate deploy` con `DATABASE_URL` de producción, ver regla `vercel-production-env` / `prod-only-deploy`).
+- Tras cambios de schema: **solo migraciones versionadas** en el repo; aplicar **`prisma migrate deploy`** en la base **Neon** usada por producción cuando el schema del repo avance (ver `vercel-production-env` / `prod-only-deploy`).

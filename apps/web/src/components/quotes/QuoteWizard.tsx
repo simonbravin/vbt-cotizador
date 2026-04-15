@@ -331,14 +331,14 @@ export function QuoteWizard() {
         </div>
       </div>
 
-      <div className="surface-card p-4">
-        <div className="flex flex-wrap items-center gap-2">
+      <nav className="surface-card p-4" aria-label={t("quotes.wizardTitle")}>
+        <div className="flex flex-wrap items-center gap-2" role="list">
           {activeSteps.map((s, i) => {
             const currentIdx = activeSteps.findIndex((as) => as.num === step);
             const isActive = s.num === step;
             const isDone = activeSteps.indexOf(s) < currentIdx;
             return (
-              <div key={s.num} className="flex items-center gap-2 flex-1 min-w-[120px]">
+              <div key={s.num} className="flex items-center gap-2 flex-1 min-w-[120px]" role="listitem" aria-current={isActive ? "step" : undefined}>
                 <div
                   className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-medium border ${
                     isDone
@@ -358,7 +358,7 @@ export function QuoteWizard() {
             );
           })}
         </div>
-      </div>
+      </nav>
 
       {error && (
         <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
@@ -366,11 +366,13 @@ export function QuoteWizard() {
         </div>
       )}
 
-      <div className="surface-card p-6 space-y-6">
+      <section className="surface-card p-6 space-y-6" aria-labelledby="wizard-active-step-title" aria-live="polite">
         {step === 1 && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-lg font-semibold text-foreground">{t("wizard.step1Title")}</h2>
+              <h2 id="wizard-active-step-title" className="text-lg font-semibold text-foreground">
+                {t("wizard.step1Title")}
+              </h2>
               <p className="text-sm text-muted-foreground mt-1">{t("wizard.step1Desc")}</p>
             </div>
             <div>
@@ -390,7 +392,7 @@ export function QuoteWizard() {
             </div>
             <div>
               <p className="text-sm font-medium text-foreground mb-2">{t("wizard.costingMethod")}</p>
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-3 sm:grid-cols-2" role="group" aria-label={t("wizard.costingMethod")}>
                 {(
                   [
                     { value: "CSV" as const, label: t("wizard.csvRevitLabel"), desc: t("wizard.csvRevitDesc") },
@@ -400,6 +402,7 @@ export function QuoteWizard() {
                   <button
                     key={opt.value}
                     type="button"
+                    aria-pressed={state.costMethod === opt.value}
                     onClick={() => update({ costMethod: opt.value })}
                     className={`rounded-lg border p-4 text-left transition-colors hover:border-primary/50 ${
                       state.costMethod === opt.value ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-border bg-background"
@@ -451,7 +454,9 @@ export function QuoteWizard() {
 
         {step === 2 && (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-foreground">{t("wizard.step2Title")}</h2>
+            <h2 id="wizard-active-step-title" className="text-lg font-semibold text-foreground">
+              {t("wizard.step2Title")}
+            </h2>
             <p className="text-sm text-muted-foreground">{t("wizard.step2Desc")}</p>
             <input
               type="file"
@@ -503,7 +508,9 @@ export function QuoteWizard() {
 
         {step === 3 && (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-foreground">{t("wizard.step3Title")}</h2>
+            <h2 id="wizard-active-step-title" className="text-lg font-semibold text-foreground">
+              {t("wizard.step3Title")}
+            </h2>
             {state.costMethod === "CSV" ? (
               <p className="text-sm text-muted-foreground">{t("wizard.reviewCsvAreas")}</p>
             ) : (
@@ -559,7 +566,9 @@ export function QuoteWizard() {
 
         {step === 4 && (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-foreground">{t("wizard.step4Title")}</h2>
+            <h2 id="wizard-active-step-title" className="text-lg font-semibold text-foreground">
+              {t("wizard.step4Title")}
+            </h2>
             <p className="text-sm text-muted-foreground">{t("wizard.step4Desc")}</p>
             {isSuperadmin && (
               <div>
@@ -649,7 +658,9 @@ export function QuoteWizard() {
 
         {step === 5 && (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-foreground">{t("wizard.step5Title")}</h2>
+            <h2 id="wizard-active-step-title" className="text-lg font-semibold text-foreground">
+              {t("wizard.step5Title")}
+            </h2>
             <p className="text-sm text-muted-foreground">{t("wizard.step5Desc")}</p>
             <div>
               <label className="text-xs font-semibold uppercase text-muted-foreground">{t("quotes.freight")}</label>
@@ -667,7 +678,9 @@ export function QuoteWizard() {
 
         {step === 6 && (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-foreground">{t("wizard.step6Title")}</h2>
+            <h2 id="wizard-active-step-title" className="text-lg font-semibold text-foreground">
+              {t("wizard.step6Title")}
+            </h2>
             <p className="text-sm text-muted-foreground">{t("wizard.step6Desc")}</p>
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div className="rounded-lg border border-border/60 p-3">
@@ -692,7 +705,7 @@ export function QuoteWizard() {
             </div>
           </div>
         )}
-      </div>
+      </section>
 
       <div className="flex items-center justify-between gap-4">
         <button
