@@ -11,8 +11,10 @@ type TxWithExecuteRaw = Pick<PrismaClient, "$executeRaw">;
  * Prevents lost updates when bulk import and manual (or concurrent) transactions overlap.
  */
 async function acquireWarehouseInventoryXactLock(tx: TxWithExecuteRaw, warehouseId: string): Promise<void> {
+  // PostgreSQL only defines pg_advisory_xact_lock(int, int) and pg_advisory_xact_lock(bigint) — not (bigint, int).
+  // Prisma may bind large JS numbers as int8; cast both args to int4 explicitly.
   await tx.$executeRaw(
-    Prisma.sql`SELECT pg_advisory_xact_lock(${ADV_LOCK_INV_KEY1}, hashtext(${warehouseId}))`
+    Prisma.sql`SELECT pg_advisory_xact_lock(${ADV_LOCK_INV_KEY1}::integer, hashtext(${warehouseId}::text)::integer)`
   );
 }
 
