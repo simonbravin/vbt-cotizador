@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Package, Plus, Calculator, ArrowDownToLine, Search } from "lucide-react";
+import { Package, Plus, Calculator, ArrowDownToLine, Search, Download, Pencil } from "lucide-react";
 import { useT } from "@/lib/i18n/context";
 import { FilterSelect } from "@/components/ui/filter-select";
 import { InventoryBulkFileImport } from "@/components/inventory/InventoryBulkFileImport";
@@ -13,6 +13,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { downloadInventoryLevelsCsv } from "@/lib/inventory-csv-export";
+
+const LEVELS_FETCH_LIMIT = 5000;
 
 type Org = { id: string; name: string };
 type WarehouseRow = { id: string; name: string; location: string | null; isActive: boolean };
@@ -76,6 +79,12 @@ export function SuperadminInventoryClient() {
   const [searchFilter, setSearchFilter] = useState("");
   const [addItemDialogOpen, setAddItemDialogOpen] = useState(false);
   const [txDialogError, setTxDialogError] = useState<string | null>(null);
+  const [adjustLevel, setAdjustLevel] = useState<LevelRow | null>(null);
+  const [adjustQty, setAdjustQty] = useState(0);
+  const [adjustDirection, setAdjustDirection] = useState<"in" | "out">("in");
+  const [adjustNotes, setAdjustNotes] = useState("");
+  const [adjustSaving, setAdjustSaving] = useState(false);
+  const [adjustError, setAdjustError] = useState<string | null>(null);
 
   const vlOrgId = visionLatamOrg?.id ?? "";
 
@@ -112,7 +121,7 @@ export function SuperadminInventoryClient() {
       .then((data) => setWarehouses(Array.isArray(data.warehouses) ? data.warehouses : []))
       .catch(() => setWarehouses([]))
       .finally(() => setLoadingWarehouses(false));
-    fetch(`/api/saas/inventory/levels?organizationId=${encodeURIComponent(vlOrgId)}&limit=500`)
+    fetch(`/api/saas/inventory/levels?organizationId=${encodeURIComponent(vlOrgId)}&limit=${LEVELS_FETCH_LIMIT}`)
       .then((r) => (r.ok ? r.json() : { levels: [] }))
       .then((data) => setLevels(data.levels ?? []))
       .catch(() => setLevels([]))
@@ -128,7 +137,7 @@ export function SuperadminInventoryClient() {
     const ids = [...selectedPartnerIds];
     Promise.all(
       ids.map((organizationId) =>
-        fetch(`/api/saas/inventory/levels?organizationId=${encodeURIComponent(organizationId)}&limit=500`)
+        fetch(`/api/saas/inventory/levels?organizationId=${encodeURIComponent(organizationId)}&limit=${LEVELS_FETCH_LIMIT}`)
           .then((r) => (r.ok ? r.json() : { levels: [] }))
           .then((data) => ({ organizationId, levels: data.levels ?? [] }))
       )
@@ -169,7 +178,12 @@ export function SuperadminInventoryClient() {
       .then((data) => {
         if (data.error) setAffectResult(t("admin.inventory.apiError", { message: String(data.error) }));
         else setAffectResult(t("admin.inventory.transactionsCreated", { count: Number(data.created) || 0 }));
-        if (data.created > 0) fetch(`/api/saas/inventory/levels?organizationId=${encodeURIComponent(vlOrgId)}&limit=500`).then((res) => res.json()).then((d) => setLevels(d.levels ?? []));
+        if (data.created > 0)
+          fetch(
+            `/api/saas/inventory/levels?organizationId=${encodeURIComponent(vlOrgId)}&limit=${LEVELS_FETCH_LIMIT}`
+          )
+            .then((res) => res.json())
+            .then((d) => setLevels(d.levels ?? []));
       })
       .catch(() => setAffectResult(t("admin.inventory.affectInventoryError")))
       .finally(() => setTxSaving(false));
@@ -207,19 +221,63 @@ export function SuperadminInventoryClient() {
         return r.json();
       })
       .then(() => {
-        setTxForm({ ...txForm, quantityDelta: 0, notes: "", lengthMmStr: "" });
+        setTxForm((f) => ({ ...f, quantityDelta: 0, notes: "", lengthMmStr: "" }));
         setAddItemDialogOpen(false);
-        setAffectResult(null);
-        fetch(`/api/saas/inventory/levels?organizationId=${encodeURIComponent(vlOrgId)}&limit=500`).then((res) => res.json()).then((d) => setLevels(d.levels ?? []));
+        setTxDialogError(null);
+        fetch(`/api/saas/inventory/levels?organizationId=${encodeURIComponent(vlOrgId)}&limit=${LEVELS_FETCH_LIMIT}`)
+          .then((res) => res.json())
+          .then((d) => setLevels(d.levels ?? []));
       })
       .catch((e) =>
-        setAffectResult(
+        setTxDialogError(
           t("admin.inventory.apiError", {
             message: e.message || t("admin.inventory.errorTransactionFallback"),
           })
         )
       )
       .finally(() => setTxSaving(false));
+  };
+
+  const handleAdjustLineSubmit = () => {
+    if (!adjustLevel || !vlOrgId || adjustQty <= 0) return;
+    const type = adjustDirection === "in" ? "adjustment_in" : "adjustment_out";
+    const delta = adjustDirection === "in" ? Math.abs(adjustQty) : -Math.abs(adjustQty);
+    const lengthMm = Math.round(Number(adjustLevel.lengthMm ?? 0));
+    setAdjustSaving(true);
+    setAdjustError(null);
+    fetch("/api/saas/inventory/transactions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        warehouseId: adjustLevel.warehouse.id,
+        catalogPieceId: adjustLevel.catalogPiece.id,
+        quantityDelta: delta,
+        type,
+        organizationId: vlOrgId,
+        lengthMm,
+        notes: adjustNotes.trim() || undefined,
+      }),
+    })
+      .then((r) => {
+        if (!r.ok) return r.json().then((d) => { throw new Error(d.error ?? "Error"); });
+        return r.json();
+      })
+      .then(() => {
+        setAdjustLevel(null);
+        setAdjustQty(0);
+        setAdjustNotes("");
+        fetch(`/api/saas/inventory/levels?organizationId=${encodeURIComponent(vlOrgId)}&limit=${LEVELS_FETCH_LIMIT}`)
+          .then((res) => res.json())
+          .then((d) => setLevels(d.levels ?? []));
+      })
+      .catch((e) =>
+        setAdjustError(
+          t("admin.inventory.apiError", {
+            message: e.message || t("admin.inventory.errorTransactionFallback"),
+          })
+        )
+      )
+      .finally(() => setAdjustSaving(false));
   };
 
   const togglePartnerFilter = (id: string) => {
@@ -239,6 +297,11 @@ export function SuperadminInventoryClient() {
         String(l.lengthMm ?? 0).includes(q)
     );
   }, [levels, searchFilter]);
+
+  const showLegacyMeasureBanner = useMemo(
+    () => levels.some((l) => Number(l.quantity) > 0 && Math.round(Number(l.lengthMm ?? 0)) === 0),
+    [levels]
+  );
 
   const filteredPartnersForDropdown = useMemo(() => {
     if (!partnerSearchQuery.trim()) return partnerOrgs;
@@ -340,7 +403,33 @@ export function SuperadminInventoryClient() {
         >
           <Plus className="h-4 w-4" /> {t("admin.inventory.addItem")}
         </button>
+        <button
+          type="button"
+          disabled={filteredLevels.length === 0}
+          onClick={() => {
+            downloadInventoryLevelsCsv(
+              filteredLevels.map((l) => ({
+                warehouseName: l.warehouse.name,
+                pieceName: l.catalogPiece.canonicalName,
+                systemCode: l.catalogPiece.systemCode,
+                lengthMm: l.lengthMm,
+                quantity: l.quantity,
+                unit: l.unit ?? "",
+              })),
+              `vl-inventory-${visionLatamOrg.name ?? "stock"}`
+            );
+          }}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-input bg-background hover:bg-muted disabled:opacity-50"
+        >
+          <Download className="h-4 w-4" /> {t("admin.inventory.exportStockCsv")}
+        </button>
       </div>
+
+      {showLegacyMeasureBanner && (
+        <div className="rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm text-foreground">
+          {t("admin.inventory.legacyMeasureBanner")}
+        </div>
+      )}
 
       <InventoryBulkFileImport
         warehouses={warehouses}
@@ -350,7 +439,7 @@ export function SuperadminInventoryClient() {
         disabled={!vlOrgId || warehouses.length === 0}
         onApplied={() => {
           if (!vlOrgId) return;
-          fetch(`/api/saas/inventory/levels?organizationId=${encodeURIComponent(vlOrgId)}&limit=500`)
+          fetch(`/api/saas/inventory/levels?organizationId=${encodeURIComponent(vlOrgId)}&limit=${LEVELS_FETCH_LIMIT}`)
             .then((r) => (r.ok ? r.json() : { levels: [] }))
             .then((d) => setLevels(d.levels ?? []));
         }}
@@ -385,12 +474,15 @@ export function SuperadminInventoryClient() {
                   <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
                     {t("admin.inventory.unitColumn")}
                   </th>
+                  <th className="px-4 py-2 text-right text-xs font-medium text-muted-foreground uppercase w-[1%] whitespace-nowrap">
+                    {t("admin.inventory.actionsColumn")}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border bg-card">
                 {filteredLevels.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                    <td colSpan={7} className="px-4 py-8 text-center text-sm text-muted-foreground">
                       {levels.length === 0 ? t("admin.inventory.noLevelsAddItem") : t("admin.inventory.filteredEmpty")}
                     </td>
                   </tr>
@@ -410,6 +502,22 @@ export function SuperadminInventoryClient() {
                         </td>
                         <td className="px-4 py-2 text-sm text-right tabular-nums text-foreground">{l.quantity}</td>
                         <td className="px-4 py-2 text-sm text-muted-foreground">{l.unit ?? "—"}</td>
+                        <td className="px-4 py-2 text-sm text-right">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setAdjustError(null);
+                              setAdjustLevel(l);
+                              setAdjustQty(0);
+                              setAdjustNotes("");
+                              setAdjustDirection("in");
+                            }}
+                            className="inline-flex items-center gap-1 rounded-md border border-input bg-background px-2 py-1 text-xs font-medium text-foreground hover:bg-muted"
+                          >
+                            <Pencil className="h-3.5 w-3.5" aria-hidden />
+                            {t("admin.inventory.changeButton")}
+                          </button>
+                        </td>
                       </tr>
                     );
                   })
@@ -576,7 +684,7 @@ export function SuperadminInventoryClient() {
           }
         }}
       >
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="w-[min(100vw-2rem,52rem)] max-w-none sm:max-w-none">
           <DialogHeader>
             <DialogTitle>
               {t("admin.inventory.addItem")} — {t("admin.inventory.catalogPiecesOnly")}
@@ -676,6 +784,114 @@ export function SuperadminInventoryClient() {
               className="inline-flex items-center gap-1 rounded-lg px-4 py-2 text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
             >
               <Plus className="h-4 w-4" /> {txSaving ? t("common.saving") : t("admin.inventory.apply")}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={adjustLevel !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setAdjustLevel(null);
+            setAdjustError(null);
+            setAdjustQty(0);
+            setAdjustNotes("");
+          }
+        }}
+      >
+        <DialogContent className="w-[min(100vw-2rem,40rem)] max-w-none sm:max-w-none">
+          <DialogHeader>
+            <DialogTitle>{t("admin.inventory.adjustLineTitle")}</DialogTitle>
+            <DialogDescription>{t("admin.inventory.adjustLineDescription")}</DialogDescription>
+          </DialogHeader>
+          {adjustLevel && (
+            <div className="space-y-3 text-sm">
+              <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 space-y-1">
+                <p>
+                  <span className="text-muted-foreground">{t("admin.inventory.warehouse")}: </span>
+                  {adjustLevel.warehouse.name}
+                </p>
+                <p>
+                  <span className="text-muted-foreground">{t("admin.inventory.piece")}: </span>
+                  {adjustLevel.catalogPiece.canonicalName}{" "}
+                  <span className="text-muted-foreground">({adjustLevel.catalogPiece.systemCode})</span>
+                </p>
+                <p className="tabular-nums">
+                  <span className="text-muted-foreground">{t("admin.inventory.lengthMmColumn")}: </span>
+                  {Math.round(Number(adjustLevel.lengthMm ?? 0))} mm ·{" "}
+                  <span className="text-muted-foreground">{t("admin.inventory.quantityColumn")}: </span>
+                  {adjustLevel.quantity}
+                </p>
+              </div>
+              {adjustError && (
+                <div className="rounded-lg border border-alert-warningBorder bg-alert-warning px-3 py-2 text-sm text-foreground">
+                  {adjustError}
+                </div>
+              )}
+              <fieldset className="space-y-2">
+                <legend className="text-xs text-muted-foreground mb-1">{t("admin.inventory.adjustDirection")}</legend>
+                <div className="flex flex-wrap gap-4">
+                  <label className="inline-flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="adjust-dir"
+                      checked={adjustDirection === "in"}
+                      onChange={() => setAdjustDirection("in")}
+                      className="rounded-full border-input"
+                    />
+                    {t("admin.inventory.adjustIn")}
+                  </label>
+                  <label className="inline-flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="adjust-dir"
+                      checked={adjustDirection === "out"}
+                      onChange={() => setAdjustDirection("out")}
+                      className="rounded-full border-input"
+                    />
+                    {t("admin.inventory.adjustOut")}
+                  </label>
+                </div>
+              </fieldset>
+              <div>
+                <label className="block text-xs text-muted-foreground mb-1">{t("admin.inventory.labelQuantity")}</label>
+                <input
+                  type="number"
+                  min={0}
+                  step="any"
+                  value={adjustQty || ""}
+                  onChange={(e) => setAdjustQty(Number(e.target.value) || 0)}
+                  className="w-full max-w-xs rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-muted-foreground mb-1">{t("common.notes")}</label>
+                <input
+                  type="text"
+                  value={adjustNotes}
+                  onChange={(e) => setAdjustNotes(e.target.value)}
+                  placeholder={t("admin.inventory.optional")}
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter className="gap-2 sm:gap-0">
+            <button
+              type="button"
+              onClick={() => setAdjustLevel(null)}
+              className="rounded-lg border border-input bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-muted"
+            >
+              {t("common.cancel")}
+            </button>
+            <button
+              type="button"
+              onClick={handleAdjustLineSubmit}
+              disabled={adjustSaving || !adjustLevel || adjustQty <= 0}
+              className="rounded-lg px-4 py-2 text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+            >
+              {adjustSaving ? t("common.saving") : t("admin.inventory.apply")}
             </button>
           </DialogFooter>
         </DialogContent>

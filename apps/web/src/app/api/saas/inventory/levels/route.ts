@@ -14,6 +14,9 @@ async function getHandler(req: Request) {
   const catalogPieceId = url.searchParams.get("catalogPieceId") || undefined;
   const limit = url.searchParams.get("limit");
   const offset = url.searchParams.get("offset");
+  const limitNum = limit
+    ? Math.min(5000, Math.max(1, parseInt(limit, 10) || 50))
+    : Math.min(5000, 2000);
 
   try {
     const tenantCtx = {
@@ -25,7 +28,7 @@ async function getHandler(req: Request) {
       warehouseId,
       organizationId,
       catalogPieceId,
-      limit: limit ? Math.min(500, Math.max(1, parseInt(limit, 10) || 50)) : undefined,
+      limit: limitNum,
       offset: offset ? Math.max(0, parseInt(offset, 10) || 0) : undefined,
     });
     return NextResponse.json(result);

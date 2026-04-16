@@ -13,7 +13,8 @@ export const RevitCsvRowSchema = z.object({
   pieceCode: z.string().optional(),
   /** Schedule unit count; 0 is allowed (inventory / Revit rows with no movement). */
   qty: z.coerce.number().nonnegative(),
-  heightMm: z.coerce.number().positive(),
+  /** 0 = no length column or undifferentiated stock (single bucket). */
+  heightMm: z.coerce.number().nonnegative(),
 });
 
 export type RevitCsvRow = z.infer<typeof RevitCsvRowSchema>;
@@ -180,6 +181,8 @@ export function parseRevitCsv(csvText: string): CsvParseResult {
     // Try to parse qty and height
     const rawQty = parseFloat(rawQtyStr.replace(/,/g, ""));
     let rawHeightMm = parseFloat(rawHeightStr.replace(/,/g, ""));
+    if (!Number.isFinite(rawHeightMm)) rawHeightMm = 0;
+    if (!headerMap.heightMm) rawHeightMm = 0;
     // Inventory / UI exports often label wall height in meters (e.g. "Height (m)"); Revit schedules use mm.
     if (
       headerMap.heightMm &&

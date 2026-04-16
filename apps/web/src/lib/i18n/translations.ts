@@ -895,6 +895,16 @@ export const translations = {
     "admin.inventory.simulatePieceLine": "{{name}} ({{code}}): {{quantity}}",
     "admin.inventory.simulateWarehouseOrg": "{{warehouse}} — {{organization}}",
     "admin.inventory.simulateLevelLine": "{{piece}}: on hand {{onHand}}, required {{required}}, surplus {{surplus}}, shortage {{shortage}}",
+    "admin.inventory.exportStockCsv": "Export stock (CSV)",
+    "admin.inventory.actionsColumn": "Actions",
+    "admin.inventory.legacyMeasureBanner":
+      "Some lines show 0 mm: that stock is in one bucket per piece (not split by length). Import a schedule with Type, Count, and Length (or Height) columns, or use Adjust on a row to move quantity into measured buckets.",
+    "admin.inventory.adjustLineTitle": "Adjust this stock line",
+    "admin.inventory.adjustLineDescription":
+      "Posts an adjustment for this warehouse, catalog piece, and measure (mm). Enter quantity as a positive number and pick stock in or stock out.",
+    "admin.inventory.adjustDirection": "Direction",
+    "admin.inventory.adjustIn": "Stock in",
+    "admin.inventory.adjustOut": "Stock out",
     "admin.inventory.apiError": "Error: {{message}}",
     "admin.inventory.txType.purchase_in": "Purchase in",
     "admin.inventory.txType.project_surplus": "Project surplus",
@@ -3226,6 +3236,16 @@ export const translations = {
     "admin.inventory.simulatePieceLine": "{{name}} ({{code}}): {{quantity}}",
     "admin.inventory.simulateWarehouseOrg": "{{warehouse}} — {{organization}}",
     "admin.inventory.simulateLevelLine": "{{piece}}: en mano {{onHand}}, requerido {{required}}, sobrante {{surplus}}, faltante {{shortage}}",
+    "admin.inventory.exportStockCsv": "Exportar stock (CSV)",
+    "admin.inventory.actionsColumn": "Acciones",
+    "admin.inventory.legacyMeasureBanner":
+      "Hay líneas con medida 0 mm: ese stock está en un solo bucket por pieza (sin desglose por longitud). Importá un cronograma con columnas Tipo, Cantidad y Longitud/Altura, o usá Ajustar en la fila para mover cantidad a buckets con medida.",
+    "admin.inventory.adjustLineTitle": "Ajustar esta línea de stock",
+    "admin.inventory.adjustLineDescription":
+      "Registra un ajuste para esta bodega, pieza del catálogo y medida (mm). Ingresá la cantidad en positivo y elegí entrada o salida de stock.",
+    "admin.inventory.adjustDirection": "Sentido",
+    "admin.inventory.adjustIn": "Entrada de stock",
+    "admin.inventory.adjustOut": "Salida de stock",
     "admin.inventory.apiError": "Error: {{message}}",
     "admin.inventory.txType.purchase_in": "Entrada (compra)",
     "admin.inventory.txType.project_surplus": "Sobrante proyecto",

@@ -68,4 +68,14 @@ Ghost,0,3000`;
     expect(r.rows[0].rawQty).toBe(0);
     expect(r.rows[0].parseError).toBeUndefined();
   });
+
+  it("defaults length to 0 when no height/length column exists (undifferentiated bucket)", () => {
+    const csv = `Type,Count
+OnlyPiece,5`;
+    const r = parseRevitCsv(csv);
+    expect(r.invalidRows).toBe(0);
+    expect(r.rows).toHaveLength(1);
+    expect(r.rows[0].rawHeightMm).toBe(0);
+    expect(r.headerMap.heightMm).toBeNull();
+  });
 });

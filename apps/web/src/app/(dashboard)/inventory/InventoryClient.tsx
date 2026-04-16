@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
-import { Warehouse, Plus, Package, Search, Settings } from "lucide-react";
+import { Warehouse, Plus, Package, Search, Settings, Download, Pencil } from "lucide-react";
 import { useT } from "@/lib/i18n/context";
 import { FilterSelect } from "@/components/ui/filter-select";
 import { InventoryBulkFileImport } from "@/components/inventory/InventoryBulkFileImport";
@@ -14,6 +14,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { downloadInventoryLevelsCsv } from "@/lib/inventory-csv-export";
+
+const LEVELS_FETCH_LIMIT = 5000;
 
 type WarehouseRow = { id: string; name: string; location: string | null; countryCode?: string | null; address?: string | null; managerName?: string | null; contactPhone?: string | null; contactEmail?: string | null; isActive: boolean };
 type LevelRow = {
@@ -76,6 +79,12 @@ export function InventoryClient() {
   const [error, setError] = useState<string | null>(null);
   const [searchFilter, setSearchFilter] = useState("");
   const [addItemDialogOpen, setAddItemDialogOpen] = useState(false);
+  const [adjustLevel, setAdjustLevel] = useState<LevelRow | null>(null);
+  const [adjustQty, setAdjustQty] = useState(0);
+  const [adjustDirection, setAdjustDirection] = useState<"in" | "out">("in");
+  const [adjustNotes, setAdjustNotes] = useState("");
+  const [adjustSaving, setAdjustSaving] = useState(false);
+  const [adjustError, setAdjustError] = useState<string | null>(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -89,7 +98,7 @@ export function InventoryClient() {
 
   const loadLevels = useCallback(() => {
     setLoadingLevels(true);
-    fetch("/api/saas/inventory/levels?limit=500")
+    fetch(`/api/saas/inventory/levels?limit=${LEVELS_FETCH_LIMIT}`)
       .then((r) => r.json())
       .then((data) => setLevels(data.levels ?? []))
       .catch(() => setLevels([]))
@@ -164,6 +173,46 @@ export function InventoryClient() {
       .finally(() => setTxSaving(false));
   };
 
+  const handleAdjustLineSubmit = () => {
+    if (!adjustLevel || adjustQty <= 0) return;
+    const type = adjustDirection === "in" ? "adjustment_in" : "adjustment_out";
+    const delta = adjustDirection === "in" ? Math.abs(adjustQty) : -Math.abs(adjustQty);
+    const lengthMm = Math.round(Number(adjustLevel.lengthMm ?? 0));
+    setAdjustSaving(true);
+    setAdjustError(null);
+    fetch("/api/saas/inventory/transactions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        warehouseId: adjustLevel.warehouse.id,
+        catalogPieceId: adjustLevel.catalogPiece.id,
+        quantityDelta: delta,
+        type,
+        lengthMm,
+        notes: adjustNotes.trim() || undefined,
+      }),
+    })
+      .then((r) => {
+        if (!r.ok) return r.json().then((d) => { throw new Error(d.error ?? "Error"); });
+        return r.json();
+      })
+      .then(() => {
+        setAdjustLevel(null);
+        setAdjustQty(0);
+        setAdjustNotes("");
+        loadLevels();
+        loadTransactions();
+      })
+      .catch((e) =>
+        setAdjustError(
+          t("admin.inventory.apiError", {
+            message: e.message || t("admin.inventory.errorTransactionFallback"),
+          })
+        )
+      )
+      .finally(() => setAdjustSaving(false));
+  };
+
   const filteredLevels = useMemo(() => {
     if (!searchFilter.trim()) return levels;
     const q = searchFilter.trim().toLowerCase();
@@ -175,6 +224,11 @@ export function InventoryClient() {
         String(l.lengthMm ?? 0).includes(q)
     );
   }, [levels, searchFilter]);
+
+  const showLegacyMeasureBanner = useMemo(
+    () => levels.some((l) => Number(l.quantity) > 0 && Math.round(Number(l.lengthMm ?? 0)) === 0),
+    [levels]
+  );
 
   const lowStockThresholdRaw = process.env.NEXT_PUBLIC_INVENTORY_LOW_STOCK_THRESHOLD;
   const lowStockThreshold =
@@ -283,7 +337,32 @@ export function InventoryClient() {
           >
             <Plus className="h-4 w-4" /> {t("admin.inventory.addItem")}
           </button>
+          <button
+            type="button"
+            disabled={filteredLevels.length === 0}
+            onClick={() => {
+              downloadInventoryLevelsCsv(
+                filteredLevels.map((l) => ({
+                  warehouseName: l.warehouse.name,
+                  pieceName: l.catalogPiece.canonicalName,
+                  systemCode: l.catalogPiece.systemCode,
+                  lengthMm: l.lengthMm,
+                  quantity: l.quantity,
+                  unit: l.unit ?? "",
+                })),
+                "inventory-stock"
+              );
+            }}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-input bg-background hover:bg-muted disabled:opacity-50"
+          >
+            <Download className="h-4 w-4" /> {t("admin.inventory.exportStockCsv")}
+          </button>
         </div>
+        {showLegacyMeasureBanner && (
+          <div className="px-4 py-2 border-b border-border bg-muted/40 text-sm text-foreground">
+            {t("admin.inventory.legacyMeasureBanner")}
+          </div>
+        )}
         {loadingLevels ? (
           <div className="p-6 text-center text-sm text-muted-foreground">{t("common.loading")}</div>
         ) : (
@@ -306,12 +385,15 @@ export function InventoryClient() {
                   <th className="px-4 py-2 text-right text-xs font-medium text-muted-foreground uppercase">
                     {t("admin.inventory.quantityColumn")}
                   </th>
+                  <th className="px-4 py-2 text-right text-xs font-medium text-muted-foreground uppercase w-[1%] whitespace-nowrap">
+                    {t("admin.inventory.actionsColumn")}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border bg-card">
                 {filteredLevels.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                    <td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">
                       {levels.length === 0
                         ? t("admin.inventory.noItemsAddOne")
                         : t("admin.inventory.filteredEmpty")}
@@ -378,7 +460,7 @@ export function InventoryClient() {
           }
         }}
       >
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="w-[min(100vw-2rem,52rem)] max-w-none sm:max-w-none">
           <DialogHeader>
             <DialogTitle>{t("partner.inventory.addItemDialogTitle")}</DialogTitle>
             <DialogDescription>
@@ -481,6 +563,114 @@ export function InventoryClient() {
               className="rounded-lg px-4 py-2 text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
             >
               {txSaving ? t("common.saving") : t("admin.inventory.apply")}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={adjustLevel !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setAdjustLevel(null);
+            setAdjustError(null);
+            setAdjustQty(0);
+            setAdjustNotes("");
+          }
+        }}
+      >
+        <DialogContent className="w-[min(100vw-2rem,40rem)] max-w-none sm:max-w-none">
+          <DialogHeader>
+            <DialogTitle>{t("admin.inventory.adjustLineTitle")}</DialogTitle>
+            <DialogDescription>{t("admin.inventory.adjustLineDescription")}</DialogDescription>
+          </DialogHeader>
+          {adjustLevel && (
+            <div className="space-y-3 text-sm">
+              <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 space-y-1">
+                <p>
+                  <span className="text-muted-foreground">{t("admin.inventory.warehouse")}: </span>
+                  {adjustLevel.warehouse.name}
+                </p>
+                <p>
+                  <span className="text-muted-foreground">{t("admin.inventory.piece")}: </span>
+                  {adjustLevel.catalogPiece.canonicalName}{" "}
+                  <span className="text-muted-foreground">({adjustLevel.catalogPiece.systemCode})</span>
+                </p>
+                <p className="tabular-nums">
+                  <span className="text-muted-foreground">{t("partner.inventory.measureMmColumn")}: </span>
+                  {Math.round(Number(adjustLevel.lengthMm ?? 0))} mm ·{" "}
+                  <span className="text-muted-foreground">{t("admin.inventory.quantityColumn")}: </span>
+                  {adjustLevel.quantity}
+                </p>
+              </div>
+              {adjustError && (
+                <div className="rounded-lg border border-alert-warningBorder bg-alert-warning px-3 py-2 text-sm text-foreground">
+                  {adjustError}
+                </div>
+              )}
+              <fieldset className="space-y-2">
+                <legend className="text-xs text-muted-foreground mb-1">{t("admin.inventory.adjustDirection")}</legend>
+                <div className="flex flex-wrap gap-4">
+                  <label className="inline-flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="partner-adjust-dir"
+                      checked={adjustDirection === "in"}
+                      onChange={() => setAdjustDirection("in")}
+                      className="rounded-full border-input"
+                    />
+                    {t("admin.inventory.adjustIn")}
+                  </label>
+                  <label className="inline-flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="partner-adjust-dir"
+                      checked={adjustDirection === "out"}
+                      onChange={() => setAdjustDirection("out")}
+                      className="rounded-full border-input"
+                    />
+                    {t("admin.inventory.adjustOut")}
+                  </label>
+                </div>
+              </fieldset>
+              <div>
+                <label className="block text-xs text-muted-foreground mb-1">{t("admin.inventory.labelQuantity")}</label>
+                <input
+                  type="number"
+                  min={0}
+                  step="any"
+                  value={adjustQty || ""}
+                  onChange={(e) => setAdjustQty(Number(e.target.value) || 0)}
+                  className="w-full max-w-xs rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-muted-foreground mb-1">{t("common.notes")}</label>
+                <input
+                  type="text"
+                  value={adjustNotes}
+                  onChange={(e) => setAdjustNotes(e.target.value)}
+                  placeholder={t("admin.inventory.optional")}
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter className="gap-2 sm:gap-0">
+            <button
+              type="button"
+              onClick={() => setAdjustLevel(null)}
+              className="rounded-lg border border-input bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-muted"
+            >
+              {t("common.cancel")}
+            </button>
+            <button
+              type="button"
+              onClick={handleAdjustLineSubmit}
+              disabled={adjustSaving || !adjustLevel || adjustQty <= 0}
+              className="rounded-lg px-4 py-2 text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+            >
+              {adjustSaving ? t("common.saving") : t("admin.inventory.apply")}
             </button>
           </DialogFooter>
         </DialogContent>
