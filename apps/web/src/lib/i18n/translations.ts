@@ -1244,8 +1244,7 @@ export const translations = {
     "dashboard.accessDeniedSuperadmin": "You do not have access to the admin portal. You are on your partner dashboard.",
 
     "partner.inventory.pageSubtitle": "Manage your organization’s warehouses and inventory.",
-    "partner.inventory.warehousesSectionHint":
-      "Warehouse names and locations are edited in Settings → Warehouses. This list is for reference when recording stock.",
+    "partner.inventory.actions": "Actions",
     "partner.inventory.importFromCsv": "Import from CSV",
     "partner.inventory.lowStockBanner":
       "{{count}} stock line(s) are below {{threshold}}. Review levels below or adjust replenishment.",
@@ -3618,8 +3617,7 @@ export const translations = {
     "dashboard.accessDeniedSuperadmin": "No tenés acceso al portal de administración. Estás en tu panel de partner.",
 
     "partner.inventory.pageSubtitle": "Gestioná las bodegas e inventario de tu organización.",
-    "partner.inventory.warehousesSectionHint":
-      "Los nombres y ubicaciones de las bodegas se editan en Configuración → Bodegas. Esta lista es de referencia al registrar stock.",
+    "partner.inventory.actions": "Acciones",
     "partner.inventory.importFromCsv": "Importar desde CSV",
     "partner.inventory.lowStockBanner":
       "{{count}} línea(s) de stock por debajo de {{threshold}}. Revisá los niveles o la reposición.",

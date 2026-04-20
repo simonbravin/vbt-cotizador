@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
-import { Warehouse, Package, Settings, Pencil, ChevronRight, ChevronDown, Trash2 } from "lucide-react";
+import { Warehouse, Package, Pencil, ChevronRight, ChevronDown } from "lucide-react";
 import { useT } from "@/lib/i18n/context";
 import { FilterSelect } from "@/components/ui/filter-select";
 import { InventoryBulkFileImport } from "@/components/inventory/InventoryBulkFileImport";
@@ -335,17 +335,6 @@ export function InventoryClient() {
           })}
         </div>
       )}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-muted-foreground max-w-prose">
-          {t("partner.inventory.warehousesSectionHint")}
-        </p>
-        <Link
-          href="/settings/warehouses"
-          className="inline-flex items-center gap-2 rounded-lg border border-input px-4 py-2 text-sm font-medium text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-        >
-          <Settings className="w-4 h-4" /> {t("partner.settings.configureWarehouses")}
-        </Link>
-      </div>
       <div className="surface-card-overflow">
         {warehouses.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground">
@@ -408,19 +397,9 @@ export function InventoryClient() {
             setError(null);
             setBulkImportDialogOpen(true);
           }}
+          onPruneStockZero={handlePruneZeroLevels}
+          pruneStockZeroDisabled={pruneBusy}
         />
-        <div className="px-4 py-2 border-b border-border bg-muted/20 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-          <p className="text-xs text-muted-foreground max-w-prose">{t("admin.inventory.pruneZeroHelp")}</p>
-          <button
-            type="button"
-            disabled={pruneBusy}
-            onClick={handlePruneZeroLevels}
-            className="inline-flex shrink-0 items-center gap-2 self-start sm:self-auto rounded-lg border border-destructive/30 bg-background px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10 disabled:opacity-50"
-          >
-            <Trash2 className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            {pruneBusy ? t("common.loading") : t("admin.inventory.pruneZeroButton")}
-          </button>
-        </div>
         {pruneMessage && (
           <div className="px-4 py-2 border-b border-border bg-emerald-500/10 text-sm text-foreground">{pruneMessage}</div>
         )}

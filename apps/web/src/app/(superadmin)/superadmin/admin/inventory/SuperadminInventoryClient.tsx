@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Package, Plus, Calculator, ArrowDownToLine, Search, Pencil, ChevronRight, ChevronDown, Trash2 } from "lucide-react";
+import { Package, Plus, Calculator, ArrowDownToLine, Search, Pencil, ChevronRight, ChevronDown } from "lucide-react";
 import { useT } from "@/lib/i18n/context";
 import { FilterSelect } from "@/components/ui/filter-select";
 import { InventoryBulkFileImport } from "@/components/inventory/InventoryBulkFileImport";
@@ -98,6 +98,7 @@ export function SuperadminInventoryClient() {
   const [expandedStockGroups, setExpandedStockGroups] = useState<Set<string>>(() => new Set());
   const [pruneBusy, setPruneBusy] = useState(false);
   const [pruneMessage, setPruneMessage] = useState<string | null>(null);
+  const [bulkImportDialogOpen, setBulkImportDialogOpen] = useState(false);
 
   const vlOrgId = visionLatamOrg?.id ?? "";
 
@@ -463,20 +464,6 @@ export function SuperadminInventoryClient() {
         </div>
       )}
 
-      <InventoryBulkFileImport
-        warehouses={warehouses}
-        txTypes={txTypes}
-        organizationId={vlOrgId || null}
-        defaultMovementType="adjustment_in"
-        disabled={!vlOrgId || warehouses.length === 0}
-        onApplied={() => {
-          if (!vlOrgId) return;
-          fetch(`/api/saas/inventory/levels?organizationId=${encodeURIComponent(vlOrgId)}&limit=${LEVELS_FETCH_LIMIT}`)
-            .then((r) => (r.ok ? r.json() : { levels: [] }))
-            .then((d) => setLevels(d.levels ?? []));
-        }}
-      />
-
       <div className="surface-card-overflow">
         <h3 className="px-4 py-2 text-sm font-semibold text-foreground border-b border-border bg-muted/30">
           {t("admin.inventory.myVlStockTitle")}
@@ -507,19 +494,13 @@ export function SuperadminInventoryClient() {
             setTxDialogError(null);
             setAddItemDialogOpen(true);
           }}
+          onOpenBulkImport={() => {
+            setAffectResult(null);
+            setBulkImportDialogOpen(true);
+          }}
+          onPruneStockZero={handlePruneZeroLevels}
+          pruneStockZeroDisabled={pruneBusy || !vlOrgId}
         />
-        <div className="px-4 py-2 border-b border-border bg-muted/20 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-          <p className="text-xs text-muted-foreground max-w-prose">{t("admin.inventory.pruneZeroHelp")}</p>
-          <button
-            type="button"
-            disabled={pruneBusy || !vlOrgId}
-            onClick={handlePruneZeroLevels}
-            className="inline-flex shrink-0 items-center gap-2 self-start sm:self-auto rounded-lg border border-destructive/30 bg-background px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10 disabled:opacity-50"
-          >
-            <Trash2 className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            {pruneBusy ? t("common.loading") : t("admin.inventory.pruneZeroButton")}
-          </button>
-        </div>
         {pruneMessage && (
           <div className="px-4 py-2 border-b border-border bg-emerald-500/10 text-sm text-foreground">{pruneMessage}</div>
         )}
@@ -910,6 +891,27 @@ export function SuperadminInventoryClient() {
               <Plus className="h-4 w-4" /> {txSaving ? t("common.saving") : t("admin.inventory.apply")}
             </button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={bulkImportDialogOpen} onOpenChange={setBulkImportDialogOpen}>
+        <DialogContent className="w-[min(100vw-2rem,52rem)] max-h-[min(90dvh,52rem)] max-w-none overflow-y-auto sm:max-w-none">
+          <DialogHeader>
+            <DialogTitle>{t("admin.inventory.bulkImport.title")}</DialogTitle>
+            <DialogDescription>{t("admin.inventory.bulkImport.description")}</DialogDescription>
+          </DialogHeader>
+          <InventoryBulkFileImport
+            variant="embedded"
+            warehouses={warehouses}
+            txTypes={txTypes}
+            organizationId={vlOrgId || null}
+            defaultMovementType="adjustment_in"
+            disabled={!vlOrgId || warehouses.length === 0}
+            onApplied={() => {
+              setBulkImportDialogOpen(false);
+              reloadVlLevels();
+            }}
+          />
         </DialogContent>
       </Dialog>
 

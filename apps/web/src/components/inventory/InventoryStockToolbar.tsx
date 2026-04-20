@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { Plus, Download, Search, ChevronDown, Upload } from "lucide-react";
+import { Plus, Download, Search, ChevronDown, Upload, Trash2 } from "lucide-react";
 import { useT } from "@/lib/i18n/context";
 import { PANEL_SYSTEM_CODES } from "@/lib/inventory-stock-group";
 import {
@@ -24,8 +24,11 @@ type Props = {
   onExport: () => void;
   exportDisabled: boolean;
   onAddItem: () => void;
-  /** Partner inventory: opens bulk CSV import in a dialog. */
+  /** Partner: bulk CSV import dialog. When set, Add / import / prune are grouped under one Actions menu. */
   onOpenBulkImport?: () => void;
+  /** Partner: prune zero-qty and legacy 0 mm rows (confirm in handler). */
+  onPruneStockZero?: () => void;
+  pruneStockZeroDisabled?: boolean;
 };
 
 function SystemChip({
@@ -65,9 +68,13 @@ export function InventoryStockToolbar({
   exportDisabled,
   onAddItem,
   onOpenBulkImport,
+  onPruneStockZero,
+  pruneStockZeroDisabled = false,
 }: Props) {
   const t = useT();
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const [actionsMenuOpen, setActionsMenuOpen] = useState(false);
+  const partnerActionsMenu = onOpenBulkImport != null;
 
   return (
     <div className="border-b border-border">
@@ -146,27 +153,68 @@ export function InventoryStockToolbar({
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {onOpenBulkImport && (
+          {partnerActionsMenu ? (
+            <DropdownMenu open={actionsMenuOpen} onOpenChange={setActionsMenuOpen}>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  aria-label={t("partner.inventory.actions")}
+                  className="inline-flex items-center gap-2 px-2.5 sm:px-4 py-1.5 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 whitespace-nowrap"
+                >
+                  <span>{t("partner.inventory.actions")}</span>
+                  <ChevronDown className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-[min(100vw-2rem,18rem)]" sideOffset={6}>
+                <DropdownMenuItem
+                  className="cursor-pointer gap-2"
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    setActionsMenuOpen(false);
+                    onAddItem();
+                  }}
+                >
+                  <Plus className="h-4 w-4 shrink-0" />
+                  {t("admin.inventory.addItem")}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="cursor-pointer gap-2"
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    setActionsMenuOpen(false);
+                    onOpenBulkImport();
+                  }}
+                >
+                  <Upload className="h-4 w-4 shrink-0" />
+                  {t("partner.inventory.importFromCsv")}
+                </DropdownMenuItem>
+                {onPruneStockZero && (
+                  <DropdownMenuItem
+                    disabled={pruneStockZeroDisabled}
+                    className="cursor-pointer gap-2 text-destructive focus:text-destructive disabled:opacity-50"
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      setActionsMenuOpen(false);
+                      onPruneStockZero();
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4 shrink-0" />
+                    {t("admin.inventory.pruneZeroButton")}
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
             <button
               type="button"
-              onClick={onOpenBulkImport}
-              aria-label={t("partner.inventory.importFromCsv")}
-              className="inline-flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg text-sm font-medium border border-input bg-background hover:bg-muted whitespace-nowrap"
+              onClick={onAddItem}
+              aria-label={t("admin.inventory.addItem")}
+              className="inline-flex items-center gap-2 px-2.5 sm:px-4 py-1.5 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 whitespace-nowrap"
             >
-              <Upload className="h-4 w-4 shrink-0" aria-hidden />
-              <span className="hidden sm:inline">{t("partner.inventory.importFromCsv")}</span>
+              <Plus className="h-4 w-4 shrink-0" aria-hidden />
+              <span className="hidden sm:inline">{t("admin.inventory.addItem")}</span>
             </button>
           )}
-
-          <button
-            type="button"
-            onClick={onAddItem}
-            aria-label={t("admin.inventory.addItem")}
-            className="inline-flex items-center gap-2 px-2.5 sm:px-4 py-1.5 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 whitespace-nowrap"
-          >
-            <Plus className="h-4 w-4 shrink-0" aria-hidden />
-            <span className="hidden sm:inline">{t("admin.inventory.addItem")}</span>
-          </button>
         </div>
       </div>
     </div>
