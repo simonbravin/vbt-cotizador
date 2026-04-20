@@ -40,6 +40,8 @@ type Props = {
   disabled?: boolean;
   defaultMovementType: string;
   onApplied?: () => void;
+  /** `embedded`: no card chrome or title block (use inside a Dialog with its own header). */
+  variant?: "card" | "embedded";
 };
 
 /** SaaS routes may return `{ error: "text" }` or wrapped `{ error: { code, message } }` from withSaaSHandler. */
@@ -63,6 +65,7 @@ export function InventoryBulkFileImport({
   disabled,
   defaultMovementType,
   onApplied,
+  variant = "card",
 }: Props) {
   const t = useT();
   const [warehouseId, setWarehouseId] = useState("");
@@ -143,16 +146,19 @@ export function InventoryBulkFileImport({
   };
 
   const busy = loadingPreview || loadingApply;
+  const embedded = variant === "embedded";
 
   return (
-    <div className="surface-card p-4 space-y-3">
-      <div className="flex items-start gap-2">
-        <Upload className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
-        <div>
-          <h3 className="text-sm font-semibold text-foreground">{t("admin.inventory.bulkImport.title")}</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">{t("admin.inventory.bulkImport.description")}</p>
+    <div className={embedded ? "space-y-3" : "surface-card p-4 space-y-3"}>
+      {!embedded && (
+        <div className="flex items-start gap-2">
+          <Upload className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">{t("admin.inventory.bulkImport.title")}</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">{t("admin.inventory.bulkImport.description")}</p>
+          </div>
         </div>
-      </div>
+      )}
 
       {error && (
         <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-foreground">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { Plus, Download, Search, ChevronDown } from "lucide-react";
+import { Plus, Download, Search, ChevronDown, Upload } from "lucide-react";
 import { useT } from "@/lib/i18n/context";
 import { PANEL_SYSTEM_CODES } from "@/lib/inventory-stock-group";
 import {
@@ -24,6 +24,8 @@ type Props = {
   onExport: () => void;
   exportDisabled: boolean;
   onAddItem: () => void;
+  /** Partner inventory: opens bulk CSV import in a dialog. */
+  onOpenBulkImport?: () => void;
 };
 
 function SystemChip({
@@ -62,6 +64,7 @@ export function InventoryStockToolbar({
   onExport,
   exportDisabled,
   onAddItem,
+  onOpenBulkImport,
 }: Props) {
   const t = useT();
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
@@ -142,6 +145,18 @@ export function InventoryStockToolbar({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+
+          {onOpenBulkImport && (
+            <button
+              type="button"
+              onClick={onOpenBulkImport}
+              aria-label={t("partner.inventory.importFromCsv")}
+              className="inline-flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg text-sm font-medium border border-input bg-background hover:bg-muted whitespace-nowrap"
+            >
+              <Upload className="h-4 w-4 shrink-0" aria-hidden />
+              <span className="hidden sm:inline">{t("partner.inventory.importFromCsv")}</span>
+            </button>
+          )}
 
           <button
             type="button"

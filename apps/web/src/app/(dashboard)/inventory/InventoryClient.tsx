@@ -98,6 +98,7 @@ export function InventoryClient() {
   const [expandedStockGroups, setExpandedStockGroups] = useState<Set<string>>(() => new Set());
   const [pruneBusy, setPruneBusy] = useState(false);
   const [pruneMessage, setPruneMessage] = useState<string | null>(null);
+  const [bulkImportDialogOpen, setBulkImportDialogOpen] = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -298,6 +299,9 @@ export function InventoryClient() {
     }
   };
 
+  /** When true, shows the low-stock banner below. Threshold comes from `NEXT_PUBLIC_INVENTORY_LOW_STOCK_THRESHOLD`. */
+  const LOW_STOCK_BANNER_UI_ENABLED = false;
+
   const lowStockThresholdRaw = process.env.NEXT_PUBLIC_INVENTORY_LOW_STOCK_THRESHOLD;
   const lowStockThreshold =
     lowStockThresholdRaw != null && String(lowStockThresholdRaw).trim() !== ""
@@ -323,7 +327,7 @@ export function InventoryClient() {
           {error}
         </div>
       )}
-      {lowStockLevels.length > 0 && (
+      {LOW_STOCK_BANNER_UI_ENABLED && lowStockLevels.length > 0 && (
         <div className="rounded-lg border border-alert-warningBorder bg-alert-warning px-4 py-3 text-sm text-foreground">
           {t("partner.inventory.lowStockBanner", {
             count: lowStockLevels.length,
@@ -369,17 +373,6 @@ export function InventoryClient() {
         )}
       </div>
 
-      <InventoryBulkFileImport
-        warehouses={warehouses}
-        txTypes={txTypes}
-        defaultMovementType="purchase_in"
-        disabled={warehouses.length === 0}
-        onApplied={() => {
-          loadLevels();
-          loadTransactions();
-        }}
-      />
-
       <div className="surface-card-overflow">
         <InventoryStockToolbar
           title={
@@ -410,6 +403,10 @@ export function InventoryClient() {
           onAddItem={() => {
             setError(null);
             setAddItemDialogOpen(true);
+          }}
+          onOpenBulkImport={() => {
+            setError(null);
+            setBulkImportDialogOpen(true);
           }}
         />
         <div className="px-4 py-2 border-b border-border bg-muted/20 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
@@ -699,6 +696,27 @@ export function InventoryClient() {
               {txSaving ? t("common.saving") : t("admin.inventory.apply")}
             </button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={bulkImportDialogOpen} onOpenChange={setBulkImportDialogOpen}>
+        <DialogContent className="w-[min(100vw-2rem,52rem)] max-h-[min(90dvh,52rem)] max-w-none overflow-y-auto sm:max-w-none">
+          <DialogHeader>
+            <DialogTitle>{t("admin.inventory.bulkImport.title")}</DialogTitle>
+            <DialogDescription>{t("admin.inventory.bulkImport.description")}</DialogDescription>
+          </DialogHeader>
+          <InventoryBulkFileImport
+            variant="embedded"
+            warehouses={warehouses}
+            txTypes={txTypes}
+            defaultMovementType="purchase_in"
+            disabled={warehouses.length === 0}
+            onApplied={() => {
+              setBulkImportDialogOpen(false);
+              loadLevels();
+              loadTransactions();
+            }}
+          />
         </DialogContent>
       </Dialog>
 

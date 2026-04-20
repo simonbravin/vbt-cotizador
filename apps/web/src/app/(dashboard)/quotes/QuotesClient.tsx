@@ -5,7 +5,7 @@ import Link from "next/link";
 import { FileText, Search, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { formatCurrency, cn } from "@/lib/utils";
+import { formatCurrency } from "@/lib/utils";
 import { getCountryName } from "@/lib/countries";
 import { useT } from "@/lib/i18n/context";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -136,7 +136,7 @@ export function QuotesClient({ quotes: initialQuotes, initialStatus }: { quotes:
     <div>
       <div className="flex flex-col gap-3 mb-4">
         <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
-          <div className="relative flex-1 min-w-0 max-w-md">
+          <div className="relative flex-1 min-w-0">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="text"
@@ -144,32 +144,24 @@ export function QuotesClient({ quotes: initialQuotes, initialStatus }: { quotes:
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && runSearch()}
-              className="pl-9 font-mono placeholder:font-sans"
+              className="pl-9"
               aria-label={t("quotes.searchPlaceholder")}
             />
           </div>
-          <Button type="button" onClick={runSearch} disabled={searching} className="gap-2 border border-primary/20 shrink-0" size="default">
-            <Search className="w-4 h-4" />
-            {searching ? "…" : t("common.search")}
+          <Button type="button" onClick={runSearch} disabled={searching} className="border border-primary/20 shrink-0">
+            {searching ? t("projects.searching") : t("common.search")}
           </Button>
           <ViewLayoutToggle view={view} onViewChange={setView} />
         </div>
         <div className="w-full overflow-x-auto pb-0.5 -mx-0.5 px-0.5">
-          <div
-            className="inline-flex max-w-full flex-wrap items-center gap-1 rounded-full border border-border/80 bg-filter p-1"
-            role="tablist"
-            aria-label={t("common.status")}
-          >
+          <div className="flex flex-wrap items-center gap-2 min-w-min" role="tablist" aria-label={t("common.status")}>
             <Link
               href="/quotes"
               role="tab"
               aria-selected={!activeListStatus}
-              className={cn(
-                "inline-flex shrink-0 items-center justify-center rounded-full px-3 py-1.5 text-xs font-mono font-semibold uppercase tracking-wider transition-colors",
-                !activeListStatus
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:bg-muted/80 hover:text-foreground"
-              )}
+              className={`shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium ${
+                !activeListStatus ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"
+              }`}
             >
               {t("quotes.all")}
             </Link>
@@ -181,12 +173,9 @@ export function QuotesClient({ quotes: initialQuotes, initialStatus }: { quotes:
                   href={`/quotes?status=${s}`}
                   role="tab"
                   aria-selected={active}
-                  className={cn(
-                    "inline-flex shrink-0 items-center justify-center rounded-full px-3 py-1.5 text-xs font-mono font-semibold uppercase tracking-wider transition-colors",
-                    active
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:bg-muted/80 hover:text-foreground"
-                  )}
+                  className={`shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium ${
+                    active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"
+                  }`}
                 >
                   {t(STATUS_KEYS[s] ?? s)}
                 </Link>
