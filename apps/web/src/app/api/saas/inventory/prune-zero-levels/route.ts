@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getTenantContext, TenantError } from "@/lib/tenant";
 import { pruneZeroInventoryLevels } from "@vbt/core";
+import { createActivityLog } from "@/lib/audit";
 import { withSaaSHandler } from "@/lib/saas-handler";
 
 async function postHandler(req: Request) {
@@ -22,6 +23,17 @@ async function postHandler(req: Request) {
     const result = await pruneZeroInventoryLevels(prisma, tenantCtx, {
       organizationId: orgFromBody,
     });
+    const orgForLog = orgFromBody ?? tenantCtx.organizationId ?? null;
+    if (orgForLog) {
+      await createActivityLog({
+        organizationId: orgForLog,
+        userId: ctx.userId ?? undefined,
+        action: "inventory_levels_pruned",
+        entityType: "inventory_level",
+        entityId: orgForLog,
+        metadata: { deleted: result.deleted },
+      });
+    }
     return NextResponse.json(result);
   } catch (e) {
     const message = e instanceof Error ? e.message : "Prune failed";

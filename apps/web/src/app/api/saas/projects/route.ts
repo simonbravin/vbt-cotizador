@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db";
 import { getTenantContext, requireActiveOrg, TenantError } from "@/lib/tenant";
 import { listProjects, createProject } from "@vbt/core";
 import { createProjectSchema, listProjectsQuerySchema } from "@vbt/core/validation";
+import { createActivityLog } from "@/lib/audit";
 import { withSaaSHandler } from "@/lib/saas-handler";
 import { ApiHttpError } from "@/lib/api-error";
 
@@ -85,6 +86,14 @@ async function postHandler(req: Request) {
   };
   try {
     const project = await createProject(prisma, tenantCtx, input);
+    await createActivityLog({
+      organizationId: user.activeOrgId ?? undefined,
+      userId: user.id,
+      action: "PROJECT_CREATED",
+      entityType: "Project",
+      entityId: project.id,
+      metadata: { projectName: project.projectName },
+    });
     return NextResponse.json(project, { status: 201 });
   } catch (e) {
     if (e instanceof Error && e.message.includes("Client does not belong")) {

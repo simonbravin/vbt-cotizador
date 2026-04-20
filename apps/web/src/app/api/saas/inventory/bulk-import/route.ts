@@ -11,6 +11,7 @@ import {
   isInventoryMovementOut,
   type InventoryTransactionType,
 } from "@vbt/core";
+import { createActivityLog } from "@/lib/audit";
 import { withSaaSHandler } from "@/lib/saas-handler";
 
 const VALID_TYPES: InventoryTransactionType[] = [
@@ -76,7 +77,7 @@ async function postHandler(req: Request) {
 
   const warehouseRow = await prisma.warehouse.findFirst({
     where: { id: warehouseId },
-    select: { id: true, organizationId: true },
+    select: { id: true, organizationId: true, name: true },
   });
   if (!warehouseRow) {
     return NextResponse.json({ error: "Warehouse not found" }, { status: 400 });
@@ -247,6 +248,19 @@ async function postHandler(req: Request) {
       lines,
       notes: combinedNotes,
       createdByUserId: ctx.userId,
+    });
+    await createActivityLog({
+      organizationId,
+      userId: ctx.userId ?? undefined,
+      action: "inventory_bulk_import",
+      entityType: "inventory_import",
+      entityId: warehouseId,
+      metadata: {
+        fileName: file.name,
+        warehouseName: warehouseRow.name ?? "",
+        movementType: type,
+        distinctPieces: result.appliedPieces,
+      },
     });
     return NextResponse.json({
       dryRun: false,

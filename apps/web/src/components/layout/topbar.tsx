@@ -10,6 +10,8 @@ import { CustomSidebarTrigger } from "@/components/layout/custom-sidebar-trigger
 import { ShellBreadcrumb } from "@/components/layout/shell-breadcrumb";
 import { Separator } from "@/components/ui/separator";
 import { PartnerUpdateChangesList } from "@/components/activity/PartnerUpdateChangesList";
+import type { NotificationStructuredDetail } from "@/lib/notification-enrichment";
+import { INVENTORY_TX_LABEL_CODES } from "@/lib/notification-enrichment";
 
 type NotificationItem = {
   id: string;
@@ -21,7 +23,55 @@ type NotificationItem = {
   entityType: string;
   entityId: string;
   metadata?: unknown;
+  actorDisplay?: string | null;
+  detail?: NotificationStructuredDetail | null;
 };
+
+function NotificationBellStructuredDetail({
+  detail,
+  t,
+}: {
+  detail: NotificationStructuredDetail;
+  t: (key: string, vars?: Record<string, string | number>) => string;
+}) {
+  if (detail.kind === "subtitle") {
+    return <span className="whitespace-normal break-words">{detail.parts.join(" · ")}</span>;
+  }
+  if (detail.kind === "inventory_movement") {
+    const typeLabel = INVENTORY_TX_LABEL_CODES.has(detail.movementType)
+      ? t(`admin.inventory.txType.${detail.movementType}`)
+      : detail.movementType;
+    const delta = t("notifications.inventoryDelta", { n: detail.quantityDelta });
+    const len = detail.lengthMm !== undefined ? ` · ${detail.lengthMm} mm` : "";
+    const buckets = detail.lineCount != null ? ` · ×${detail.lineCount}` : "";
+    const bits = [
+      typeLabel,
+      detail.pieceName || null,
+      detail.warehouseName || null,
+      delta,
+    ].filter(Boolean);
+    return (
+      <span className="whitespace-normal break-words">
+        {bits.join(" · ")}
+        {len}
+        {buckets}
+      </span>
+    );
+  }
+  if (detail.kind === "inventory_bulk") {
+    const typeLabel = INVENTORY_TX_LABEL_CODES.has(detail.movementType)
+      ? t(`admin.inventory.txType.${detail.movementType}`)
+      : detail.movementType;
+    const pieces =
+      detail.distinctPieces > 0 ? t("notifications.inventoryPieces", { count: detail.distinctPieces }) : null;
+    const bits = [detail.fileName || null, detail.warehouseName || null, typeLabel, pieces].filter(Boolean);
+    return <span className="whitespace-normal break-words">{bits.join(" · ")}</span>;
+  }
+  if (detail.kind === "inventory_prune") {
+    return <span>{t("notifications.inventoryPrunedDetail", { count: detail.deleted })}</span>;
+  }
+  return null;
+}
 
 interface TopBarProps {
   /** When true, show context switcher (Platform vs Partner). Only set in superadmin layout. */
@@ -247,7 +297,7 @@ export function TopBar({ showContextSwitcher, activeOrgName }: TopBarProps) {
           {bellOpen && (
             <>
               <div className="fixed inset-0 z-10" aria-hidden onClick={() => setBellOpen(false)} />
-              <div className="absolute right-0 top-full mt-2 z-20 flex max-h-[400px] w-[320px] flex-col overflow-hidden rounded-lg border border-border/80 bg-popover text-popover-foreground shadow-none">
+              <div className="absolute right-0 top-full mt-2 z-20 flex max-h-[min(85vh,32rem)] w-[min(100vw-1rem,36rem)] flex-col overflow-hidden rounded-lg border border-border/80 bg-popover text-popover-foreground shadow-none">
                 <div className="border-b border-border/80 px-4 py-3 text-[15px] font-semibold">
                   {t("notifications.title")}
                 </div>
@@ -263,20 +313,32 @@ export function TopBar({ showContextSwitcher, activeOrgName }: TopBarProps) {
                           <Link
                             href={n.link}
                             onClick={() => setBellOpen(false)}
-                            className="block px-4 py-2.5 text-sm text-popover-foreground hover:bg-muted border-b border-border last:border-b-0"
+                            className="block px-4 py-3 text-sm text-popover-foreground hover:bg-muted border-b border-border last:border-b-0"
                           >
-                            <span className="font-medium">{t(n.titleKey)}</span>
-                            {n.organizationName && (
-                              <span className="block text-xs text-muted-foreground mt-0.5">{n.organizationName}</span>
-                            )}
-                            {n.action?.toLowerCase() === "partner_updated" && n.metadata ? (
-                              <PartnerUpdateChangesList
-                                changes={(n.metadata as { changes?: unknown })?.changes}
-                                compact
-                                maxItems={2}
-                              />
+                            <span className="font-medium text-foreground block leading-snug">{t(n.titleKey)}</span>
+                            {n.detail ? (
+                              <span className="mt-1.5 block text-sm text-foreground/90 leading-snug">
+                                <NotificationBellStructuredDetail detail={n.detail} t={t} />
+                              </span>
                             ) : null}
-                            <span className="block text-xs text-muted-foreground/80 mt-0.5">
+                            {n.organizationName ? (
+                              <span className="mt-1.5 block text-xs text-muted-foreground">{n.organizationName}</span>
+                            ) : null}
+                            {n.action?.toLowerCase() === "partner_updated" && n.metadata ? (
+                              <div className="mt-1.5">
+                                <PartnerUpdateChangesList
+                                  changes={(n.metadata as { changes?: unknown })?.changes}
+                                  compact
+                                  maxItems={2}
+                                />
+                              </div>
+                            ) : null}
+                            {n.actorDisplay ? (
+                              <span className="mt-1.5 block text-xs text-muted-foreground">
+                                {t("notifications.byUser", { name: n.actorDisplay })}
+                              </span>
+                            ) : null}
+                            <span className="mt-1.5 block text-xs text-muted-foreground/80">
                               {new Date(n.createdAt).toLocaleString(locale, {
                                 dateStyle: "short",
                                 timeStyle: "short",

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { getTenantContext } from "@/lib/tenant";
 import { TenantError } from "@/lib/tenant";
 import { createTransaction, listTransactions } from "@vbt/core";
+import { createActivityLog } from "@/lib/audit";
 import { withSaaSHandler } from "@/lib/saas-handler";
 
 async function getHandler(req: Request) {
@@ -77,6 +78,36 @@ async function postHandler(req: Request) {
       createdByUserId: ctx.userId,
       organizationId,
     });
+    const first = transactions[0];
+    if (first) {
+      const [wh, piece] = await Promise.all([
+        prisma.warehouse.findFirst({
+          where: { id: warehouseId },
+          select: { name: true },
+        }),
+        prisma.catalogPiece.findFirst({
+          where: { id: catalogPieceId },
+          select: { canonicalName: true },
+        }),
+      ]);
+      const bucketLen =
+        lengthMm !== undefined && Number.isFinite(lengthMm) ? Math.round(lengthMm) : (first as { lengthMm?: number }).lengthMm;
+      await createActivityLog({
+        organizationId,
+        userId: ctx.userId ?? undefined,
+        action: "inventory_movement",
+        entityType: "inventory_transaction",
+        entityId: first.id,
+        metadata: {
+          movementType: type,
+          warehouseName: wh?.name ?? "",
+          pieceName: piece?.canonicalName ?? "",
+          quantityDelta,
+          lengthMm: bucketLen ?? undefined,
+          lineCount: transactions.length,
+        },
+      });
+    }
     return NextResponse.json(transactions.length === 1 ? transactions[0] : transactions, { status: 201 });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Failed to create transaction";

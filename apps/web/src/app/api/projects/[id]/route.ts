@@ -83,7 +83,7 @@ export async function PATCH(
       action: "PROJECT_UPDATED",
       entityType: "Project",
       entityId: params.id,
-      metadata: { changed: Object.keys(parsed.data) },
+      metadata: { changed: Object.keys(parsed.data), projectName: project.projectName },
     });
 
     return NextResponse.json(project);

@@ -3,6 +3,12 @@ import { prisma } from "@/lib/db";
 import { getTenantContext } from "@/lib/tenant";
 import { TenantError } from "@/lib/tenant";
 import { getNotificationTitleKeyAndLink } from "@/lib/notifications";
+import {
+  buildNotificationStructuredDetail,
+  buildUserLabelMap,
+  collectNotificationEnrichmentIds,
+  getActorDisplayName,
+} from "@/lib/notification-enrichment";
 import { withSaaSHandler } from "@/lib/saas-handler";
 
 function notificationsWhere(ctx: { activeOrgId: string | null; isPlatformSuperadmin: boolean }) {
@@ -45,6 +51,7 @@ async function getHandler(req: Request) {
         metadataJson: true,
         createdAt: true,
         organization: { select: { name: true } },
+        user: { select: { fullName: true, email: true } },
       },
       orderBy: { createdAt: "desc" },
       take: limit * 2,
@@ -68,6 +75,42 @@ async function getHandler(req: Request) {
     }
     rows = rows.slice(0, limit);
 
+    const { projectIds, quoteIds, userIds, programIds } = collectNotificationEnrichmentIds(rows);
+
+    const [projects, quotes, users, programs] = await Promise.all([
+      projectIds.size > 0
+        ? prisma.project.findMany({
+            where: { id: { in: [...projectIds] } },
+            select: { id: true, projectName: true },
+          })
+        : Promise.resolve([]),
+      quoteIds.size > 0
+        ? prisma.quote.findMany({
+            where: { id: { in: [...quoteIds] } },
+            select: { id: true, quoteNumber: true },
+          })
+        : Promise.resolve([]),
+      userIds.size > 0
+        ? prisma.user.findMany({
+            where: { id: { in: [...userIds] } },
+            select: { id: true, fullName: true, email: true },
+          })
+        : Promise.resolve([]),
+      programIds.size > 0
+        ? prisma.trainingProgram.findMany({
+            where: { id: { in: [...programIds] } },
+            select: { id: true, title: true },
+          })
+        : Promise.resolve([]),
+    ]);
+
+    const maps = {
+      projectNameById: Object.fromEntries(projects.map((p) => [p.id, p.projectName])),
+      quoteNumberById: Object.fromEntries(quotes.map((q) => [q.id, q.quoteNumber])),
+      userLabelById: buildUserLabelMap(users),
+      programTitleById: Object.fromEntries(programs.map((p) => [p.id, p.title])),
+    };
+
     const notifications = rows.map((row) => {
       const { titleKey, link } = getNotificationTitleKeyAndLink({
         action: row.action,
@@ -76,6 +119,7 @@ async function getHandler(req: Request) {
         organizationId: row.organizationId ?? null,
         isSuperadmin: ctx.isPlatformSuperadmin ?? false,
       });
+      const detail = buildNotificationStructuredDetail(row, maps);
       return {
         id: row.id,
         action: row.action,
@@ -87,6 +131,8 @@ async function getHandler(req: Request) {
         entityType: row.entityType,
         entityId: row.entityId,
         metadata: row.metadataJson,
+        actorDisplay: getActorDisplayName(row.user),
+        detail: detail ?? undefined,
       };
     });
 

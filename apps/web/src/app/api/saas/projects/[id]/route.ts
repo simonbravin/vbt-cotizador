@@ -70,7 +70,7 @@ async function patchHandler(req: Request, routeContext: unknown) {
     action: "PROJECT_UPDATED",
     entityType: "Project",
     entityId: id,
-    metadata: { changed: Object.keys(parsed.data) },
+    metadata: { changed: Object.keys(parsed.data), projectName: project.projectName },
   });
 
   return NextResponse.json(project);

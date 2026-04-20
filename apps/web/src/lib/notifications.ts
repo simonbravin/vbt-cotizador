@@ -38,21 +38,48 @@ export function getNotificationTitleKeyAndLink(input: NotificationMappingInput):
     const key =
       normAction === "quote_created"
         ? "notifications.quote_created"
-        : normAction === "quote_accepted"
+        : normAction === "quote_accepted" || normAction === "quote_approved"
           ? "notifications.quote_accepted"
-          : normAction === "quote_archived"
-            ? "notifications.quote_archived"
-            : normAction === "quote_deleted"
-              ? "notifications.quote_deleted"
-              : normAction === "quote_modified_by_superadmin"
-                ? "notifications.quote_modified_by_superadmin"
-                : "notifications.quote_updated";
+          : normAction === "quote_rejected"
+            ? "notifications.quote_rejected"
+            : normAction === "quote_archived"
+              ? "notifications.quote_archived"
+              : normAction === "quote_deleted"
+                ? "notifications.quote_deleted"
+                : normAction === "quote_modified_by_superadmin"
+                  ? "notifications.quote_modified_by_superadmin"
+                  : "notifications.quote_updated";
     return { titleKey: key, link };
   }
 
   // Project
-  if (normEntity === "project" || normAction === "project_created") {
-    return { titleKey: "notifications.project_created", link: `/projects/${entityId}` };
+  if (normEntity === "project" || normAction.startsWith("project_")) {
+    const link = `/projects/${entityId}`;
+    if (normAction === "project_created") {
+      return { titleKey: "notifications.project_created", link };
+    }
+    if (normAction === "project_updated") {
+      return { titleKey: "notifications.project_updated", link };
+    }
+    if (normAction === "project_archived") {
+      return { titleKey: "notifications.project_archived", link };
+    }
+    if (normAction === "project_purged") {
+      return { titleKey: "notifications.project_purged", link };
+    }
+    return { titleKey: "notifications.project_updated", link };
+  }
+
+  // Inventory
+  const invLink = isSuperadmin ? "/superadmin/admin/inventory" : "/inventory";
+  if (normAction === "inventory_movement" || normEntity === "inventory_transaction") {
+    return { titleKey: "notifications.inventory_movement", link: invLink };
+  }
+  if (normAction === "inventory_bulk_import") {
+    return { titleKey: "notifications.inventory_bulk_import", link: invLink };
+  }
+  if (normAction === "inventory_levels_pruned") {
+    return { titleKey: "notifications.inventory_pruned", link: invLink };
   }
 
   // Client

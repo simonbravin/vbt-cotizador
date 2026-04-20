@@ -106,7 +106,7 @@ export async function POST(req: Request) {
       action: "PROJECT_CREATED",
       entityType: "Project",
       entityId: project.id,
-      metadata: {},
+      metadata: { projectName: project.projectName },
     });
 
     return NextResponse.json(project, { status: 201 });
