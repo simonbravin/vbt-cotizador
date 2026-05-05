@@ -45,7 +45,7 @@ export function PartnerUpdateChangesList({
     });
     const extra = list.length > 2 ? ` ${t("activityLog.moreChanges", { count: list.length - 2 })}` : "";
     return (
-      <span className="block text-xs text-muted-foreground mt-1 leading-snug line-clamp-3">
+      <span className="text-xs text-muted-foreground leading-snug line-clamp-2">
         {parts.join(" · ")}
         {extra}
       </span>

@@ -22,6 +22,8 @@ export type CanonicalSaaSQuoteSource = {
   technicalServiceUsd: number;
   /** Resolved from `TaxRuleSet` for the quote org + project country; required for landed total. */
   taxRules: TaxRule[];
+  /** Used for `FIXED_PER_CONTAINER` and similar tax bases. Defaults to 1 when omitted. */
+  numContainers?: number;
 };
 
 /** Output of `mergeSaaSQuotePatchIntoSource` — caller must attach `taxRules` before `canonicalizeSaaSQuotePayload`. */
@@ -171,6 +173,7 @@ export function canonicalizeSaaSQuotePayload(src: CanonicalSaaSQuoteSource): Can
     importCostUsd: src.importCostUsd,
     technicalServiceUsd: src.technicalServiceUsd,
     taxRules: src.taxRules,
+    numContainers: src.numContainers,
   });
 
   return {

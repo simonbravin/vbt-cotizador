@@ -18,6 +18,8 @@ export type PlatformConfigJson = {
     rateGlobal?: number;
     baseUom?: "M" | "FT";
     minRunFt?: number;
+    /** Usable volume per shipping container (m³) for FCL count in the quote wizard. */
+    containerCapacityM3?: number;
   };
   moduleVisibility?: Record<string, boolean>;
   [key: string]: unknown;
@@ -129,6 +131,8 @@ const DEFAULT_RATE_S200 = 85;
 /**
  * Get raw factory rates (USD/m²) from platform_config. Server-side only; never expose to client for partners.
  */
+const DEFAULT_CONTAINER_CAPACITY_M3 = 68;
+
 export async function getRawRatesFromConfig(prisma: PrismaClient): Promise<{
   rateS80: number;
   rateS150: number;
@@ -136,9 +140,11 @@ export async function getRawRatesFromConfig(prisma: PrismaClient): Promise<{
   rateGlobal: number;
   baseUom: "M" | "FT";
   minRunFt: number;
+  containerCapacityM3: number;
 }> {
   const row = await prisma.platformConfig.findFirst({ select: { configJson: true } });
   const p = (row?.configJson as { pricing?: Record<string, unknown> })?.pricing ?? {};
+  const cap = Number(p.containerCapacityM3);
   return {
     rateS80: (p.rateS80 as number) ?? DEFAULT_RATE_S80,
     rateS150: (p.rateS150 as number) ?? DEFAULT_RATE_S150,
@@ -146,6 +152,7 @@ export async function getRawRatesFromConfig(prisma: PrismaClient): Promise<{
     rateGlobal: (p.rateGlobal as number) ?? 0,
     baseUom: ((p.baseUom as string) === "FT" ? "FT" : "M") as "M" | "FT",
     minRunFt: (p.minRunFt as number) ?? 0,
+    containerCapacityM3: Number.isFinite(cap) && cap > 0 ? cap : DEFAULT_CONTAINER_CAPACITY_M3,
   };
 }
 
@@ -162,6 +169,7 @@ export async function getQuoteDefaultsForOrg(
   effectiveRateS200: number;
   baseUom: "M" | "FT";
   minRunFt: number;
+  containerCapacityM3: number;
 }> {
   const raw = await getRawRatesFromConfig(prisma);
   const vlPct = await getVisionLatamCommissionPctForOrg(prisma, organizationId);
@@ -172,5 +180,6 @@ export async function getQuoteDefaultsForOrg(
     effectiveRateS200: raw.rateS200 * factor,
     baseUom: raw.baseUom,
     minRunFt: raw.minRunFt,
+    containerCapacityM3: raw.containerCapacityM3,
   };
 }

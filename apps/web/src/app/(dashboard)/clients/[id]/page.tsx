@@ -6,7 +6,8 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { ClientDetailActions } from "./ClientDetailActions";
 import type { SessionUser } from "@/lib/auth";
-import { getAllowedCountryCodes } from "@/lib/allowed-countries";
+import { getPartnerCountryDropdownOptions } from "@/lib/allowed-countries";
+import { getCountryName } from "@/lib/countries";
 
 export default async function ClientDetailPage({
   params,
@@ -19,7 +20,7 @@ export default async function ClientDetailPage({
     const orgId = effectiveOrgId ?? getEffectiveOrganizationId(user) ?? "";
     if (!orgId) notFound();
 
-    const [client, allowedCodes] = await Promise.all([
+    const [client, countries] = await Promise.all([
       prisma.client.findFirst({
         where: { id: params.id, organizationId: orgId },
         include: {
@@ -29,25 +30,15 @@ export default async function ClientDetailPage({
           },
         },
       }),
-      getAllowedCountryCodes(prisma, orgId),
+      getPartnerCountryDropdownOptions(prisma, orgId),
     ]);
-    const countryRows =
-      allowedCodes.length > 0
-        ? await prisma.country.findMany({
-            where: { code: { in: allowedCodes } },
-            orderBy: { name: "asc" },
-          })
-        : [];
-    const countries: { id: string; name: string; code: string }[] = countryRows.map((co) => ({
-      id: co.id,
-      name: co.name,
-      code: co.code,
-    }));
 
     if (!client) notFound();
 
     const countryName =
-      client.countryCode && countryRows.find((r) => r.code === client.countryCode)?.name;
+      client.countryCode &&
+      (countries.find((r) => r.code === client.countryCode)?.name ??
+        getCountryName(client.countryCode));
 
     return (
     <div className="max-w-4xl mx-auto space-y-6">

@@ -370,6 +370,7 @@ export async function duplicateQuote(
     resolved.allowedPartnerMarkupMinPct,
     resolved.allowedPartnerMarkupMaxPct
   );
+  const numContainers = Number((existing as { numContainers?: number }).numContainers ?? 1);
   const canon = canonicalizeSaaSQuotePayload({
     items: itemInputs,
     headerFactoryExwUsd: itemInputs.length > 0 ? undefined : Number(existing.factoryCostTotal ?? 0),
@@ -380,6 +381,7 @@ export async function duplicateQuote(
     importCostUsd: Number(existing.importCost ?? 0),
     technicalServiceUsd: Number(existing.technicalServiceCost ?? 0),
     taxRules,
+    numContainers: Number.isFinite(numContainers) && numContainers >= 1 ? Math.floor(numContainers) : 1,
   });
   const existingErId = (existing as { engineeringRequestId?: string | null }).engineeringRequestId;
   const created = await createQuote(prisma, ctx, {

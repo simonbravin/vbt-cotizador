@@ -307,46 +307,58 @@ export function TopBar({ showContextSwitcher, activeOrgName }: TopBarProps) {
                   ) : notifications.length === 0 ? (
                     <div className="px-4 py-6 text-center text-muted-foreground text-sm">{t("notifications.empty")}</div>
                   ) : (
-                    <ul className="py-1">
-                      {notifications.map((n) => (
-                        <li key={n.id}>
-                          <Link
-                            href={n.link}
-                            onClick={() => setBellOpen(false)}
-                            className="block px-4 py-3 text-sm text-popover-foreground hover:bg-muted border-b border-border last:border-b-0"
-                          >
-                            <span className="font-medium text-foreground block leading-snug">{t(n.titleKey)}</span>
-                            {n.detail ? (
-                              <span className="mt-1.5 block text-sm text-foreground/90 leading-snug">
-                                <NotificationBellStructuredDetail detail={n.detail} t={t} />
-                              </span>
-                            ) : null}
-                            {n.organizationName ? (
-                              <span className="mt-1.5 block text-xs text-muted-foreground">{n.organizationName}</span>
-                            ) : null}
-                            {n.action?.toLowerCase() === "partner_updated" && n.metadata ? (
-                              <div className="mt-1.5">
-                                <PartnerUpdateChangesList
-                                  changes={(n.metadata as { changes?: unknown })?.changes}
-                                  compact
-                                  maxItems={2}
-                                />
+                    <ul className="divide-y divide-border/80">
+                      {notifications.map((n) => {
+                        const metaParts = [
+                          n.organizationName ?? null,
+                          n.actorDisplay ? t("notifications.byUser", { name: n.actorDisplay }) : null,
+                        ].filter(Boolean) as string[];
+                        const timeStr = new Date(n.createdAt).toLocaleString(locale, {
+                          dateStyle: "short",
+                          timeStyle: "short",
+                        });
+                        return (
+                          <li key={n.id}>
+                            <Link
+                              href={n.link}
+                              onClick={() => setBellOpen(false)}
+                              className="block px-3 py-2 text-sm text-popover-foreground transition-colors hover:bg-muted"
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0 flex-1 leading-snug line-clamp-2">
+                                  <span className="font-medium text-foreground">{t(n.titleKey)}</span>
+                                  {n.detail ? (
+                                    <>
+                                      <span className="text-muted-foreground font-normal"> — </span>
+                                      <span className="font-normal text-foreground/90">
+                                        <NotificationBellStructuredDetail detail={n.detail} t={t} />
+                                      </span>
+                                    </>
+                                  ) : null}
+                                </div>
+                                <time
+                                  dateTime={n.createdAt}
+                                  className="shrink-0 pt-0.5 text-[11px] tabular-nums text-muted-foreground"
+                                >
+                                  {timeStr}
+                                </time>
                               </div>
-                            ) : null}
-                            {n.actorDisplay ? (
-                              <span className="mt-1.5 block text-xs text-muted-foreground">
-                                {t("notifications.byUser", { name: n.actorDisplay })}
-                              </span>
-                            ) : null}
-                            <span className="mt-1.5 block text-xs text-muted-foreground/80">
-                              {new Date(n.createdAt).toLocaleString(locale, {
-                                dateStyle: "short",
-                                timeStyle: "short",
-                              })}
-                            </span>
-                          </Link>
-                        </li>
-                      ))}
+                              {metaParts.length > 0 ? (
+                                <div className="mt-0.5 truncate text-xs text-muted-foreground">{metaParts.join(" · ")}</div>
+                              ) : null}
+                              {n.action?.toLowerCase() === "partner_updated" && n.metadata ? (
+                                <div className="mt-0.5 min-w-0">
+                                  <PartnerUpdateChangesList
+                                    changes={(n.metadata as { changes?: unknown })?.changes}
+                                    compact
+                                    maxItems={2}
+                                  />
+                                </div>
+                              ) : null}
+                            </Link>
+                          </li>
+                        );
+                      })}
                     </ul>
                   )}
                 </div>

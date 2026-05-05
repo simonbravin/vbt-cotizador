@@ -65,6 +65,7 @@ type QuoteWithItems = {
 
 function canonFromDbQuote(quote: QuoteWithItems, taxRules: TaxRule[]) {
   const inputs = prismaQuoteItemsToInputs(quote.items);
+  const numContainers = Number((quote as { numContainers?: number }).numContainers ?? 1);
   return canonicalizeSaaSQuotePayload({
     items: inputs,
     headerFactoryExwUsd: inputs.length > 0 ? undefined : Number(quote.factoryCostTotal ?? 0),
@@ -75,6 +76,7 @@ function canonFromDbQuote(quote: QuoteWithItems, taxRules: TaxRule[]) {
     importCostUsd: Number(quote.importCost ?? 0),
     technicalServiceUsd: Number(quote.technicalServiceCost ?? 0),
     taxRules,
+    numContainers: Number.isFinite(numContainers) && numContainers >= 1 ? Math.floor(numContainers) : 1,
   });
 }
 

@@ -223,7 +223,12 @@ async function patchHandler(req: Request, routeContext: unknown) {
         projectCountryCode: fullRow.project?.countryCode,
       });
       const mergedGuarded = clampPartnerMarkupOnMergedSaaSSource(merged, resolved);
-      const canon = canonicalizeSaaSQuotePayload({ ...mergedGuarded, taxRules });
+      const existingNum = Number((existingFull as { numContainers?: number }).numContainers ?? 1);
+      const canon = canonicalizeSaaSQuotePayload({
+        ...mergedGuarded,
+        taxRules,
+        numContainers: Number.isFinite(existingNum) && existingNum >= 1 ? Math.floor(existingNum) : 1,
+      });
 
       updateData = {
         status: data.status,

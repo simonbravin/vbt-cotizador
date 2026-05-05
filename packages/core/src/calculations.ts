@@ -320,3 +320,35 @@ export function computeContainers(
   if (kitsPerContainer <= 0) return 0;
   return Math.ceil(totalKits / kitsPerContainer);
 }
+
+/** FCL: full containers only; shipping is billed per whole container (no fractional container charge). */
+export type FclDerivationInput = {
+  totalKits: number;
+  totalVolumeM3: number;
+  containerCapacityM3: number;
+};
+
+export type FclDerivationResult = {
+  numContainers: number;
+  kitsPerContainer: number;
+};
+
+/**
+ * When there are kits and positive aggregate volume: `numContainers = max(1, ceil(volume / capacity))`.
+ * With kits but no volume data, defaults to one container. `kitsPerContainer` is informational (ceil(kits / numContainers)).
+ */
+export function deriveFclContainersAndMetrics(input: FclDerivationInput): FclDerivationResult {
+  const cap = Math.max(1e-6, Number(input.containerCapacityM3) || 68);
+  const kits = Math.max(0, Math.floor(Number(input.totalKits) || 0));
+  const vol = Math.max(0, Number(input.totalVolumeM3) || 0);
+
+  let numContainers = 1;
+  if (kits > 0 && vol > 0) {
+    numContainers = Math.max(1, Math.ceil(vol / cap));
+  } else if (kits > 0) {
+    numContainers = 1;
+  }
+
+  const kitsPerContainer = numContainers > 0 ? Math.ceil(kits / numContainers) : 0;
+  return { numContainers, kitsPerContainer };
+}

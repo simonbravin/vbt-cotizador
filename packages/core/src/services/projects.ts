@@ -1,5 +1,32 @@
 import type { Prisma, PrismaClient, Project, ProjectStatus } from "@vbt/db";
+import { quoteRowFobUsd } from "../pricing/quote-read-model";
 import { orgScopeWhere, type TenantContext } from "./tenant-context";
+
+const listProjectsInclude = {
+  organization: { select: { id: true, name: true } },
+  client: { select: { id: true, name: true } },
+  assignedToUser: { select: { id: true, fullName: true } },
+  baselineQuote: {
+    select: {
+      id: true,
+      quoteNumber: true,
+      factoryCostTotal: true,
+      visionLatamMarkupPct: true,
+      partnerMarkupPct: true,
+      logisticsCost: true,
+      localTransportCost: true,
+      importCost: true,
+      technicalServiceCost: true,
+      taxRulesSnapshotJson: true,
+      totalPrice: true,
+    },
+  },
+  _count: { select: { quotes: true } },
+} satisfies Prisma.ProjectInclude;
+
+export type ListedProjectRow = Prisma.ProjectGetPayload<{ include: typeof listProjectsInclude }> & {
+  baselineFobUsd: number;
+};
 
 export type ListProjectsOptions = {
   status?: ProjectStatus;
@@ -17,7 +44,7 @@ export async function listProjects(
   prisma: PrismaClient,
   ctx: TenantContext,
   options: ListProjectsOptions = {}
-): Promise<{ projects: Project[]; total: number }> {
+): Promise<{ projects: ListedProjectRow[]; total: number }> {
   const orgWhere = orgScopeWhere(ctx);
   const statusWhere =
     options.status != null
@@ -39,22 +66,20 @@ export async function listProjects(
       ],
     }),
   };
-  const [projects, total] = await Promise.all([
+  const [rows, total] = await Promise.all([
     prisma.project.findMany({
       where,
-      include: {
-        organization: { select: { id: true, name: true } },
-        client: { select: { id: true, name: true } },
-        assignedToUser: { select: { id: true, fullName: true } },
-        baselineQuote: { select: { id: true, quoteNumber: true } },
-        _count: { select: { quotes: true } },
-      },
+      include: listProjectsInclude,
       orderBy: { updatedAt: "desc" },
       take: options.limit ?? 50,
       skip: options.offset ?? 0,
     }),
     prisma.project.count({ where }),
   ]);
+  const projects: ListedProjectRow[] = rows.map((p) => ({
+    ...p,
+    baselineFobUsd: quoteRowFobUsd(p.baselineQuote as Record<string, unknown> | null),
+  }));
   return { projects, total };
 }
 

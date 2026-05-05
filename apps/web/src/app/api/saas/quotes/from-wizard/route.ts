@@ -1,6 +1,6 @@
 /**
  * Create a quote from the multi-step wizard (CSV Revit import or m² by system).
- * Uses `buildQuoteSnapshot` for wall/material math; persists money via `canonicalizeSaaSQuotePayload` + `createQuote`.
+ * Uses `computeWizardQuoteArtifacts` for FCL, freight profile × containers, destination country taxes, and SaaS layers.
  */
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -11,21 +11,14 @@ import { ApiHttpError } from "@/lib/api-error";
 import { generateQuoteNumber } from "@/lib/utils";
 import { createActivityLog } from "@/lib/audit";
 import {
-  buildQuoteSnapshot,
-  canonicalizeSaaSQuotePayload,
-  catalogPiecesToPieceMetaMap,
+  computeWizardQuoteArtifacts,
   createQuote,
-  getRawRatesFromConfig,
+  formatQuoteForSaaSApiWithSnapshot,
   projectHasCompletedEngineering,
   assertEngineeringRequestForQuote,
-  resolveTaxRulesForSaaSQuote,
-  resolvePartnerPricingConfig,
-  resolveSaaSQuotePricingForCreate,
-  formatQuoteForSaaSApiWithSnapshot,
+  QuoteTaxResolutionError,
 } from "@vbt/core";
 import type { Prisma } from "@vbt/db";
-import type { CreateQuoteItemInput } from "@vbt/core";
-import type { PieceMeta, QuoteInputLine } from "@vbt/core/quote-engine";
 
 const wizardBodySchema = z
   .object({
@@ -42,11 +35,16 @@ const wizardBodySchema = z
     commissionPct: z.number().min(0).default(0),
     commissionFixed: z.number().min(0).default(0),
     commissionFixedPerKit: z.number().min(0).optional().default(0),
+    /** Total USD logistics when not using a freight profile (manual). */
     freightCostUsd: z.number().min(0).default(0),
     freightProfileId: z.string().optional().nullable(),
-    numContainers: z.number().int().min(1).default(1),
-    kitsPerContainer: z.number().int().min(0).default(0),
+    /** Ignored: derived server-side from volume and `containerCapacityM3`. */
+    numContainers: z.number().int().min(0).optional(),
+    kitsPerContainer: z.number().int().min(0).optional(),
     totalKits: z.number().int().min(0).default(0),
+    partnerMarkupPct: z.number().optional(),
+    /** ISO 3166-1 alpha-2; used for tax rules and partner policy overrides. Falls back to project country. */
+    destinationCountryCode: z.string().length(2).optional().nullable(),
     countryId: z.string().optional().nullable(),
     taxRuleSetId: z.string().optional().nullable(),
     notes: z.string().max(32000).optional().nullable(),
@@ -58,40 +56,6 @@ const wizardBodySchema = z
       ctx.addIssue({ code: "custom", message: "revitImportId is required for CSV method", path: ["revitImportId"] });
     }
   });
-
-function snapshotLinesToItems(
-  lines: Array<{
-    description: string;
-    pieceId?: string | null;
-    qty: number;
-    lineTotal: number;
-    isIgnored: boolean;
-  }>
-): CreateQuoteItemInput[] {
-  const out: CreateQuoteItemInput[] = [];
-  let i = 0;
-  for (const line of lines) {
-    if (line.isIgnored) continue;
-    const qty = Math.max(0, Number(line.qty) || 0);
-    const lineTotal = Math.max(0, Number(line.lineTotal) || 0);
-    if (qty <= 0 || lineTotal <= 0) continue;
-    const unitCost = lineTotal / qty;
-    out.push({
-      itemType: "product",
-      sku: null,
-      description: line.description,
-      unit: "unit",
-      quantity: qty,
-      unitCost,
-      markupPct: 0,
-      unitPrice: unitCost,
-      totalPrice: lineTotal,
-      sortOrder: i++,
-      catalogPieceId: line.pieceId ?? null,
-    });
-  }
-  return out;
-}
 
 async function postHandler(req: Request) {
   const ctx = await getTenantContext();
@@ -152,130 +116,60 @@ async function postHandler(req: Request) {
     throw new ApiHttpError(400, "ENGINEERING_REQUEST_INVALID", msg);
   }
 
-  const taxRules = await resolveTaxRulesForSaaSQuote(prisma, {
-    organizationId,
-    projectCountryCode: projectOrg.countryCode,
-  });
-
-  const raw = await getRawRatesFromConfig(prisma);
-  const orgDefaults = {
-    baseUom: data.baseUom,
-    minRunFt: raw.minRunFt,
-    rateS80: raw.rateS80,
-    rateS150: raw.rateS150,
-    rateS200: raw.rateS200,
-    rateGlobal: raw.rateGlobal,
-  };
-
-  let lines: QuoteInputLine[] | undefined;
-  let pieceMeta: Record<string, PieceMeta> = {};
-
-  if (data.costMethod === "CSV" && data.revitImportId) {
-    const imp = await prisma.revitImport.findFirst({
-      where: { id: data.revitImportId, organizationId },
-      include: {
-        lines: { orderBy: { rowNum: "asc" } },
+  let artifacts;
+  try {
+    artifacts = await computeWizardQuoteArtifacts(prisma, {
+      organizationId,
+      isPlatformSuperadmin: !!ctx.isPlatformSuperadmin,
+      data: {
+        projectId: data.projectId,
+        costMethod: data.costMethod,
+        baseUom: data.baseUom,
+        revitImportId: data.revitImportId,
+        m2S80: data.m2S80,
+        m2S150: data.m2S150,
+        m2S200: data.m2S200,
+        m2Total: data.m2Total,
+        commissionPct: data.commissionPct,
+        commissionFixed: data.commissionFixed,
+        commissionFixedPerKit: data.commissionFixedPerKit ?? 0,
+        freightCostUsd: data.freightCostUsd,
+        freightProfileId: data.freightProfileId,
+        partnerMarkupPct: data.partnerMarkupPct,
+        destinationCountryCode: data.destinationCountryCode,
+        totalKits: data.totalKits,
       },
+      project: projectOrg,
     });
-    if (!imp) {
-      throw new ApiHttpError(404, "IMPORT_NOT_FOUND", "CSV import not found.");
+  } catch (e) {
+    if (e instanceof QuoteTaxResolutionError) {
+      throw new ApiHttpError(400, e.code, e.message);
     }
-    const pieceIds = [
-      ...new Set(imp.lines.map((l) => l.catalogPieceId).filter((x): x is string => Boolean(x))),
-    ];
-    const pieces = pieceIds.length
-      ? await prisma.catalogPiece.findMany({
-          where: { id: { in: pieceIds }, isActive: true },
-          select: {
-            id: true,
-            canonicalName: true,
-            dieNumber: true,
-            systemCode: true,
-            usefulWidthMm: true,
-            lbsPerMCored: true,
-            kgPerMCored: true,
-            pricePerM2Cored: true,
-          },
-        })
-      : [];
-    pieceMeta = catalogPiecesToPieceMetaMap(pieces);
-
-    lines = imp.lines
-      .filter((l) => !l.isIgnored && l.catalogPieceId)
-      .map((l) => ({
-        description: l.rawPieceName,
-        pieceId: l.catalogPieceId ?? undefined,
-        qty: l.rawQty,
-        heightMm: l.rawHeightMm,
-        isIgnored: false,
-      }));
+    const code = e instanceof Error ? e.message : "WIZARD_COMPUTE_FAILED";
+    const map: Record<string, { status: number; http: string; msg: string }> = {
+      IMPORT_NOT_FOUND: { status: 404, http: "IMPORT_NOT_FOUND", msg: "CSV import not found." },
+      WIZARD_CSV_NO_LINES: {
+        status: 400,
+        http: "WIZARD_CSV_NO_LINES",
+        msg: "No priced lines from CSV import. Map or ignore all rows, then try again.",
+      },
+      FREIGHT_PROFILE_NOT_FOUND: {
+        status: 400,
+        http: "FREIGHT_PROFILE_NOT_FOUND",
+        msg: "Freight profile not found or not available for your organization.",
+      },
+      DESTINATION_COUNTRY_REQUIRED: {
+        status: 400,
+        http: "DESTINATION_COUNTRY_REQUIRED",
+        msg: "Select a destination country (or set the project country) to resolve taxes.",
+      },
+    };
+    const m = map[code];
+    if (m) throw new ApiHttpError(m.status, m.http, m.msg);
+    throw e;
   }
 
-  /** VL % is applied again in SaaS layers; keep snapshot FOB = factory + freight path only (commissionPct 0 here). */
-  const snapshot = buildQuoteSnapshot({
-    method: data.costMethod,
-    baseUom: data.baseUom,
-    lines,
-    pieceMeta,
-    m2S80: data.m2S80,
-    m2S150: data.m2S150,
-    m2S200: data.m2S200,
-    m2Total: data.m2Total,
-    orgDefaults,
-    commissionPct: 0,
-    commissionFixed: 0,
-    commissionFixedPerKit: 0,
-    freightCostUsd: data.freightCostUsd,
-    numContainers: data.numContainers,
-    kitsPerContainer: data.kitsPerContainer,
-    totalKits: data.totalKits,
-    taxRules,
-  });
-
-  const items =
-    data.costMethod === "CSV" ? snapshotLinesToItems(snapshot.lines) : [];
-
-  if (data.costMethod === "CSV" && items.length === 0) {
-    throw new ApiHttpError(
-      400,
-      "WIZARD_CSV_NO_LINES",
-      "No priced lines from CSV import. Map or ignore all rows, then try again."
-    );
-  }
-
-  const resolved = await resolvePartnerPricingConfig(prisma, {
-    organizationId,
-    projectCountryCode: projectOrg.countryCode,
-  });
-
-  const pricingInputs = resolveSaaSQuotePricingForCreate({
-    isSuperadmin: !!ctx.isPlatformSuperadmin,
-    explicit: {
-      visionLatamMarkupPct:
-        ctx.isPlatformSuperadmin && data.commissionPct > 0 ? data.commissionPct : undefined,
-      logisticsCost: data.freightCostUsd,
-      importCost: undefined,
-      localTransportCost: undefined,
-      technicalServiceCost:
-        data.commissionFixed > 0 || (data.commissionFixedPerKit ?? 0) > 0
-          ? data.commissionFixed + (data.commissionFixedPerKit ?? 0) * Math.max(1, data.totalKits)
-          : undefined,
-    },
-    resolved,
-  });
-
-  const hasLines = items.length > 0;
-  const canon = canonicalizeSaaSQuotePayload({
-    items: hasLines ? items : [],
-    headerFactoryExwUsd: hasLines ? undefined : snapshot.factoryCostUsd,
-    visionLatamMarkupPct: pricingInputs.visionLatamMarkupPct,
-    partnerMarkupPct: pricingInputs.partnerMarkupPct,
-    logisticsCostUsd: pricingInputs.logisticsCostUsd,
-    localTransportCostUsd: pricingInputs.localTransportCostUsd,
-    importCostUsd: pricingInputs.importCostUsd,
-    technicalServiceUsd: pricingInputs.technicalServiceUsd,
-    taxRules,
-  });
+  const { snapshot, canon, taxRules } = artifacts;
 
   const quoteNumber = generateQuoteNumber();
 

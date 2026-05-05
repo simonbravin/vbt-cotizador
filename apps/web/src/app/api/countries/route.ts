@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireSession, getEffectiveActiveOrgId, requirePlatformSuperadmin, TenantError, tenantErrorStatus } from "@/lib/tenant";
-import { getAllowedCountryCodes } from "@/lib/allowed-countries";
+import { getPartnerCountryDropdownOptions } from "@/lib/allowed-countries";
 
 /** GET: list countries — superadmin sees all; partners see only countries assigned to their org. */
 export async function GET() {
@@ -23,14 +23,7 @@ export async function GET() {
     if (!activeOrgId) {
       return NextResponse.json([]);
     }
-    const allowedCodes = await getAllowedCountryCodes(prisma, activeOrgId);
-    if (allowedCodes.length === 0) {
-      return NextResponse.json([]);
-    }
-    const list = await prisma.country.findMany({
-      where: { code: { in: allowedCodes } },
-      orderBy: [{ name: "asc" }],
-    });
+    const list = await getPartnerCountryDropdownOptions(prisma, activeOrgId);
     return NextResponse.json(list);
   } catch (e) {
     console.error("[api/countries GET]", e);

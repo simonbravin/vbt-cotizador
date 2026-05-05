@@ -3,7 +3,10 @@
  */
 
 import type { TaxRule } from "../calculations";
-import { requireTaxRulesSnapshotFromQuote } from "../services/quote-tax-rules";
+import {
+  parseTaxRulesSnapshotFromQuoteRow,
+  requireTaxRulesSnapshotFromQuote,
+} from "../services/quote-tax-rules";
 import { priceSaaSQuoteLayers, type SaaSQuotePricingResult } from "./saas-layers";
 
 export type QuotePricingReadModel = Omit<SaaSQuotePricingResult, "factoryExwUsd" | "afterVisionLatamUsd"> & {
@@ -12,6 +15,11 @@ export type QuotePricingReadModel = Omit<SaaSQuotePricingResult, "factoryExwUsd"
   /** Persisted landed total (must equal `suggestedLandedUsd` for SaaS writes). */
   landedTotalUsd: number;
 };
+
+function quoteNumContainers(quote: Record<string, unknown>): number {
+  const n = Number(quote.numContainers ?? 1);
+  return Number.isFinite(n) && n >= 1 ? Math.floor(n) : 1;
+}
 
 function quoteRecordToLayerInput(quote: Record<string, unknown>, taxRules?: TaxRule[]) {
   return {
@@ -23,7 +31,7 @@ function quoteRecordToLayerInput(quote: Record<string, unknown>, taxRules?: TaxR
     importCostUsd: Number(quote.importCost ?? 0),
     technicalServiceUsd: Number(quote.technicalServiceCost ?? 0),
     taxRules,
-    numContainers: 1,
+    numContainers: quoteNumContainers(quote),
   };
 }
 
@@ -92,6 +100,29 @@ export function formatQuoteForSaaSApiWithSnapshot(
 }
 
 /** Same stack as SaaS `pricing`; keeps legacy New Sale field names (`factoryCostUsd`, `fobUsd`, …). */
+/**
+ * FOB (after partner markup) for list/summary UIs. Uses snapshot rules when valid;
+ * otherwise empty rules — FOB itself does not depend on tax lines. Returns 0 if no quote.
+ */
+export function quoteRowFobUsd(quote: Record<string, unknown> | null | undefined): number {
+  if (quote == null) return 0;
+  const taxRules =
+    parseTaxRulesSnapshotFromQuoteRow({ taxRulesSnapshotJson: quote.taxRulesSnapshotJson }) ?? [];
+  const layers = priceSaaSQuoteLayers({
+    factoryExwUsd: Number(quote.factoryCostTotal ?? 0),
+    visionLatamMarkupPct: Number(quote.visionLatamMarkupPct ?? 0),
+    partnerMarkupPct: Number(quote.partnerMarkupPct ?? 0),
+    logisticsCostUsd: Number(quote.logisticsCost ?? 0),
+    localTransportCostUsd: Number(quote.localTransportCost ?? 0),
+    importCostUsd: Number(quote.importCost ?? 0),
+    technicalServiceUsd: Number(quote.technicalServiceCost ?? 0),
+    taxRules,
+    numContainers: quoteNumContainers(quote),
+  });
+  const v = layers.afterPartnerMarkupUsd;
+  return typeof v === "number" && Number.isFinite(v) ? v : 0;
+}
+
 export function toLegacySalesQuoteShape(
   q: Record<string, unknown>,
   opts?: { taxRules?: TaxRule[] }

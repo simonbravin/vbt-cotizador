@@ -214,6 +214,9 @@ export async function POST(req: Request) {
       {
         revitImportId: revitImport.id,
         totalRows: parsed.totalRows,
+        validRows: parsed.validRows,
+        invalidRows: parsed.invalidRows,
+        parseErrors: parsed.errors,
         matchedCount,
         unmatchedRows,
       },

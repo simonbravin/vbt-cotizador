@@ -3,7 +3,8 @@
 import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { FolderOpen, MapPin, User, Search } from "lucide-react";
-import { useT } from "@/lib/i18n/context";
+import { useLanguage, useT } from "@/lib/i18n/context";
+import { formatCurrency } from "@/lib/utils";
 import { ViewLayoutToggle } from "@/components/ui/view-layout-toggle";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ type Project = {
   status?: string;
   estimatedTotalAreaM2?: number | null;
   estimatedWallAreaM2?: number | null;
+  baselineFobUsd?: number;
   _count?: { quotes: number };
 };
 
@@ -42,6 +44,8 @@ const statusLabel: Record<string, string> = {
 
 export function ProjectsClient({ projects: initialProjects, total: initialTotal }: { projects: Project[]; total: number }) {
   const t = useT();
+  const { locale } = useLanguage();
+  const moneyLocale = locale === "es" ? "es-AR" : "en-US";
   const projectStatusLabel = (code: string) => t(`partner.reports.status.${code}`);
   const [view, setView] = useState<"cards" | "table">(() => {
     if (typeof window === "undefined") return "table";
@@ -98,6 +102,8 @@ export function ProjectsClient({ projects: initialProjects, total: initialTotal 
   const displayClient = (p: Project) => p.client?.name ?? (p as any).clientRecord?.name ?? (p as any).client ?? "";
   const quoteCount = (p: Project) => p._count?.quotes ?? 0;
   const areaM2 = (p: Project) => p.estimatedTotalAreaM2 ?? p.estimatedWallAreaM2 ?? 0;
+  const baselineFob = (p: Project) =>
+    typeof p.baselineFobUsd === "number" && Number.isFinite(p.baselineFobUsd) ? p.baselineFobUsd : 0;
 
   const hasActiveFilters = Boolean(debouncedSearch) || Boolean(statusFilter);
 
@@ -197,11 +203,16 @@ export function ProjectsClient({ projects: initialProjects, total: initialTotal 
                   {[p.city, p.countryCode].filter(Boolean).join(", ")}
                 </div>
               )}
-              {(areaM2(p) > 0) && (
-                <div className="mt-3 pt-3 border-t border-border text-xs text-muted-foreground">
-                  {t("projects.estArea")} {Number(areaM2(p)).toFixed(0)} m²
+              <div className="mt-3 pt-3 border-t border-border text-xs text-muted-foreground space-y-0.5">
+                {(areaM2(p) > 0) && (
+                  <div>
+                    {t("projects.estArea")} {Number(areaM2(p)).toFixed(0)} m²
+                  </div>
+                )}
+                <div>
+                  {t("projects.baselineFobCol")}: {formatCurrency(baselineFob(p), "USD", moneyLocale)}
                 </div>
-              )}
+              </div>
             </Link>
           ))}
         </div>
@@ -215,6 +226,7 @@ export function ProjectsClient({ projects: initialProjects, total: initialTotal 
                 <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase whitespace-nowrap">{t("projects.location")}</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase whitespace-nowrap">{t("common.status")}</th>
                 <th className="text-center px-4 py-3 text-xs font-semibold text-muted-foreground uppercase whitespace-nowrap">{t("projects.areaM2")}</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase whitespace-nowrap">{t("projects.baselineFobCol")}</th>
                 <th className="text-center px-4 py-3 text-xs font-semibold text-muted-foreground uppercase whitespace-nowrap">{t("projects.quotes")}</th>
               </tr>
             </thead>
@@ -240,6 +252,9 @@ export function ProjectsClient({ projects: initialProjects, total: initialTotal 
                     )}
                   </td>
                   <td className="px-4 py-3 text-center text-foreground">{areaM2(p) > 0 ? Number(areaM2(p)).toFixed(0) : "—"}</td>
+                  <td className="px-4 py-3 text-right text-foreground tabular-nums">
+                    {formatCurrency(baselineFob(p), "USD", moneyLocale)}
+                  </td>
                   <td className="px-4 py-3 text-center">
                     <span className="text-xs px-2 py-0.5 bg-muted text-foreground rounded-full">{quoteCount(p)}</span>
                   </td>

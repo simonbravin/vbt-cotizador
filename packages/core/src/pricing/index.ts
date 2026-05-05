@@ -157,6 +157,7 @@ export {
   buildQuotePricingReadModel,
   formatQuoteForSaaSApi,
   formatQuoteForSaaSApiWithSnapshot,
+  quoteRowFobUsd,
   toLegacySalesQuoteShape,
   type QuotePricingReadModel,
 } from "./quote-read-model";

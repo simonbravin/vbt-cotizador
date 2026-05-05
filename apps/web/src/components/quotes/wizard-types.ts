@@ -23,11 +23,19 @@ export interface QuoteWizardState {
   commissionPct: number;
   commissionFixed: number;
   commissionFixedPerKit: number;
-  kitsPerContainer: number;
+  /** Partner margin % (clamped server-side to org policy). */
+  partnerMarkupPct: number;
   totalKits: number;
-  numContainers: number;
+  /** ISO 3166-1 alpha-2; taxes and freight resolution. */
+  destinationCountryCode: string;
+  /** Empty string = manual freight total (`freightCostUsd`). */
+  freightProfileId: string;
   freightCostUsd: number;
   notes: string;
+  /** Last CSV upload parse summary (server). */
+  csvValidRows: number | null;
+  csvInvalidRows: number | null;
+  csvParseErrors: string[];
 }
 
 export const initialQuoteWizardState = (): QuoteWizardState => ({
@@ -44,9 +52,13 @@ export const initialQuoteWizardState = (): QuoteWizardState => ({
   commissionPct: 0,
   commissionFixed: 0,
   commissionFixedPerKit: 0,
-  kitsPerContainer: 0,
+  partnerMarkupPct: 0,
   totalKits: 0,
-  numContainers: 1,
+  destinationCountryCode: "",
+  freightProfileId: "",
   freightCostUsd: 0,
   notes: "",
+  csvValidRows: null,
+  csvInvalidRows: null,
+  csvParseErrors: [],
 });

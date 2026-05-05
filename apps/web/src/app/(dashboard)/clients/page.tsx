@@ -7,7 +7,7 @@ import type { SessionUser } from "@/lib/auth";
 import { getT, LOCALE_COOKIE_NAME } from "@/lib/i18n/translations";
 import { cookies } from "next/headers";
 import type { Locale } from "@/lib/i18n/translations";
-import { getAllowedCountryCodes } from "@/lib/allowed-countries";
+import { getPartnerCountryDropdownOptions } from "@/lib/allowed-countries";
 
 export default async function ClientsPage() {
   const user = await requireAuth();
@@ -40,18 +40,7 @@ export default async function ClientsPage() {
     dataLoadError = err instanceof Error ? err.message : String(err);
   }
 
-  const allowedCodes = await getAllowedCountryCodes(prisma, orgId);
-  const countryRows = allowedCodes.length > 0
-    ? await prisma.country.findMany({
-        where: { code: { in: allowedCodes } },
-        orderBy: { name: "asc" },
-      })
-    : [];
-  const countries: { id: string; name: string; code: string }[] = countryRows.map((co) => ({
-    id: co.id,
-    name: co.name,
-    code: co.code,
-  }));
+  const countries = await getPartnerCountryDropdownOptions(prisma, orgId);
 
   const countryByCode = new Map(countries.map((co) => [co.code, co]));
 

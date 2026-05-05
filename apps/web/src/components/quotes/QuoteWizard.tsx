@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -10,9 +10,21 @@ import { FilterSelect } from "@/components/ui/filter-select";
 import { saasApiUserFacingMessage } from "@/lib/saas-api-error-message";
 import { initialQuoteWizardState, type QuoteWizardState } from "@/components/quotes/wizard-types";
 
-type ProjectOpt = { id: string; projectName?: string; projectCode?: string | null };
+type ProjectOpt = {
+  id: string;
+  projectName?: string;
+  projectCode?: string | null;
+  countryCode?: string | null;
+};
 type WarehouseOpt = { id: string; name: string };
 type CatalogPieceOpt = { id: string; canonicalName: string; systemCode: string; dieNumber?: string | null };
+type CountryOpt = { id: string; code: string; name: string };
+type FreightProfileOpt = {
+  id: string;
+  name: string;
+  freightPerContainer: number;
+  country?: { code?: string; name?: string };
+};
 
 const STEPS = [
   { num: 1, labelKey: "quotes.stepMethod" as const },
@@ -22,6 +34,12 @@ const STEPS = [
   { num: 5, labelKey: "quotes.stepDestination" as const },
   { num: 6, labelKey: "quotes.stepPreview" as const },
 ];
+
+type PreviewState = {
+  loading: boolean;
+  error: string | null;
+  data: Record<string, unknown> | null;
+};
 
 export function QuoteWizard() {
   const t = useT();
@@ -34,16 +52,25 @@ export function QuoteWizard() {
   const [state, setState] = useState<QuoteWizardState>(() => initialQuoteWizardState());
   const [projects, setProjects] = useState<ProjectOpt[]>([]);
   const [warehouses, setWarehouses] = useState<WarehouseOpt[]>([]);
+  const [countries, setCountries] = useState<CountryOpt[]>([]);
+  const [freightProfiles, setFreightProfiles] = useState<FreightProfileOpt[]>([]);
   const [quoteDefaults, setQuoteDefaults] = useState<{
     effectiveRateS80: number;
     effectiveRateS150: number;
     effectiveRateS200: number;
     baseUom: string;
+    containerCapacityM3?: number;
+    defaultPartnerMarkupPct?: number;
+    partnerMarkupMinPct?: number | null;
+    partnerMarkupMaxPct?: number | null;
   } | null>(null);
   const [catalogPieces, setCatalogPieces] = useState<CatalogPieceOpt[]>([]);
   const [csvUploading, setCsvUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [importLinesOpen, setImportLinesOpen] = useState(false);
+  const [preview, setPreview] = useState<PreviewState>({ loading: false, error: null, data: null });
+  const previewReq = useRef(0);
 
   const update = useCallback((patch: Partial<QuoteWizardState>) => {
     setState((prev) => ({ ...prev, ...patch }));
@@ -52,8 +79,18 @@ export function QuoteWizard() {
   const projectIdFromQuery = searchParams.get("projectId");
 
   useEffect(() => {
-    if (projectIdFromQuery) update({ projectId: projectIdFromQuery });
-  }, [projectIdFromQuery, update]);
+    if (projectIdFromQuery) {
+      const p = projects.find((x) => x.id === projectIdFromQuery);
+      const cc =
+        p?.countryCode && String(p.countryCode).trim().length === 2
+          ? String(p.countryCode).trim().toUpperCase()
+          : "";
+      update({
+        projectId: projectIdFromQuery,
+        ...(cc ? { destinationCountryCode: cc } : {}),
+      });
+    }
+  }, [projectIdFromQuery, projects, update]);
 
   useEffect(() => {
     fetch("/api/saas/projects?limit=200")
@@ -86,7 +123,43 @@ export function QuoteWizard() {
   }, []);
 
   useEffect(() => {
-    fetch("/api/saas/quote-defaults")
+    fetch("/api/countries")
+      .then(async (r) => {
+        if (!r.ok) return [];
+        try {
+          const d = await r.json();
+          return Array.isArray(d) ? d : [];
+        } catch {
+          return [];
+        }
+      })
+      .then(setCountries)
+      .catch(() => setCountries([]));
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/freight")
+      .then(async (r) => {
+        if (!r.ok) return [];
+        try {
+          const d = await r.json();
+          return Array.isArray(d) ? d : [];
+        } catch {
+          return [];
+        }
+      })
+      .then(setFreightProfiles)
+      .catch(() => setFreightProfiles([]));
+  }, []);
+
+  const quoteDefaultsUrl = useCallback(() => {
+    const code = state.destinationCountryCode?.trim();
+    if (code && code.length === 2) return `/api/saas/quote-defaults?country=${encodeURIComponent(code)}`;
+    return "/api/saas/quote-defaults";
+  }, [state.destinationCountryCode]);
+
+  useEffect(() => {
+    fetch(quoteDefaultsUrl())
       .then(async (r) => {
         if (!r.ok) return null;
         try {
@@ -98,7 +171,7 @@ export function QuoteWizard() {
       })
       .then(setQuoteDefaults)
       .catch(() => setQuoteDefaults(null));
-  }, []);
+  }, [quoteDefaultsUrl]);
 
   useEffect(() => {
     fetch("/api/catalog?limit=200")
@@ -148,12 +221,89 @@ export function QuoteWizard() {
       .catch(() => {});
   }, [state.revitImportId, state.costMethod, update]);
 
+  useEffect(() => {
+    if (step < 4 || !state.projectId || state.destinationCountryCode.trim().length !== 2) {
+      setPreview((p) => ({ ...p, loading: false }));
+      return;
+    }
+
+    const handle = window.setTimeout(() => {
+      const seq = ++previewReq.current;
+      setPreview((p) => ({ ...p, loading: true, error: null }));
+
+      void (async () => {
+        try {
+          const res = await fetch("/api/saas/quotes/wizard-preview", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              projectId: state.projectId,
+              costMethod: state.costMethod,
+              baseUom: state.baseUom,
+              revitImportId: state.costMethod === "CSV" ? state.revitImportId : null,
+              m2S80: state.m2S80,
+              m2S150: state.m2S150,
+              m2S200: state.m2S200,
+              m2Total: 0,
+              commissionPct: isSuperadmin ? state.commissionPct : 0,
+              commissionFixed: state.commissionFixed,
+              commissionFixedPerKit: state.commissionFixedPerKit,
+              freightCostUsd: state.freightCostUsd,
+              freightProfileId: state.freightProfileId.trim() || null,
+              totalKits: state.totalKits,
+              ...(!isSuperadmin ? { partnerMarkupPct: state.partnerMarkupPct } : {}),
+              destinationCountryCode: state.destinationCountryCode.trim().toUpperCase(),
+            }),
+          });
+          const data = (await res.json()) as Record<string, unknown>;
+          if (seq !== previewReq.current) return;
+          if (!res.ok) {
+            const msg =
+              typeof data?.message === "string"
+                ? data.message
+                : typeof data?.error === "string"
+                  ? data.error
+                  : t("wizard.previewLoadFailed");
+            setPreview({ loading: false, error: msg, data: null });
+            return;
+          }
+          setPreview({ loading: false, error: null, data });
+        } catch {
+          if (seq !== previewReq.current) return;
+          setPreview({ loading: false, error: t("wizard.previewLoadFailed"), data: null });
+        }
+      })();
+    }, 420);
+
+    return () => window.clearTimeout(handle);
+  }, [
+    step,
+    state.projectId,
+    state.costMethod,
+    state.baseUom,
+    state.revitImportId,
+    state.m2S80,
+    state.m2S150,
+    state.m2S200,
+    state.commissionPct,
+    state.commissionFixed,
+    state.commissionFixedPerKit,
+    state.freightCostUsd,
+    state.freightProfileId,
+    state.totalKits,
+    state.partnerMarkupPct,
+    state.destinationCountryCode,
+    isSuperadmin,
+    t,
+  ]);
+
   const canAdvance = () => {
     if (step === 1) return !!state.projectId && !!state.costMethod;
     if (step === 2) {
       if (state.costMethod !== "CSV") return true;
       return !!state.revitImportId && state.unmatchedRows.filter((r) => !r.ignored && !r.mappedCatalogId).length === 0;
     }
+    if (step === 4) return state.destinationCountryCode.trim().length === 2;
     return true;
   };
 
@@ -193,8 +343,18 @@ export function QuoteWizard() {
       }
       update({
         revitImportId: data.revitImportId,
+        csvValidRows: typeof data.validRows === "number" ? data.validRows : null,
+        csvInvalidRows: typeof data.invalidRows === "number" ? data.invalidRows : null,
+        csvParseErrors: Array.isArray(data.parseErrors) ? data.parseErrors : [],
         unmatchedRows: (data.unmatchedRows ?? []).map(
-          (r: { lineId: string; rowIndex: number; revitFamily: string; revitType: string; quantity: number; area: number }) => ({
+          (r: {
+            lineId: string;
+            rowIndex: number;
+            revitFamily: string;
+            revitType: string;
+            quantity: number;
+            area: number;
+          }) => ({
             ...r,
             mappedCatalogId: null,
             ignored: false,
@@ -274,10 +434,10 @@ export function QuoteWizard() {
           commissionPct: isSuperadmin ? state.commissionPct : 0,
           commissionFixed: state.commissionFixed,
           commissionFixedPerKit: state.commissionFixedPerKit,
+          ...(!isSuperadmin ? { partnerMarkupPct: state.partnerMarkupPct } : {}),
+          destinationCountryCode: state.destinationCountryCode.trim().toUpperCase(),
           freightCostUsd: state.freightCostUsd,
-          freightProfileId: null,
-          numContainers: state.numContainers,
-          kitsPerContainer: state.kitsPerContainer,
+          freightProfileId: state.freightProfileId.trim() || null,
           totalKits: state.totalKits,
           countryId: null,
           taxRuleSetId: null,
@@ -315,6 +475,10 @@ export function QuoteWizard() {
         })
       : null;
 
+  const snap = preview.data?.snapshot as Record<string, unknown> | undefined;
+  const fcl = preview.data?.fcl as Record<string, unknown> | undefined;
+  const pricing = preview.data?.pricing as Record<string, unknown> | undefined;
+
   return (
     <div className="data-entry-page max-w-5xl space-y-8">
       <div className="flex items-center gap-3">
@@ -338,7 +502,12 @@ export function QuoteWizard() {
             const isActive = s.num === step;
             const isDone = activeSteps.indexOf(s) < currentIdx;
             return (
-              <div key={s.num} className="flex items-center gap-2 flex-1 min-w-[120px]" role="listitem" aria-current={isActive ? "step" : undefined}>
+              <div
+                key={s.num}
+                className="flex items-center gap-2 flex-1 min-w-[120px]"
+                role="listitem"
+                aria-current={isActive ? "step" : undefined}
+              >
                 <div
                   className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-medium border ${
                     isDone
@@ -379,7 +548,14 @@ export function QuoteWizard() {
               <label className="block text-sm font-medium text-foreground mb-2">{t("wizard.selectProject")}</label>
               <FilterSelect
                 value={state.projectId}
-                onValueChange={(v) => update({ projectId: v })}
+                onValueChange={(v) => {
+                  const p = projects.find((x) => x.id === v);
+                  const cc =
+                    p?.countryCode && String(p.countryCode).trim().length === 2
+                      ? String(p.countryCode).trim().toUpperCase()
+                      : "";
+                  update({ projectId: v, ...(cc ? { destinationCountryCode: cc } : {}) });
+                }}
                 disabled={!!projectIdFromQuery}
                 emptyOptionLabel={t("quotes.selectProjectPlaceholder")}
                 options={projects.map((p) => ({
@@ -458,6 +634,14 @@ export function QuoteWizard() {
               {t("wizard.step2Title")}
             </h2>
             <p className="text-sm text-muted-foreground">{t("wizard.step2Desc")}</p>
+            {state.csvValidRows != null && state.csvInvalidRows != null && (
+              <div className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-sm text-foreground">
+                {t("wizard.csvRowsValidInvalid", {
+                  valid: state.csvValidRows,
+                  invalid: state.csvInvalidRows,
+                })}
+              </div>
+            )}
             <input
               type="file"
               accept=".csv,text/csv"
@@ -466,12 +650,33 @@ export function QuoteWizard() {
               className="text-sm"
             />
             {csvUploading && <p className="text-sm text-muted-foreground">{t("wizard.uploading")}</p>}
+            {state.revitImportId && (
+              <div className="border border-border/60 rounded-lg">
+                <button
+                  type="button"
+                  className="w-full text-left px-4 py-2 text-sm font-medium flex justify-between items-center"
+                  onClick={() => setImportLinesOpen((o) => !o)}
+                  aria-expanded={importLinesOpen}
+                >
+                  {t("wizard.interpretedData")}
+                  <span className="text-muted-foreground">{importLinesOpen ? "−" : "+"}</span>
+                </button>
+                {importLinesOpen && (
+                  <div className="px-4 pb-4 max-h-64 overflow-auto text-xs text-muted-foreground border-t border-border/40">
+                    <ImportLinesPeek importId={state.revitImportId} />
+                  </div>
+                )}
+              </div>
+            )}
             {state.unmatchedRows.length > 0 && (
               <div className="space-y-3 border border-border/60 rounded-lg p-4">
                 <p className="text-sm font-medium text-foreground">{t("wizard.unmatchedRows")}</p>
                 <ul className="space-y-3">
                   {state.unmatchedRows.map((row) => (
-                    <li key={row.lineId} className="flex flex-col gap-2 sm:flex-row sm:items-center border-b border-border/40 pb-3 last:border-0">
+                    <li
+                      key={row.lineId}
+                      className="flex flex-col gap-2 sm:flex-row sm:items-center border-b border-border/40 pb-3 last:border-0"
+                    >
                       <span className="text-sm text-muted-foreground flex-1">
                         {row.revitType} {row.revitFamily ? `(${row.revitFamily})` : ""}
                       </span>
@@ -565,93 +770,141 @@ export function QuoteWizard() {
         )}
 
         {step === 4 && (
-          <div className="space-y-4">
+          <div className="space-y-5">
             <h2 id="wizard-active-step-title" className="text-lg font-semibold text-foreground">
               {t("wizard.step4Title")}
             </h2>
             <p className="text-sm text-muted-foreground">{t("wizard.step4Desc")}</p>
+
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">{t("wizard.destinationCountry")}</label>
+              <FilterSelect
+                value={state.destinationCountryCode}
+                onValueChange={(v) => update({ destinationCountryCode: v })}
+                emptyOptionLabel={t("wizard.selectCountry")}
+                options={countries.map((c) => ({
+                  value: c.code,
+                  label: `${c.name} (${c.code})`,
+                }))}
+                aria-label={t("wizard.destinationCountry")}
+                triggerClassName="h-10 w-full min-w-0 max-w-full text-sm"
+              />
+              <p className="text-xs text-muted-foreground mt-1">{t("wizard.destinationCountryHint")}</p>
+            </div>
+
             {isSuperadmin && (
               <div>
                 <label className="text-xs font-semibold uppercase text-muted-foreground">{t("wizard.commissionPct")}</label>
-                <input
-                  type="number"
-                  min={0}
-                  step={0.1}
-                  value={state.commissionPct}
-                  onChange={(e) => update({ commissionPct: parseFloat(e.target.value) || 0 })}
-                  className="mt-1 w-full max-w-xs rounded-lg border border-input bg-background px-3 py-2 text-sm"
-                />
+                <div className="mt-1 flex items-center gap-2 max-w-xs">
+                  <input
+                    type="number"
+                    min={0}
+                    step={0.1}
+                    value={state.commissionPct}
+                    onChange={(e) => update({ commissionPct: parseFloat(e.target.value) || 0 })}
+                    className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                  />
+                  <span className="text-sm text-muted-foreground">%</span>
+                </div>
               </div>
             )}
             {!isSuperadmin && (
-              <p className="text-sm text-muted-foreground">{t("quotes.wizardCommissionPartnerNote")}</p>
+              <div>
+                <label className="text-xs font-semibold uppercase text-muted-foreground">{t("wizard.partnerMarkup")}</label>
+                <div className="mt-1 flex items-center gap-2 max-w-xs">
+                  <input
+                    type="number"
+                    min={quoteDefaults?.partnerMarkupMinPct ?? 0}
+                    max={quoteDefaults?.partnerMarkupMaxPct ?? undefined}
+                    step={0.1}
+                    value={state.partnerMarkupPct}
+                    onChange={(e) => update({ partnerMarkupPct: parseFloat(e.target.value) || 0 })}
+                    className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                  />
+                  <span className="text-sm text-muted-foreground">%</span>
+                </div>
+                {quoteDefaults != null &&
+                  (quoteDefaults.partnerMarkupMinPct != null || quoteDefaults.partnerMarkupMaxPct != null) && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {t("wizard.partnerMarkupBounds", {
+                        min: quoteDefaults.partnerMarkupMinPct ?? "—",
+                        max: quoteDefaults.partnerMarkupMaxPct ?? "—",
+                      })}
+                    </p>
+                  )}
+              </div>
             )}
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="text-xs font-semibold uppercase text-muted-foreground">{t("wizard.fixedPerOrder")}</label>
+                <div className="mt-1 flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">$</span>
+                  <input
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={state.commissionFixed}
+                    onChange={(e) => update({ commissionFixed: parseFloat(e.target.value) || 0 })}
+                    className="w-full max-w-xs rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-semibold uppercase text-muted-foreground">{t("wizard.fixedPerKit")}</label>
+                <div className="mt-1 flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">$</span>
+                  <input
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={state.commissionFixedPerKit}
+                    onChange={(e) => update({ commissionFixedPerKit: parseFloat(e.target.value) || 0 })}
+                    className="w-full max-w-xs rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                  />
+                </div>
+              </div>
+            </div>
+
             <div>
-              <label className="text-xs font-semibold uppercase text-muted-foreground">{t("wizard.fixedPerOrder")}</label>
+              <label className="text-xs font-semibold uppercase text-muted-foreground">{t("wizard.totalKitsLabel")}</label>
               <input
                 type="number"
                 min={0}
                 step={1}
-                value={state.commissionFixed}
-                onChange={(e) => update({ commissionFixed: parseFloat(e.target.value) || 0 })}
+                value={state.totalKits}
+                onChange={(e) => update({ totalKits: parseInt(e.target.value, 10) || 0 })}
                 className="mt-1 w-full max-w-xs rounded-lg border border-input bg-background px-3 py-2 text-sm"
               />
             </div>
-            <div>
-              <label className="text-xs font-semibold uppercase text-muted-foreground">{t("wizard.fixedPerKit")}</label>
-              <input
-                type="number"
-                min={0}
-                step={1}
-                value={state.commissionFixedPerKit}
-                onChange={(e) => update({ commissionFixedPerKit: parseFloat(e.target.value) || 0 })}
-                className="mt-1 w-full max-w-xs rounded-lg border border-input bg-background px-3 py-2 text-sm"
-              />
-            </div>
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div>
-                <label className="text-xs font-semibold uppercase text-muted-foreground">{t("wizard.totalKitsLabel")}</label>
-                <input
-                  type="number"
-                  min={0}
-                  step={1}
-                  value={state.totalKits}
-                  onChange={(e) => {
-                    const totalKits = parseInt(e.target.value, 10) || 0;
-                    const num =
-                      state.kitsPerContainer > 0 ? Math.ceil(totalKits / state.kitsPerContainer) : state.numContainers;
-                    update({ totalKits, numContainers: num });
-                  }}
-                  className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-semibold uppercase text-muted-foreground">{t("wizard.kitsPerContainer")}</label>
-                <input
-                  type="number"
-                  min={0}
-                  step={1}
-                  value={state.kitsPerContainer}
-                  onChange={(e) => {
-                    const kitsPerContainer = parseInt(e.target.value, 10) || 0;
-                    const num =
-                      kitsPerContainer > 0 ? Math.ceil(state.totalKits / kitsPerContainer) : state.numContainers;
-                    update({ kitsPerContainer, numContainers: num });
-                  }}
-                  className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-semibold uppercase text-muted-foreground">{t("wizard.containersLabel")}</label>
-                <input
-                  type="number"
-                  min={1}
-                  step={1}
-                  value={state.numContainers}
-                  onChange={(e) => update({ numContainers: parseInt(e.target.value, 10) || 1 })}
-                  className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
-                />
-              </div>
+
+            <div className="rounded-lg border border-border/60 bg-muted/15 p-4 space-y-2 text-sm">
+              <p className="font-medium text-foreground">{t("wizard.previewSummary")}</p>
+              {preview.loading && <p className="text-muted-foreground">{t("wizard.previewUpdating")}</p>}
+              {preview.error && <p className="text-destructive text-sm">{preview.error}</p>}
+              {!preview.loading && !preview.error && snap && fcl && (
+                <ul className="space-y-1 text-muted-foreground">
+                  <li>
+                    {t("wizard.containersLabel")}: <span className="text-foreground font-medium">{String(snap.numContainers)}</span>{" "}
+                    ({t("wizard.fclCapacityHint", { m3: String(fcl.containerCapacityM3 ?? quoteDefaults?.containerCapacityM3 ?? "—") })})
+                  </li>
+                  <li>
+                    {t("wizard.kitsPerContainer")}:{" "}
+                    <span className="text-foreground font-medium">{String(snap.kitsPerContainer)}</span>
+                  </li>
+                  <li>
+                    {t("wizard.totalPanelVolume")}:{" "}
+                    <span className="text-foreground font-medium">
+                      {typeof snap.totalVolumeM3 === "number" ? snap.totalVolumeM3.toFixed(2) : "—"} m³
+                    </span>
+                  </li>
+                  {pricing && typeof pricing.suggestedLandedUsd === "number" && (
+                    <li className="pt-2 text-foreground font-semibold">
+                      {t("wizard.estimatedLandedDdp")}: {fmt(pricing.suggestedLandedUsd as number)}
+                    </li>
+                  )}
+                </ul>
+              )}
             </div>
           </div>
         )}
@@ -663,16 +916,55 @@ export function QuoteWizard() {
             </h2>
             <p className="text-sm text-muted-foreground">{t("wizard.step5Desc")}</p>
             <div>
-              <label className="text-xs font-semibold uppercase text-muted-foreground">{t("quotes.freight")}</label>
-              <input
-                type="number"
-                min={0}
-                step={1}
-                value={state.freightCostUsd}
-                onChange={(e) => update({ freightCostUsd: parseFloat(e.target.value) || 0 })}
-                className="mt-1 w-full max-w-xs rounded-lg border border-input bg-background px-3 py-2 text-sm"
+              <label className="block text-sm font-medium text-foreground mb-2">{t("wizard.destinationCountry")}</label>
+              <FilterSelect
+                value={state.destinationCountryCode}
+                onValueChange={(v) => update({ destinationCountryCode: v })}
+                emptyOptionLabel={t("wizard.selectCountry")}
+                options={countries.map((c) => ({
+                  value: c.code,
+                  label: `${c.name} (${c.code})`,
+                }))}
+                aria-label={t("wizard.destinationCountry")}
+                triggerClassName="h-10 w-full min-w-0 max-w-full text-sm"
               />
             </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">{t("wizard.freightProfile")}</label>
+              <FilterSelect
+                value={state.freightProfileId}
+                onValueChange={(v) => update({ freightProfileId: v })}
+                emptyOptionLabel={t("wizard.manualEntry")}
+                options={freightProfiles.map((fp) => ({
+                  value: fp.id,
+                  label: `${fp.name}${fp.country?.code ? ` (${fp.country.code})` : ""} — $${fp.freightPerContainer}${t("wizard.perContainerSuffix")}`,
+                }))}
+                aria-label={t("wizard.freightProfile")}
+                triggerClassName="h-10 w-full min-w-0 max-w-full text-sm"
+              />
+            </div>
+            {!state.freightProfileId.trim() && (
+              <div>
+                <label className="text-xs font-semibold uppercase text-muted-foreground">{t("wizard.totalFreightUsd")}</label>
+                <div className="mt-1 flex items-center gap-2 max-w-xs">
+                  <span className="text-sm text-muted-foreground">$</span>
+                  <input
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={state.freightCostUsd}
+                    onChange={(e) => update({ freightCostUsd: parseFloat(e.target.value) || 0 })}
+                    className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                  />
+                </div>
+              </div>
+            )}
+            {snap && (
+              <p className="text-sm text-muted-foreground">
+                {t("wizard.forContainers", { count: String(snap.numContainers ?? "—") })}:{" "}
+                <span className="font-medium text-foreground">{fmt(Number(preview.data?.freightTotalUsd ?? 0))}</span>
+              </p>
+            )}
           </div>
         )}
 
@@ -682,18 +974,64 @@ export function QuoteWizard() {
               {t("wizard.step6Title")}
             </h2>
             <p className="text-sm text-muted-foreground">{t("wizard.step6Desc")}</p>
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div className="rounded-lg border border-border/60 p-3">
-                <p className="text-xs text-muted-foreground uppercase">{t("wizard.wallArea")}</p>
-                <p className="font-semibold mt-1">
-                  {(state.m2S80 + state.m2S150 + state.m2S200).toFixed(1)} m²
-                </p>
+            {preview.loading && <p className="text-sm text-muted-foreground">{t("wizard.previewUpdating")}</p>}
+            {preview.error && <p className="text-sm text-destructive">{preview.error}</p>}
+            {snap && (
+              <div className="overflow-x-auto rounded-lg border border-border/60">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/30 text-left">
+                      <th className="p-2 font-medium">{t("wizard.financialSummary")}</th>
+                      <th className="p-2 font-medium text-right">{t("wizard.wallAreaM2")}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-muted-foreground">
+                    <tr className="border-b border-border/40">
+                      <td className="p-2">VBT 80</td>
+                      <td className="p-2 text-right">{Number(snap.wallAreaM2S80 ?? 0).toFixed(2)}</td>
+                    </tr>
+                    <tr className="border-b border-border/40">
+                      <td className="p-2">VBT 150</td>
+                      <td className="p-2 text-right">{Number(snap.wallAreaM2S150 ?? 0).toFixed(2)}</td>
+                    </tr>
+                    <tr className="border-b border-border/40">
+                      <td className="p-2">VBT 200</td>
+                      <td className="p-2 text-right">{Number(snap.wallAreaM2S200 ?? 0).toFixed(2)}</td>
+                    </tr>
+                    <tr className="border-b border-border/40 font-medium text-foreground">
+                      <td className="p-2">{t("wizard.wallArea")}</td>
+                      <td className="p-2 text-right">{Number(snap.wallAreaM2Total ?? 0).toFixed(2)}</td>
+                    </tr>
+                    <tr className="border-b border-border/40">
+                      <td className="p-2">{t("wizard.concreteRequired")}</td>
+                      <td className="p-2 text-right">{Number(snap.concreteM3 ?? 0).toFixed(2)} m³</td>
+                    </tr>
+                    <tr className="border-b border-border/40">
+                      <td className="p-2">{t("wizard.steelEstimate")}</td>
+                      <td className="p-2 text-right">{Number(snap.steelKgEst ?? 0).toFixed(0)} kg</td>
+                    </tr>
+                    <tr className="border-b border-border/40">
+                      <td className="p-2">{t("wizard.fillSteelPolicy")}</td>
+                      <td className="p-2 text-right">{Number(snap.fillSteelKgEst ?? 0).toFixed(0)} kg</td>
+                    </tr>
+                    <tr className="border-b border-border/40">
+                      <td className="p-2">{t("quotes.freight")}</td>
+                      <td className="p-2 text-right">{fmt(Number(preview.data?.freightTotalUsd ?? 0))}</td>
+                    </tr>
+                    <tr className="border-b border-border/40">
+                      <td className="p-2">{t("wizard.containersLabel")}</td>
+                      <td className="p-2 text-right">{String(snap.numContainers)}</td>
+                    </tr>
+                    {pricing && typeof pricing.suggestedLandedUsd === "number" && (
+                      <tr className="font-semibold text-foreground">
+                        <td className="p-2">{t("wizard.landedDdpTotal")}</td>
+                        <td className="p-2 text-right">{fmt(pricing.suggestedLandedUsd as number)}</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
-              <div className="rounded-lg border border-border/60 p-3">
-                <p className="text-xs text-muted-foreground uppercase">{t("quotes.freight")}</p>
-                <p className="font-semibold mt-1">{fmt(state.freightCostUsd)}</p>
-              </div>
-            </div>
+            )}
             <div>
               <label className="text-xs font-semibold uppercase text-muted-foreground">{t("quotes.notes")}</label>
               <textarea
@@ -740,5 +1078,32 @@ export function QuoteWizard() {
         )}
       </div>
     </div>
+  );
+}
+
+function ImportLinesPeek({ importId }: { importId: string }) {
+  const [lines, setLines] = useState<Array<{ rowNum: number; rawPieceName: string; rawQty: number; catalogPieceId: string | null }>>(
+    []
+  );
+  useEffect(() => {
+    void fetch(`/api/import/${importId}`)
+      .then((r) => r.json())
+      .then((d) => setLines(Array.isArray(d?.lines) ? d.lines : []))
+      .catch(() => setLines([]));
+  }, [importId]);
+  if (!lines.length) return <p className="py-2">…</p>;
+  return (
+    <table className="w-full mt-2">
+      <tbody>
+        {lines.slice(0, 80).map((l) => (
+          <tr key={l.rowNum} className="border-b border-border/30">
+            <td className="py-1 pr-2">{l.rowNum}</td>
+            <td className="py-1">{l.rawPieceName}</td>
+            <td className="py-1 text-right">{l.rawQty}</td>
+            <td className="py-1 text-right">{l.catalogPieceId ? "✓" : "—"}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }
