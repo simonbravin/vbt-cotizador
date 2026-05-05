@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { useT } from "@/lib/i18n/context";
-import { FilterSelect } from "@/components/ui/filter-select";
+import { FilterSelect, SearchableFilterSelect } from "@/components/ui/filter-select";
 import { saasApiUserFacingMessage } from "@/lib/saas-api-error-message";
 import { initialQuoteWizardState, type QuoteWizardState } from "@/components/quotes/wizard-types";
 
@@ -466,15 +466,6 @@ export function QuoteWizard() {
     state.m2S150 * (quoteDefaults?.effectiveRateS150 ?? 0) +
     state.m2S200 * (quoteDefaults?.effectiveRateS200 ?? 0);
 
-  const partnerRatesLine =
-    quoteDefaults != null
-      ? t("quotes.wizardPartnerRatesLine", {
-          r80: (Number(quoteDefaults.effectiveRateS80) || 0).toFixed(2),
-          r150: (Number(quoteDefaults.effectiveRateS150) || 0).toFixed(2),
-          r200: (Number(quoteDefaults.effectiveRateS200) || 0).toFixed(2),
-        })
-      : null;
-
   const snap = preview.data?.snapshot as Record<string, unknown> | undefined;
   const fcl = preview.data?.fcl as Record<string, unknown> | undefined;
   const pricing = preview.data?.pricing as Record<string, unknown> | undefined;
@@ -546,7 +537,7 @@ export function QuoteWizard() {
             </div>
             <div>
               <label className="block text-sm font-medium text-foreground mb-2">{t("wizard.selectProject")}</label>
-              <FilterSelect
+              <SearchableFilterSelect
                 value={state.projectId}
                 onValueChange={(v) => {
                   const p = projects.find((x) => x.id === v);
@@ -558,6 +549,8 @@ export function QuoteWizard() {
                 }}
                 disabled={!!projectIdFromQuery}
                 emptyOptionLabel={t("quotes.selectProjectPlaceholder")}
+                searchPlaceholder={t("wizard.searchProjects")}
+                emptyFilterMessage={t("wizard.noProjectMatches")}
                 options={projects.map((p) => ({
                   value: p.id,
                   label: p.projectName || p.projectCode || p.id.slice(0, 8),
@@ -620,11 +613,6 @@ export function QuoteWizard() {
               />
               {t("wizard.reserveStock")}
             </label>
-            {partnerRatesLine && (
-              <p className="text-xs text-muted-foreground border border-border/60 rounded-lg px-3 py-2 bg-muted/20">
-                {partnerRatesLine}
-              </p>
-            )}
           </div>
         )}
 
@@ -756,11 +744,6 @@ export function QuoteWizard() {
                 />
               </div>
             </div>
-            {partnerRatesLine && (
-              <p className="text-xs text-muted-foreground border border-border/60 rounded-lg px-3 py-2 bg-muted/20">
-                {partnerRatesLine}
-              </p>
-            )}
             {quoteDefaults && (state.costMethod === "M2_BY_SYSTEM" || state.m2S80 + state.m2S150 + state.m2S200 > 0) && (
               <p className="text-sm text-muted-foreground">
                 {t("wizard.estimatedFactoryExw")}: {fmt(m2FactoryEst)}

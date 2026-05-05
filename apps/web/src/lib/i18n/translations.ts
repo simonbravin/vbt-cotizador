@@ -569,8 +569,6 @@ export const translations = {
     "quotes.wizardSubtitle": "Import a Revit CSV or enter wall area by system, then review costs before saving.",
     "quotes.wizardCommissionPartnerNote":
       "Commission percentage is only editable for platform administrators. Your organization uses the configured partner markup.",
-    "quotes.wizardPartnerRatesLine":
-      "Organization reference (USD/m², incl. VL commission): VBT 80 {{r80}}, 150 {{r150}}, 200 {{r200}}. Used for the estimate below; final pricing uses server rules.",
     "quotes.emailPlaceholder": "client@example.com",
 
     // Quote wizard (steps 1–6)
@@ -578,6 +576,8 @@ export const translations = {
     "wizard.step1Desc": "Select the project, costing method, unit of measure, and warehouse for this quote.",
     "wizard.loadingProjects": "Loading projects...",
     "wizard.selectProject": "Select a project",
+    "wizard.searchProjects": "Search by project name…",
+    "wizard.noProjectMatches": "No projects match your search.",
     "wizard.costingMethod": "Costing Method",
     "wizard.csvRevitLabel": "CSV / Revit Import",
     "wizard.csvRevitDesc": "Upload a Revit wall schedule CSV to compute costs per wall type and area.",
@@ -2964,8 +2964,6 @@ export const translations = {
     "quotes.wizardSubtitle": "Importe un CSV de Revit o ingrese m² por sistema; revise costos antes de guardar.",
     "quotes.wizardCommissionPartnerNote":
       "El porcentaje de comisión solo lo editan administradores de la plataforma. Su organización usa el margen partner configurado.",
-    "quotes.wizardPartnerRatesLine":
-      "Referencia de la organización (USD/m², incl. comisión VL): VBT 80 {{r80}}, 150 {{r150}}, 200 {{r200}}. Sirve para la estimación; el servidor aplica reglas finales.",
     "quotes.emailPlaceholder": "cliente@ejemplo.com",
 
     // Quote wizard (steps 1–6)
@@ -2973,6 +2971,8 @@ export const translations = {
     "wizard.step1Desc": "Selecciona el proyecto, método de costo, unidad de medida y bodega para esta cotización.",
     "wizard.loadingProjects": "Cargando proyectos...",
     "wizard.selectProject": "Seleccionar proyecto",
+    "wizard.searchProjects": "Buscar por nombre de proyecto…",
+    "wizard.noProjectMatches": "Ningún proyecto coincide con la búsqueda.",
     "wizard.costingMethod": "Método de costeo",
     "wizard.csvRevitLabel": "CSV / Importación Revit",
     "wizard.csvRevitDesc": "Sube un CSV de planilla de muros Revit para calcular costos por tipo y área.",
