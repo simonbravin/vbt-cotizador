@@ -66,6 +66,7 @@ async function postHandler(req: Request) {
     artifacts = await computeWizardQuoteArtifacts(prisma, {
       organizationId,
       isPlatformSuperadmin: !!ctx.isPlatformSuperadmin,
+      pricingMaskFactoryExw: false,
       data: {
         projectId: data.projectId,
         costMethod: data.costMethod,
@@ -115,8 +116,6 @@ async function postHandler(req: Request) {
   }
 
   const { snapshot, fcl, freightTotalUsd, taxCountryCode, pricingReadModel } = artifacts;
-  const wallTotal = snapshot.wallAreaM2S80 + snapshot.wallAreaM2S150 + snapshot.wallAreaM2S200;
-  const fillSteelKgEst = wallTotal * 4;
 
   return NextResponse.json({
     taxCountryCode,
@@ -134,7 +133,6 @@ async function postHandler(req: Request) {
       totalWeightKgCored: snapshot.totalWeightKgCored,
       concreteM3: snapshot.concreteM3,
       steelKgEst: snapshot.steelKgEst,
-      fillSteelKgEst,
       factoryCostUsd: snapshot.factoryCostUsd,
       freightCostUsd: snapshot.freightCostUsd,
       landedDdpUsd: snapshot.landedDdpUsd,

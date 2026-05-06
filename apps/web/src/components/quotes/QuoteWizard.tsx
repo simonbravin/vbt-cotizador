@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -23,17 +23,139 @@ type FreightProfileOpt = {
   id: string;
   name: string;
   freightPerContainer: number;
+  expiryDate?: string | null;
   country?: { code?: string; name?: string };
 };
 
 const STEPS = [
   { num: 1, labelKey: "quotes.stepMethod" as const },
   { num: 2, labelKey: "quotes.stepImport" as const },
-  { num: 3, labelKey: "quotes.stepMaterial" as const },
-  { num: 4, labelKey: "quotes.stepCommission" as const },
-  { num: 5, labelKey: "quotes.stepDestination" as const },
-  { num: 6, labelKey: "quotes.stepPreview" as const },
+  { num: 3, labelKey: "quotes.stepMaterialPricing" as const },
+  { num: 4, labelKey: "quotes.stepFreight" as const },
+  { num: 5, labelKey: "quotes.stepPreview" as const },
 ];
+
+const MAX_STEP = 5;
+
+function freightProfileIsExpired(fp: FreightProfileOpt): boolean {
+  if (!fp.expiryDate) return false;
+  const d = new Date(fp.expiryDate);
+  if (Number.isNaN(d.getTime())) return false;
+  return d.getTime() < Date.now();
+}
+
+type WizardPriceLadderRow = {
+  id: string;
+  labelKey?: string;
+  customLabel?: string;
+  delta: number | null;
+  subtotal: number;
+  isTotal?: boolean;
+};
+
+function buildWizardPriceLadder(pricing: Record<string, unknown> | undefined): WizardPriceLadderRow[] | null {
+  if (!pricing) return null;
+  const readNum = (k: string): number | null => {
+    const v = pricing[k];
+    if (typeof v !== "number" || !Number.isFinite(v)) return null;
+    return v;
+  };
+
+  const factory = readNum("factoryExwUsd");
+  if (factory === null) return null;
+
+  const afterVL = readNum("afterVisionLatamUsd");
+  const afterPartner = readNum("afterPartnerMarkupUsd");
+  const freight = readNum("freightUsd") ?? 0;
+  const importC = readNum("importCostUsd") ?? 0;
+  const cif = readNum("cifUsd") ?? 0;
+  const tech = readNum("technicalServiceUsd") ?? 0;
+  const landed = readNum("suggestedLandedUsd") ?? 0;
+  const taxLines = Array.isArray(pricing.taxLines) ? (pricing.taxLines as Array<Record<string, unknown>>) : [];
+
+  const rows: WizardPriceLadderRow[] = [];
+  let running = factory;
+
+  rows.push({
+    id: "exw",
+    labelKey: "quotes.exwFactoryCost",
+    delta: null,
+    subtotal: running,
+  });
+
+  if (afterVL != null) {
+    const d = afterVL - running;
+    running = afterVL;
+    rows.push({ id: "vl", labelKey: "quotes.basePriceVisionLatam", delta: d, subtotal: running });
+  }
+
+  if (afterPartner != null) {
+    const d = afterPartner - running;
+    running = afterPartner;
+    rows.push({ id: "partner", labelKey: "wizard.afterPartnerMarkupLabel", delta: d, subtotal: running });
+  }
+
+  rows.push({
+    id: "freight",
+    labelKey: "quotes.freight",
+    delta: freight,
+    subtotal: running + freight,
+  });
+  running += freight;
+
+  if (importC > 0.005) {
+    rows.push({
+      id: "import",
+      labelKey: "wizard.importCostLine",
+      delta: importC,
+      subtotal: running + importC,
+    });
+    running += importC;
+  }
+
+  const cifBridge = cif - running;
+  if (Math.abs(cifBridge) > 0.02) {
+    rows.push({
+      id: "cif-bridge",
+      labelKey: "wizard.cifRoundingBridge",
+      delta: cifBridge,
+      subtotal: cif,
+    });
+  }
+  running = cif;
+
+  for (let i = 0; i < taxLines.length; i++) {
+    const ln = taxLines[i];
+    const amt = Number(ln.computedAmount ?? 0);
+    running += amt;
+    rows.push({
+      id: `tax-${i}`,
+      customLabel: String(ln.label ?? ""),
+      delta: amt,
+      subtotal: running,
+    });
+  }
+
+  if (tech > 0.005) {
+    rows.push({
+      id: "tech",
+      labelKey: "wizard.fixedFeesTechnicalLine",
+      delta: tech,
+      subtotal: running + tech,
+    });
+    running += tech;
+  }
+
+  rows.push({
+    id: "landed",
+    labelKey: "wizard.estimatedLandedDdp",
+    delta: null,
+    subtotal: landed,
+    isTotal: true,
+  });
+
+  return rows;
+}
 
 type PreviewState = {
   loading: boolean;
@@ -60,6 +182,9 @@ export function QuoteWizard() {
     effectiveRateS200: number;
     baseUom: string;
     containerCapacityM3?: number;
+    containerWallAreaM2S80?: number;
+    containerWallAreaM2S150?: number;
+    containerWallAreaM2S200?: number;
     defaultPartnerMarkupPct?: number;
     partnerMarkupMinPct?: number | null;
     partnerMarkupMaxPct?: number | null;
@@ -71,10 +196,24 @@ export function QuoteWizard() {
   const [importLinesOpen, setImportLinesOpen] = useState(false);
   const [preview, setPreview] = useState<PreviewState>({ loading: false, error: null, data: null });
   const previewReq = useRef(0);
+  const partnerMarkupSyncedForDest = useRef<string | null>(null);
 
   const update = useCallback((patch: Partial<QuoteWizardState>) => {
     setState((prev) => ({ ...prev, ...patch }));
   }, []);
+
+  const clampPartnerMarkupClient = useCallback(
+    (v: number) => {
+      if (isSuperadmin) return v;
+      let x = v;
+      const min = quoteDefaults?.partnerMarkupMinPct;
+      const max = quoteDefaults?.partnerMarkupMaxPct;
+      if (min != null && Number.isFinite(min)) x = Math.max(x, min);
+      if (max != null && Number.isFinite(max)) x = Math.min(x, max);
+      return x;
+    },
+    [isSuperadmin, quoteDefaults?.partnerMarkupMinPct, quoteDefaults?.partnerMarkupMaxPct]
+  );
 
   const projectIdFromQuery = searchParams.get("projectId");
 
@@ -148,7 +287,23 @@ export function QuoteWizard() {
           return [];
         }
       })
-      .then(setFreightProfiles)
+      .then((list) => {
+        const arr = Array.isArray(list) ? list : [];
+        setFreightProfiles(
+          arr.map((fp: Record<string, unknown>) => ({
+            id: String(fp.id ?? ""),
+            name: String(fp.name ?? ""),
+            freightPerContainer: Number(fp.freightPerContainer) || 0,
+            expiryDate:
+              fp.expiryDate != null
+                ? typeof fp.expiryDate === "string"
+                  ? fp.expiryDate
+                  : new Date(fp.expiryDate as Date).toISOString()
+                : null,
+            country: fp.country as FreightProfileOpt["country"],
+          }))
+        );
+      })
       .catch(() => setFreightProfiles([]));
   }, []);
 
@@ -172,6 +327,17 @@ export function QuoteWizard() {
       .then(setQuoteDefaults)
       .catch(() => setQuoteDefaults(null));
   }, [quoteDefaultsUrl]);
+
+  useEffect(() => {
+    if (isSuperadmin) return;
+    const cc = state.destinationCountryCode.trim().toUpperCase();
+    if (cc.length !== 2) return;
+    const d = quoteDefaults?.defaultPartnerMarkupPct;
+    if (typeof d !== "number" || !Number.isFinite(d)) return;
+    if (partnerMarkupSyncedForDest.current === cc) return;
+    partnerMarkupSyncedForDest.current = cc;
+    setState((prev) => ({ ...prev, partnerMarkupPct: d }));
+  }, [isSuperadmin, state.destinationCountryCode, quoteDefaults?.defaultPartnerMarkupPct]);
 
   useEffect(() => {
     fetch("/api/catalog?limit=200")
@@ -222,7 +388,7 @@ export function QuoteWizard() {
   }, [state.revitImportId, state.costMethod, update]);
 
   useEffect(() => {
-    if (step < 4 || !state.projectId || state.destinationCountryCode.trim().length !== 2) {
+    if (step < 3 || !state.projectId || state.destinationCountryCode.trim().length !== 2) {
       setPreview((p) => ({ ...p, loading: false }));
       return;
     }
@@ -251,7 +417,7 @@ export function QuoteWizard() {
               freightCostUsd: state.freightCostUsd,
               freightProfileId: state.freightProfileId.trim() || null,
               totalKits: state.totalKits,
-              ...(!isSuperadmin ? { partnerMarkupPct: state.partnerMarkupPct } : {}),
+              ...(!isSuperadmin ? { partnerMarkupPct: clampPartnerMarkupClient(state.partnerMarkupPct) } : {}),
               destinationCountryCode: state.destinationCountryCode.trim().toUpperCase(),
             }),
           });
@@ -294,6 +460,7 @@ export function QuoteWizard() {
     state.partnerMarkupPct,
     state.destinationCountryCode,
     isSuperadmin,
+    clampPartnerMarkupClient,
     t,
   ]);
 
@@ -303,7 +470,7 @@ export function QuoteWizard() {
       if (state.costMethod !== "CSV") return true;
       return !!state.revitImportId && state.unmatchedRows.filter((r) => !r.ignored && !r.mappedCatalogId).length === 0;
     }
-    if (step === 4) return state.destinationCountryCode.trim().length === 2;
+    if (step === 3) return state.destinationCountryCode.trim().length === 2;
     return true;
   };
 
@@ -312,7 +479,7 @@ export function QuoteWizard() {
     if (step === 1 && state.costMethod !== "CSV") {
       setStep(3);
     } else {
-      setStep((s) => Math.min(s + 1, 6));
+      setStep((s) => Math.min(s + 1, MAX_STEP));
     }
   };
 
@@ -434,7 +601,7 @@ export function QuoteWizard() {
           commissionPct: isSuperadmin ? state.commissionPct : 0,
           commissionFixed: state.commissionFixed,
           commissionFixedPerKit: state.commissionFixedPerKit,
-          ...(!isSuperadmin ? { partnerMarkupPct: state.partnerMarkupPct } : {}),
+          ...(!isSuperadmin ? { partnerMarkupPct: clampPartnerMarkupClient(state.partnerMarkupPct) } : {}),
           destinationCountryCode: state.destinationCountryCode.trim().toUpperCase(),
           freightCostUsd: state.freightCostUsd,
           freightProfileId: state.freightProfileId.trim() || null,
@@ -469,6 +636,23 @@ export function QuoteWizard() {
   const snap = preview.data?.snapshot as Record<string, unknown> | undefined;
   const fcl = preview.data?.fcl as Record<string, unknown> | undefined;
   const pricing = preview.data?.pricing as Record<string, unknown> | undefined;
+  const priceLadderRows = useMemo(() => buildWizardPriceLadder(pricing), [pricing]);
+
+  const previewTaxRunningRows = useMemo(() => {
+    if (!pricing || !Array.isArray(pricing.taxLines)) return null;
+    const taxLines = pricing.taxLines as Array<Record<string, unknown>>;
+    if (taxLines.length === 0) return null;
+    const cifRaw = pricing.cifUsd;
+    const cif = typeof cifRaw === "number" && Number.isFinite(cifRaw) ? cifRaw : 0;
+    const rows: Array<{ id: number; label: string; delta: number; subtotal: number }> = [];
+    let running = cif;
+    for (let i = 0; i < taxLines.length; i++) {
+      const amt = Number(taxLines[i].computedAmount ?? 0);
+      running += amt;
+      rows.push({ id: i, label: String(taxLines[i].label ?? ""), delta: amt, subtotal: running });
+    }
+    return rows;
+  }, [pricing]);
 
   return (
     <div className="data-entry-page max-w-5xl space-y-8">
@@ -583,6 +767,47 @@ export function QuoteWizard() {
                 ))}
               </div>
             </div>
+            {state.costMethod === "M2_BY_SYSTEM" && (
+              <div className="space-y-3 rounded-lg border border-border/60 bg-muted/10 p-4">
+                <p className="text-sm font-medium text-foreground">{t("wizard.wallM2Step1Title")}</p>
+                <p className="text-xs text-muted-foreground">{t("wizard.wallM2Step1Desc")}</p>
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <div>
+                    <label className="text-xs font-semibold uppercase text-muted-foreground">{t("wizard.vbt80")}</label>
+                    <input
+                      type="number"
+                      min={0}
+                      step={0.1}
+                      value={state.m2S80}
+                      onChange={(e) => update({ m2S80: parseFloat(e.target.value) || 0 })}
+                      className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold uppercase text-muted-foreground">{t("wizard.vbt150")}</label>
+                    <input
+                      type="number"
+                      min={0}
+                      step={0.1}
+                      value={state.m2S150}
+                      onChange={(e) => update({ m2S150: parseFloat(e.target.value) || 0 })}
+                      className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold uppercase text-muted-foreground">{t("wizard.vbt200")}</label>
+                    <input
+                      type="number"
+                      min={0}
+                      step={0.1}
+                      value={state.m2S200}
+                      onChange={(e) => update({ m2S200: parseFloat(e.target.value) || 0 })}
+                      className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
             <div>
               <p className="text-sm font-medium text-foreground mb-2">{t("wizard.unitOfMeasure")}</p>
               <div className="flex gap-4">
@@ -700,64 +925,62 @@ export function QuoteWizard() {
         )}
 
         {step === 3 && (
-          <div className="space-y-4">
-            <h2 id="wizard-active-step-title" className="text-lg font-semibold text-foreground">
-              {t("wizard.step3Title")}
-            </h2>
-            {state.costMethod === "CSV" ? (
-              <p className="text-sm text-muted-foreground">{t("wizard.reviewCsvAreas")}</p>
-            ) : (
-              <p className="text-sm text-muted-foreground">{t("wizard.enterWallArea")}</p>
-            )}
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div>
-                <label className="text-xs font-semibold uppercase text-muted-foreground">{t("wizard.vbt80")}</label>
-                <input
-                  type="number"
-                  min={0}
-                  step={0.1}
-                  value={state.m2S80}
-                  onChange={(e) => update({ m2S80: parseFloat(e.target.value) || 0 })}
-                  className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-semibold uppercase text-muted-foreground">{t("wizard.vbt150")}</label>
-                <input
-                  type="number"
-                  min={0}
-                  step={0.1}
-                  value={state.m2S150}
-                  onChange={(e) => update({ m2S150: parseFloat(e.target.value) || 0 })}
-                  className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-semibold uppercase text-muted-foreground">{t("wizard.vbt200")}</label>
-                <input
-                  type="number"
-                  min={0}
-                  step={0.1}
-                  value={state.m2S200}
-                  onChange={(e) => update({ m2S200: parseFloat(e.target.value) || 0 })}
-                  className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
-                />
-              </div>
+          <div className="space-y-6">
+            <div>
+              <h2 id="wizard-active-step-title" className="text-lg font-semibold text-foreground">
+                {t("wizard.step3MaterialPricingTitle")}
+              </h2>
+              <p className="text-sm text-muted-foreground mt-1">{t("wizard.step3MaterialPricingDesc")}</p>
             </div>
-            {quoteDefaults && (state.costMethod === "M2_BY_SYSTEM" || state.m2S80 + state.m2S150 + state.m2S200 > 0) && (
-              <p className="text-sm text-muted-foreground">
-                {t("wizard.estimatedFactoryExw")}: {fmt(m2FactoryEst)}
-              </p>
-            )}
-          </div>
-        )}
 
-        {step === 4 && (
-          <div className="space-y-5">
-            <h2 id="wizard-active-step-title" className="text-lg font-semibold text-foreground">
-              {t("wizard.step4Title")}
-            </h2>
-            <p className="text-sm text-muted-foreground">{t("wizard.step4Desc")}</p>
+            <div>
+              <p className="text-sm font-medium text-foreground mb-2">{t("wizard.wallM2ReadOnlyTitle")}</p>
+              <p className="text-xs text-muted-foreground mb-3">
+                {state.costMethod === "CSV" ? t("wizard.wallM2FromCsv") : t("wizard.wallM2FromStep1")}
+              </p>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div>
+                  <label className="text-xs font-semibold uppercase text-muted-foreground">{t("wizard.vbt80")}</label>
+                  <div className="mt-1 rounded-lg border border-input bg-muted/30 px-3 py-2 text-sm tabular-nums text-foreground">
+                    {state.m2S80.toFixed(2)} m²
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold uppercase text-muted-foreground">{t("wizard.vbt150")}</label>
+                  <div className="mt-1 rounded-lg border border-input bg-muted/30 px-3 py-2 text-sm tabular-nums text-foreground">
+                    {state.m2S150.toFixed(2)} m²
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold uppercase text-muted-foreground">{t("wizard.vbt200")}</label>
+                  <div className="mt-1 rounded-lg border border-input bg-muted/30 px-3 py-2 text-sm tabular-nums text-foreground">
+                    {state.m2S200.toFixed(2)} m²
+                  </div>
+                </div>
+              </div>
+              {quoteDefaults && (
+                <p className="text-xs text-muted-foreground mt-3">
+                  {t("wizard.fclWallCapacityLine", {
+                    s80: String(quoteDefaults.containerWallAreaM2S80 ?? "—"),
+                    s150: String(quoteDefaults.containerWallAreaM2S150 ?? "—"),
+                    s200: String(quoteDefaults.containerWallAreaM2S200 ?? "—"),
+                  })}
+                </p>
+              )}
+            </div>
+
+            <div className="rounded-lg border border-border/60 bg-muted/10 px-4 py-3 text-sm">
+              <p className="font-medium text-foreground">{t("wizard.estimatedFactoryExw")}</p>
+              <p className="text-lg font-semibold tabular-nums text-foreground mt-1">
+                {snap && typeof snap.factoryCostUsd === "number" && Number.isFinite(Number(snap.factoryCostUsd))
+                  ? fmt(Number(snap.factoryCostUsd))
+                  : state.costMethod === "M2_BY_SYSTEM" && quoteDefaults
+                    ? fmt(m2FactoryEst)
+                    : preview.loading
+                      ? t("wizard.previewUpdating")
+                      : "—"}
+              </p>
+            </div>
 
             <div>
               <label className="block text-sm font-medium text-foreground mb-2">{t("wizard.destinationCountry")}</label>
@@ -772,7 +995,7 @@ export function QuoteWizard() {
                 aria-label={t("wizard.destinationCountry")}
                 triggerClassName="h-10 w-full min-w-0 max-w-full text-sm"
               />
-              <p className="text-xs text-muted-foreground mt-1">{t("wizard.destinationCountryHint")}</p>
+              <p className="text-xs text-muted-foreground mt-1">{t("wizard.destinationCountryHintStep3")}</p>
             </div>
 
             {isSuperadmin && (
@@ -797,21 +1020,29 @@ export function QuoteWizard() {
                 <div className="mt-1 flex items-center gap-2 max-w-xs">
                   <input
                     type="number"
-                    min={quoteDefaults?.partnerMarkupMinPct ?? 0}
-                    max={quoteDefaults?.partnerMarkupMaxPct ?? undefined}
                     step={0.1}
                     value={state.partnerMarkupPct}
                     onChange={(e) => update({ partnerMarkupPct: parseFloat(e.target.value) || 0 })}
+                    onBlur={() =>
+                      setState((prev) => {
+                        const c = clampPartnerMarkupClient(prev.partnerMarkupPct);
+                        return c === prev.partnerMarkupPct ? prev : { ...prev, partnerMarkupPct: c };
+                      })
+                    }
                     className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
                   />
                   <span className="text-sm text-muted-foreground">%</span>
                 </div>
                 {quoteDefaults != null &&
-                  (quoteDefaults.partnerMarkupMinPct != null || quoteDefaults.partnerMarkupMaxPct != null) && (
+                  quoteDefaults.partnerMarkupMinPct != null &&
+                  quoteDefaults.partnerMarkupMaxPct != null &&
+                  Number.isFinite(quoteDefaults.partnerMarkupMinPct) &&
+                  Number.isFinite(quoteDefaults.partnerMarkupMaxPct) &&
+                  quoteDefaults.partnerMarkupMinPct < quoteDefaults.partnerMarkupMaxPct && (
                     <p className="text-xs text-muted-foreground mt-1">
                       {t("wizard.partnerMarkupBounds", {
-                        min: quoteDefaults.partnerMarkupMinPct ?? "—",
-                        max: quoteDefaults.partnerMarkupMaxPct ?? "—",
+                        min: quoteDefaults.partnerMarkupMinPct,
+                        max: quoteDefaults.partnerMarkupMaxPct,
                       })}
                     </p>
                   )}
@@ -849,79 +1080,104 @@ export function QuoteWizard() {
               </div>
             </div>
 
-            <div>
-              <label className="text-xs font-semibold uppercase text-muted-foreground">{t("wizard.totalKitsLabel")}</label>
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-foreground">{t("wizard.totalKitsLabel")}</label>
               <input
                 type="number"
                 min={0}
                 step={1}
                 value={state.totalKits}
                 onChange={(e) => update({ totalKits: parseInt(e.target.value, 10) || 0 })}
-                className="mt-1 w-full max-w-xs rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                className="w-full max-w-xs rounded-lg border border-input bg-background px-3 py-2.5 text-sm"
               />
             </div>
 
-            <div className="rounded-lg border border-border/60 bg-muted/15 p-4 space-y-2 text-sm">
+            <div className="rounded-lg border border-border/60 bg-muted/15 p-4 space-y-3 text-sm">
               <p className="font-medium text-foreground">{t("wizard.previewSummary")}</p>
               {preview.loading && <p className="text-muted-foreground">{t("wizard.previewUpdating")}</p>}
               {preview.error && <p className="text-destructive text-sm">{preview.error}</p>}
               {!preview.loading && !preview.error && snap && fcl && (
-                <ul className="space-y-1 text-muted-foreground">
-                  <li>
-                    {t("wizard.containersLabel")}: <span className="text-foreground font-medium">{String(snap.numContainers)}</span>{" "}
-                    ({t("wizard.fclCapacityHint", { m3: String(fcl.containerCapacityM3 ?? quoteDefaults?.containerCapacityM3 ?? "—") })})
-                  </li>
-                  <li>
-                    {t("wizard.kitsPerContainer")}:{" "}
-                    <span className="text-foreground font-medium">{String(snap.kitsPerContainer)}</span>
-                  </li>
-                  <li>
-                    {t("wizard.totalPanelVolume")}:{" "}
-                    <span className="text-foreground font-medium">
-                      {typeof snap.totalVolumeM3 === "number" ? snap.totalVolumeM3.toFixed(2) : "—"} m³
-                    </span>
-                  </li>
-                  {pricing && typeof pricing.suggestedLandedUsd === "number" && (
-                    <li className="pt-2 text-foreground font-semibold">
-                      {t("wizard.estimatedLandedDdp")}: {fmt(pricing.suggestedLandedUsd as number)}
+                <>
+                  <ul className="space-y-1 text-muted-foreground">
+                    <li>
+                      {t("wizard.containersLabel")}: <span className="text-foreground font-medium">{String(snap.numContainers)}</span>{" "}
+                      ({t("wizard.fclCapacityHint", { m3: String(fcl.containerCapacityM3 ?? quoteDefaults?.containerCapacityM3 ?? "—") })})
                     </li>
+                    <li>
+                      {t("wizard.kitsPerContainer")}:{" "}
+                      <span className="text-foreground font-medium">{String(snap.kitsPerContainer)}</span>
+                    </li>
+                    <li>
+                      {t("wizard.totalPanelVolume")}:{" "}
+                      <span className="text-foreground font-medium">
+                        {typeof snap.totalVolumeM3 === "number" ? snap.totalVolumeM3.toFixed(2) : "—"} m³
+                      </span>
+                    </li>
+                  </ul>
+                  {priceLadderRows && priceLadderRows.length > 0 && (
+                    <div className="border-t border-border/40 pt-3 space-y-2">
+                      <p className="text-xs font-semibold uppercase text-muted-foreground">{t("wizard.priceBuildUp")}</p>
+                      <div className="overflow-x-auto rounded-md border border-border/50">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b border-border bg-muted/25 text-left text-xs text-muted-foreground">
+                              <th className="p-2 font-medium">{t("wizard.priceLadderConcept")}</th>
+                              <th className="p-2 font-medium text-right whitespace-nowrap">{t("wizard.priceLadderThisStep")}</th>
+                              <th className="p-2 font-medium text-right whitespace-nowrap">{t("wizard.priceLadderRunningTotal")}</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {priceLadderRows.map((row) => (
+                              <tr
+                                key={row.id}
+                                className={`border-b border-border/30 last:border-0 ${
+                                  row.isTotal ? "bg-muted/20 font-semibold text-foreground" : "text-muted-foreground"
+                                }`}
+                              >
+                                <td className="p-2 align-top">
+                                  {row.customLabel != null && row.customLabel !== ""
+                                    ? row.customLabel
+                                    : row.labelKey != null
+                                      ? t(row.labelKey as never)
+                                      : "—"}
+                                </td>
+                                <td className="p-2 text-right tabular-nums align-top">
+                                  {row.delta == null ? "—" : fmt(row.delta)}
+                                </td>
+                                <td className="p-2 text-right tabular-nums text-foreground align-top">{fmt(row.subtotal)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
                   )}
-                </ul>
+                </>
               )}
             </div>
           </div>
         )}
 
-        {step === 5 && (
+        {step === 4 && (
           <div className="space-y-4">
             <h2 id="wizard-active-step-title" className="text-lg font-semibold text-foreground">
-              {t("wizard.step5Title")}
+              {t("wizard.stepFreightTitle")}
             </h2>
-            <p className="text-sm text-muted-foreground">{t("wizard.step5Desc")}</p>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">{t("wizard.destinationCountry")}</label>
-              <FilterSelect
-                value={state.destinationCountryCode}
-                onValueChange={(v) => update({ destinationCountryCode: v })}
-                emptyOptionLabel={t("wizard.selectCountry")}
-                options={countries.map((c) => ({
-                  value: c.code,
-                  label: `${c.name} (${c.code})`,
-                }))}
-                aria-label={t("wizard.destinationCountry")}
-                triggerClassName="h-10 w-full min-w-0 max-w-full text-sm"
-              />
-            </div>
+            <p className="text-sm text-muted-foreground">{t("wizard.stepFreightDesc")}</p>
             <div>
               <label className="block text-sm font-medium text-foreground mb-2">{t("wizard.freightProfile")}</label>
               <FilterSelect
                 value={state.freightProfileId}
                 onValueChange={(v) => update({ freightProfileId: v })}
                 emptyOptionLabel={t("wizard.manualEntry")}
-                options={freightProfiles.map((fp) => ({
-                  value: fp.id,
-                  label: `${fp.name}${fp.country?.code ? ` (${fp.country.code})` : ""} — $${fp.freightPerContainer}${t("wizard.perContainerSuffix")}`,
-                }))}
+                options={freightProfiles.map((fp) => {
+                  const exp = freightProfileIsExpired(fp);
+                  const status = exp ? t("wizard.freightProfileStatusExpired") : t("wizard.freightProfileStatusActive");
+                  return {
+                    value: fp.id,
+                    label: `${fp.name}${fp.country?.code ? ` (${fp.country.code})` : ""} — $${fp.freightPerContainer}${t("wizard.perContainerSuffix")} — ${status}`,
+                  };
+                })}
                 aria-label={t("wizard.freightProfile")}
                 triggerClassName="h-10 w-full min-w-0 max-w-full text-sm"
               />
@@ -951,69 +1207,107 @@ export function QuoteWizard() {
           </div>
         )}
 
-        {step === 6 && (
+        {step === 5 && (
           <div className="space-y-4">
             <h2 id="wizard-active-step-title" className="text-lg font-semibold text-foreground">
-              {t("wizard.step6Title")}
+              {t("wizard.stepPreviewFinalTitle")}
             </h2>
-            <p className="text-sm text-muted-foreground">{t("wizard.step6Desc")}</p>
+            <p className="text-sm text-muted-foreground">{t("wizard.stepPreviewFinalDesc")}</p>
             {preview.loading && <p className="text-sm text-muted-foreground">{t("wizard.previewUpdating")}</p>}
             {preview.error && <p className="text-sm text-destructive">{preview.error}</p>}
             {snap && (
-              <div className="overflow-x-auto rounded-lg border border-border/60">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border bg-muted/30 text-left">
-                      <th className="p-2 font-medium">{t("wizard.financialSummary")}</th>
-                      <th className="p-2 font-medium text-right">{t("wizard.wallAreaM2")}</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-muted-foreground">
-                    <tr className="border-b border-border/40">
-                      <td className="p-2">VBT 80</td>
-                      <td className="p-2 text-right">{Number(snap.wallAreaM2S80 ?? 0).toFixed(2)}</td>
-                    </tr>
-                    <tr className="border-b border-border/40">
-                      <td className="p-2">VBT 150</td>
-                      <td className="p-2 text-right">{Number(snap.wallAreaM2S150 ?? 0).toFixed(2)}</td>
-                    </tr>
-                    <tr className="border-b border-border/40">
-                      <td className="p-2">VBT 200</td>
-                      <td className="p-2 text-right">{Number(snap.wallAreaM2S200 ?? 0).toFixed(2)}</td>
-                    </tr>
-                    <tr className="border-b border-border/40 font-medium text-foreground">
-                      <td className="p-2">{t("wizard.wallArea")}</td>
-                      <td className="p-2 text-right">{Number(snap.wallAreaM2Total ?? 0).toFixed(2)}</td>
-                    </tr>
-                    <tr className="border-b border-border/40">
-                      <td className="p-2">{t("wizard.concreteRequired")}</td>
-                      <td className="p-2 text-right">{Number(snap.concreteM3 ?? 0).toFixed(2)} m³</td>
-                    </tr>
-                    <tr className="border-b border-border/40">
-                      <td className="p-2">{t("wizard.steelEstimate")}</td>
-                      <td className="p-2 text-right">{Number(snap.steelKgEst ?? 0).toFixed(0)} kg</td>
-                    </tr>
-                    <tr className="border-b border-border/40">
-                      <td className="p-2">{t("wizard.fillSteelPolicy")}</td>
-                      <td className="p-2 text-right">{Number(snap.fillSteelKgEst ?? 0).toFixed(0)} kg</td>
-                    </tr>
-                    <tr className="border-b border-border/40">
-                      <td className="p-2">{t("quotes.freight")}</td>
-                      <td className="p-2 text-right">{fmt(Number(preview.data?.freightTotalUsd ?? 0))}</td>
-                    </tr>
-                    <tr className="border-b border-border/40">
-                      <td className="p-2">{t("wizard.containersLabel")}</td>
-                      <td className="p-2 text-right">{String(snap.numContainers)}</td>
-                    </tr>
-                    {pricing && typeof pricing.suggestedLandedUsd === "number" && (
-                      <tr className="font-semibold text-foreground">
-                        <td className="p-2">{t("wizard.landedDdpTotal")}</td>
-                        <td className="p-2 text-right">{fmt(pricing.suggestedLandedUsd as number)}</td>
+              <>
+                <div className="overflow-x-auto rounded-lg border border-border/60">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border bg-muted/30 text-left">
+                        <th className="p-2 font-medium">{t("wizard.financialSummary")}</th>
+                        <th className="p-2 font-medium text-right">{t("wizard.projectColumn")}</th>
                       </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="text-muted-foreground">
+                      {Number(snap.wallAreaM2S80 ?? 0) > 0 && (
+                        <tr className="border-b border-border/40">
+                          <td className="p-2">VBT 80</td>
+                          <td className="p-2 text-right">{Number(snap.wallAreaM2S80 ?? 0).toFixed(2)}</td>
+                        </tr>
+                      )}
+                      {Number(snap.wallAreaM2S150 ?? 0) > 0 && (
+                        <tr className="border-b border-border/40">
+                          <td className="p-2">VBT 150</td>
+                          <td className="p-2 text-right">{Number(snap.wallAreaM2S150 ?? 0).toFixed(2)}</td>
+                        </tr>
+                      )}
+                      {Number(snap.wallAreaM2S200 ?? 0) > 0 && (
+                        <tr className="border-b border-border/40">
+                          <td className="p-2">VBT 200</td>
+                          <td className="p-2 text-right">{Number(snap.wallAreaM2S200 ?? 0).toFixed(2)}</td>
+                        </tr>
+                      )}
+                      <tr className="border-b border-border/40 font-medium text-foreground">
+                        <td className="p-2">{t("wizard.wallArea")}</td>
+                        <td className="p-2 text-right">{Number(snap.wallAreaM2Total ?? 0).toFixed(2)}</td>
+                      </tr>
+                      <tr className="border-b border-border/40">
+                        <td className="p-2">{t("wizard.concreteFillWalls")}</td>
+                        <td className="p-2 text-right">{Number(snap.concreteM3 ?? 0).toFixed(2)} m³</td>
+                      </tr>
+                      <tr className="border-b border-border/40">
+                        <td className="p-2">{t("wizard.steelEstimate")}</td>
+                        <td className="p-2 text-right">{Number(snap.steelKgEst ?? 0).toFixed(0)} kg</td>
+                      </tr>
+                      <tr className="border-b border-border/40">
+                        <td className="p-2">{t("quotes.freight")}</td>
+                        <td className="p-2 text-right">{fmt(Number(preview.data?.freightTotalUsd ?? 0))}</td>
+                      </tr>
+                      <tr className="border-b border-border/40">
+                        <td className="p-2">{t("wizard.containersLabel")}</td>
+                        <td className="p-2 text-right">{String(snap.numContainers)}</td>
+                      </tr>
+                      {pricing && typeof pricing.suggestedLandedUsd === "number" && (
+                        <tr className="font-semibold text-foreground">
+                          <td className="p-2">{t("wizard.landedDdpTotal")}</td>
+                          <td className="p-2 text-right">{fmt(pricing.suggestedLandedUsd as number)}</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+                {previewTaxRunningRows && previewTaxRunningRows.length > 0 && (
+                  <div className="rounded-lg border border-border/60 bg-muted/15 p-4 space-y-2 text-sm">
+                    <p className="font-medium text-foreground">{t("wizard.taxBreakdown")}</p>
+                    <div className="overflow-x-auto rounded-md border border-border/50">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-border bg-muted/25 text-left text-xs text-muted-foreground">
+                            <th className="p-2 font-medium">{t("wizard.priceLadderConcept")}</th>
+                            <th className="p-2 font-medium text-right whitespace-nowrap">{t("wizard.priceLadderThisStep")}</th>
+                            <th className="p-2 font-medium text-right whitespace-nowrap">{t("wizard.priceLadderRunningTotal")}</th>
+                          </tr>
+                        </thead>
+                        <tbody className="text-muted-foreground">
+                          {previewTaxRunningRows.map((row) => (
+                            <tr key={row.id} className="border-b border-border/30 last:border-0">
+                              <td className="p-2">{row.label}</td>
+                              <td className="p-2 text-right tabular-nums text-foreground">{fmt(row.delta)}</td>
+                              <td className="p-2 text-right tabular-nums text-foreground">{fmt(row.subtotal)}</td>
+                            </tr>
+                          ))}
+                          {typeof pricing?.ruleTaxesUsd === "number" && previewTaxRunningRows.length > 0 && (
+                            <tr className="border-t border-border/40 font-medium text-foreground">
+                              <td className="p-2">{t("quotes.totalTaxesLabel")}</td>
+                              <td className="p-2 text-right tabular-nums">{fmt(pricing.ruleTaxesUsd as number)}</td>
+                              <td className="p-2 text-right tabular-nums">
+                                {fmt(previewTaxRunningRows[previewTaxRunningRows.length - 1]!.subtotal)}
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
             <div>
               <label className="text-xs font-semibold uppercase text-muted-foreground">{t("quotes.notes")}</label>
@@ -1038,7 +1332,7 @@ export function QuoteWizard() {
           <ArrowLeft className="w-4 h-4" />
           {t("common.back")}
         </button>
-        {step < 6 ? (
+        {step < MAX_STEP ? (
           <button
             type="button"
             onClick={next}

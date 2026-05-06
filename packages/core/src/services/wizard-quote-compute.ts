@@ -5,7 +5,7 @@
 import type { PrismaClient } from "@vbt/db";
 import { buildQuoteSnapshot, type PieceMeta, type QuoteInputLine } from "../quote-engine";
 import { catalogPiecesToPieceMetaMap } from "../catalog-for-quote-wizard";
-import { deriveFclContainersAndMetrics } from "../calculations";
+import { deriveFclContainersAndMetrics, deriveFclContainersFromWallM2 } from "../calculations";
 import { canonicalizeSaaSQuotePayload } from "../pricing/saas-quote-persist";
 import type { CreateQuoteItemInput } from "./quotes";
 import { getRawRatesFromConfig } from "./platform-config";
@@ -85,6 +85,9 @@ export type WizardQuoteArtifacts = {
   fcl: ReturnType<typeof deriveFclContainersAndMetrics> & {
     containerCapacityM3: number;
     totalVolumeM3: number;
+    containerWallAreaM2S80: number;
+    containerWallAreaM2S150: number;
+    containerWallAreaM2S200: number;
   };
   freightTotalUsd: number;
   taxCountryCode: string;
@@ -101,9 +104,13 @@ export async function computeWizardQuoteArtifacts(
     isPlatformSuperadmin: boolean;
     data: WizardQuoteComputeInput;
     project: { organizationId: string; countryCode: string | null };
+    /** When false, pricing read model exposes factory EXW (wizard preview only). Default: mask for non-superadmin. */
+    pricingMaskFactoryExw?: boolean;
   }
 ): Promise<WizardQuoteArtifacts> {
   const { organizationId, isPlatformSuperadmin, data, project } = args;
+  const maskFactoryExw =
+    args.pricingMaskFactoryExw !== undefined ? args.pricingMaskFactoryExw : !isPlatformSuperadmin;
 
   if (project.organizationId !== organizationId) {
     throw new Error("PROJECT_ORG_MISMATCH");
@@ -190,11 +197,25 @@ export async function computeWizardQuoteArtifacts(
     taxRules,
   });
 
-  const fclBase = deriveFclContainersAndMetrics({
+  const volFcl = deriveFclContainersAndMetrics({
     totalKits: data.totalKits,
     totalVolumeM3: draftSnapshot.totalVolumeM3,
     containerCapacityM3: raw.containerCapacityM3,
   });
+  const wallFcl = deriveFclContainersFromWallM2({
+    m2S80: draftSnapshot.wallAreaM2S80,
+    m2S150: draftSnapshot.wallAreaM2S150,
+    m2S200: draftSnapshot.wallAreaM2S200,
+    areaM2PerContainerS80: raw.containerWallAreaM2S80,
+    areaM2PerContainerS150: raw.containerWallAreaM2S150,
+    areaM2PerContainerS200: raw.containerWallAreaM2S200,
+    totalKits: data.totalKits,
+  });
+  const kits = Math.max(0, Math.floor(Number(data.totalKits) || 0));
+  const numContainersMerged = kits > 0 ? Math.max(wallFcl.numContainers, volFcl.numContainers, 1) : 1;
+  const kitsPerContainerMerged =
+    numContainersMerged > 0 && kits > 0 ? Math.ceil(kits / numContainersMerged) : 0;
+  const fclBase = { numContainers: numContainersMerged, kitsPerContainer: kitsPerContainerMerged };
 
   let freightTotalUsd = Math.max(0, Number(data.freightCostUsd) || 0);
   if (data.freightProfileId?.trim()) {
@@ -256,7 +277,9 @@ export async function computeWizardQuoteArtifacts(
       importCost: undefined,
       localTransportCost: undefined,
       technicalServiceCost: technicalServiceCost > 0 ? technicalServiceCost : undefined,
-      partnerMarkupPct: data.partnerMarkupPct,
+      ...(data.partnerMarkupPct !== undefined && data.partnerMarkupPct !== null
+        ? { partnerMarkupPct: data.partnerMarkupPct }
+        : {}),
     },
     resolved,
   });
@@ -290,7 +313,7 @@ export async function computeWizardQuoteArtifacts(
 
   const { pricing: pricingReadModel } = buildQuotePricingReadModel(syntheticQuote, {
     taxRules,
-    maskFactoryExw: !isPlatformSuperadmin,
+    maskFactoryExw,
   });
 
   return {
@@ -299,6 +322,9 @@ export async function computeWizardQuoteArtifacts(
       ...fclBase,
       containerCapacityM3: raw.containerCapacityM3,
       totalVolumeM3: snapshot.totalVolumeM3,
+      containerWallAreaM2S80: raw.containerWallAreaM2S80,
+      containerWallAreaM2S150: raw.containerWallAreaM2S150,
+      containerWallAreaM2S200: raw.containerWallAreaM2S200,
     },
     freightTotalUsd,
     taxCountryCode,

@@ -20,6 +20,10 @@ export type PlatformConfigJson = {
     minRunFt?: number;
     /** Usable volume per shipping container (m³) for FCL count in the quote wizard. */
     containerCapacityM3?: number;
+    /** Approx. wall m² per full container by system (FCL planning). Defaults used when unset. */
+    containerWallAreaM2S80?: number;
+    containerWallAreaM2S150?: number;
+    containerWallAreaM2S200?: number;
   };
   moduleVisibility?: Record<string, boolean>;
   [key: string]: unknown;
@@ -132,6 +136,9 @@ const DEFAULT_RATE_S200 = 85;
  * Get raw factory rates (USD/m²) from platform_config. Server-side only; never expose to client for partners.
  */
 const DEFAULT_CONTAINER_CAPACITY_M3 = 68;
+const DEFAULT_WALL_M2_S80 = 320;
+const DEFAULT_WALL_M2_S150 = 420;
+const DEFAULT_WALL_M2_S200 = 380;
 
 export async function getRawRatesFromConfig(prisma: PrismaClient): Promise<{
   rateS80: number;
@@ -141,10 +148,16 @@ export async function getRawRatesFromConfig(prisma: PrismaClient): Promise<{
   baseUom: "M" | "FT";
   minRunFt: number;
   containerCapacityM3: number;
+  containerWallAreaM2S80: number;
+  containerWallAreaM2S150: number;
+  containerWallAreaM2S200: number;
 }> {
   const row = await prisma.platformConfig.findFirst({ select: { configJson: true } });
   const p = (row?.configJson as { pricing?: Record<string, unknown> })?.pricing ?? {};
   const cap = Number(p.containerCapacityM3);
+  const w80 = Number(p.containerWallAreaM2S80);
+  const w150 = Number(p.containerWallAreaM2S150);
+  const w200 = Number(p.containerWallAreaM2S200);
   return {
     rateS80: (p.rateS80 as number) ?? DEFAULT_RATE_S80,
     rateS150: (p.rateS150 as number) ?? DEFAULT_RATE_S150,
@@ -153,6 +166,9 @@ export async function getRawRatesFromConfig(prisma: PrismaClient): Promise<{
     baseUom: ((p.baseUom as string) === "FT" ? "FT" : "M") as "M" | "FT",
     minRunFt: (p.minRunFt as number) ?? 0,
     containerCapacityM3: Number.isFinite(cap) && cap > 0 ? cap : DEFAULT_CONTAINER_CAPACITY_M3,
+    containerWallAreaM2S80: Number.isFinite(w80) && w80 > 0 ? w80 : DEFAULT_WALL_M2_S80,
+    containerWallAreaM2S150: Number.isFinite(w150) && w150 > 0 ? w150 : DEFAULT_WALL_M2_S150,
+    containerWallAreaM2S200: Number.isFinite(w200) && w200 > 0 ? w200 : DEFAULT_WALL_M2_S200,
   };
 }
 
@@ -170,6 +186,9 @@ export async function getQuoteDefaultsForOrg(
   baseUom: "M" | "FT";
   minRunFt: number;
   containerCapacityM3: number;
+  containerWallAreaM2S80: number;
+  containerWallAreaM2S150: number;
+  containerWallAreaM2S200: number;
 }> {
   const raw = await getRawRatesFromConfig(prisma);
   const vlPct = await getVisionLatamCommissionPctForOrg(prisma, organizationId);
@@ -181,5 +200,8 @@ export async function getQuoteDefaultsForOrg(
     baseUom: raw.baseUom,
     minRunFt: raw.minRunFt,
     containerCapacityM3: raw.containerCapacityM3,
+    containerWallAreaM2S80: raw.containerWallAreaM2S80,
+    containerWallAreaM2S150: raw.containerWallAreaM2S150,
+    containerWallAreaM2S200: raw.containerWallAreaM2S200,
   };
 }

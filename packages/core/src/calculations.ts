@@ -352,3 +352,35 @@ export function deriveFclContainersAndMetrics(input: FclDerivationInput): FclDer
   const kitsPerContainer = numContainers > 0 ? Math.ceil(kits / numContainers) : 0;
   return { numContainers, kitsPerContainer };
 }
+
+/** FCL from wall m² per system vs configurable m² capacity per container (dominant system drives count). */
+export type FclWallM2Input = {
+  m2S80: number;
+  m2S150: number;
+  m2S200: number;
+  areaM2PerContainerS80: number;
+  areaM2PerContainerS150: number;
+  areaM2PerContainerS200: number;
+  totalKits: number;
+};
+
+export function deriveFclContainersFromWallM2(input: FclWallM2Input): FclDerivationResult {
+  const kits = Math.max(0, Math.floor(Number(input.totalKits) || 0));
+  const parts: number[] = [];
+  const a80 = Math.max(1e-6, Number(input.areaM2PerContainerS80) || 320);
+  const a150 = Math.max(1e-6, Number(input.areaM2PerContainerS150) || 420);
+  const a200 = Math.max(1e-6, Number(input.areaM2PerContainerS200) || 380);
+  const m80 = Math.max(0, Number(input.m2S80) || 0);
+  const m150 = Math.max(0, Number(input.m2S150) || 0);
+  const m200 = Math.max(0, Number(input.m2S200) || 0);
+  if (m80 > 0) parts.push(Math.ceil(m80 / a80));
+  if (m150 > 0) parts.push(Math.ceil(m150 / a150));
+  if (m200 > 0) parts.push(Math.ceil(m200 / a200));
+  const fromWall = parts.length ? Math.max(...parts) : 0;
+  let numContainers = 1;
+  if (kits > 0) {
+    numContainers = Math.max(1, fromWall);
+  }
+  const kitsPerContainer = numContainers > 0 && kits > 0 ? Math.ceil(kits / numContainers) : 0;
+  return { numContainers, kitsPerContainer };
+}
