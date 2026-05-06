@@ -44,15 +44,6 @@ function freightProfileIsExpired(fp: FreightProfileOpt): boolean {
   return d.getTime() < Date.now();
 }
 
-type WizardPriceLadderRow = {
-  id: string;
-  labelKey?: string;
-  customLabel?: string;
-  delta: number | null;
-  subtotal: number;
-  isTotal?: boolean;
-};
-
 function describeWizardTaxLine(
   line: Record<string, unknown>,
   numContainers: number,
@@ -91,111 +82,6 @@ function describeWizardTaxLine(
     return t("wizard.taxDetailFixedTotal", { amt: fmt(fixedAmount), baseName });
   }
   return t("wizard.taxDetailBaseOnly", { baseName, baseAmt: fmt(baseAmount) });
-}
-
-function buildWizardPriceLadder(pricing: Record<string, unknown> | undefined): WizardPriceLadderRow[] | null {
-  if (!pricing) return null;
-  const readNum = (k: string): number | null => {
-    const v = pricing[k];
-    if (typeof v !== "number" || !Number.isFinite(v)) return null;
-    return v;
-  };
-
-  const factory = readNum("factoryExwUsd");
-  if (factory === null) return null;
-
-  const afterVL = readNum("afterVisionLatamUsd");
-  const afterPartner = readNum("afterPartnerMarkupUsd");
-  const freight = readNum("freightUsd") ?? 0;
-  const importC = readNum("importCostUsd") ?? 0;
-  const cif = readNum("cifUsd") ?? 0;
-  const tech = readNum("technicalServiceUsd") ?? 0;
-  const landed = readNum("suggestedLandedUsd") ?? 0;
-  const taxLines = Array.isArray(pricing.taxLines) ? (pricing.taxLines as Array<Record<string, unknown>>) : [];
-  const vlPctOnStack = readNum("visionLatamMarkupPct") ?? 0;
-
-  const rows: WizardPriceLadderRow[] = [];
-  let running = factory;
-
-  rows.push({
-    id: "exw",
-    labelKey: "quotes.exwFactoryCost",
-    delta: null,
-    subtotal: running,
-  });
-
-  if (afterVL != null && Math.abs(vlPctOnStack) > 0.0005) {
-    const d = afterVL - running;
-    running = afterVL;
-    rows.push({ id: "vl", labelKey: "quotes.basePriceVisionLatam", delta: d, subtotal: running });
-  }
-
-  if (afterPartner != null) {
-    const d = afterPartner - running;
-    running = afterPartner;
-    rows.push({ id: "partner", labelKey: "wizard.afterPartnerMarkupLabel", delta: d, subtotal: running });
-  }
-
-  rows.push({
-    id: "freight",
-    labelKey: "quotes.freight",
-    delta: freight,
-    subtotal: running + freight,
-  });
-  running += freight;
-
-  if (importC > 0.005) {
-    rows.push({
-      id: "import",
-      labelKey: "wizard.importCostLine",
-      delta: importC,
-      subtotal: running + importC,
-    });
-    running += importC;
-  }
-
-  const cifBridge = cif - running;
-  if (Math.abs(cifBridge) > 0.02) {
-    rows.push({
-      id: "cif-bridge",
-      labelKey: "wizard.cifRoundingBridge",
-      delta: cifBridge,
-      subtotal: cif,
-    });
-  }
-  running = cif;
-
-  for (let i = 0; i < taxLines.length; i++) {
-    const ln = taxLines[i];
-    const amt = Number(ln.computedAmount ?? 0);
-    running += amt;
-    rows.push({
-      id: `tax-${i}`,
-      customLabel: String(ln.label ?? ""),
-      delta: amt,
-      subtotal: running,
-    });
-  }
-
-  if (tech > 0.005) {
-    rows.push({
-      id: "tech",
-      labelKey: "wizard.fixedFeesTechnicalLine",
-      delta: tech,
-      subtotal: running + tech,
-    });
-    running += tech;
-  }
-
-  rows.push({
-    id: "landed",
-    labelKey: "wizard.estimatedLandedDdp",
-    delta: null,
-    subtotal: landed,
-    isTotal: true,
-  });
-
-  return rows;
 }
 
 type PreviewState = {
@@ -677,23 +563,32 @@ export function QuoteWizard() {
   const snap = preview.data?.snapshot as Record<string, unknown> | undefined;
   const fcl = preview.data?.fcl as Record<string, unknown> | undefined;
   const pricing = preview.data?.pricing as Record<string, unknown> | undefined;
-  const priceLadderRows = useMemo(() => buildWizardPriceLadder(pricing), [pricing]);
-
-  const previewTaxRunningRows = useMemo(() => {
-    if (!pricing || !Array.isArray(pricing.taxLines)) return null;
-    const taxLines = pricing.taxLines as Array<Record<string, unknown>>;
-    if (taxLines.length === 0) return null;
-    const cifRaw = pricing.cifUsd;
-    const cif = typeof cifRaw === "number" && Number.isFinite(cifRaw) ? cifRaw : 0;
-    const rows: Array<{ id: number; label: string; delta: number; subtotal: number }> = [];
-    let running = cif;
-    for (let i = 0; i < taxLines.length; i++) {
-      const amt = Number(taxLines[i].computedAmount ?? 0);
-      running += amt;
-      rows.push({ id: i, label: String(taxLines[i].label ?? ""), delta: amt, subtotal: running });
-    }
-    return rows;
+  const numContainers = typeof snap?.numContainers === "number" ? Number(snap.numContainers) : 0;
+  const kitsPerContainer = typeof snap?.kitsPerContainer === "number" ? Number(snap.kitsPerContainer) : null;
+  const occupiedSystem = useMemo(() => {
+    const s80 = Number(snap?.wallAreaM2S80 ?? 0);
+    const s150 = Number(snap?.wallAreaM2S150 ?? 0);
+    const s200 = Number(snap?.wallAreaM2S200 ?? 0);
+    if (s80 >= s150 && s80 >= s200) return { area: s80, cap: Number(fcl?.containerWallAreaM2S80 ?? 0) };
+    if (s150 >= s80 && s150 >= s200) return { area: s150, cap: Number(fcl?.containerWallAreaM2S150 ?? 0) };
+    return { area: s200, cap: Number(fcl?.containerWallAreaM2S200 ?? 0) };
+  }, [fcl?.containerWallAreaM2S150, fcl?.containerWallAreaM2S200, fcl?.containerWallAreaM2S80, snap?.wallAreaM2S150, snap?.wallAreaM2S200, snap?.wallAreaM2S80]);
+  const occupancyPct =
+    numContainers > 0 && occupiedSystem.cap > 0 && occupiedSystem.area > 0
+      ? (occupiedSystem.area / (numContainers * occupiedSystem.cap)) * 100
+      : null;
+  const freightProgress = useMemo(() => {
+    if (!pricing) return null;
+    const exw = Number(pricing.factoryExwUsd ?? 0);
+    const afterPartner = Number(pricing.afterPartnerMarkupUsd ?? 0);
+    const freightUsd = Number(pricing.freightUsd ?? 0);
+    const cifUsd = Number(pricing.cifUsd ?? 0);
+    const marginCommissionUsd = afterPartner - exw;
+    return { exw, marginCommissionUsd, freightUsd, cifUsd };
   }, [pricing]);
+  const landedTotalUsd = typeof pricing?.suggestedLandedUsd === "number" ? Number(pricing.suggestedLandedUsd) : null;
+  const finalPerKit = landedTotalUsd != null && state.totalKits > 0 ? landedTotalUsd / state.totalKits : null;
+  const finalPerContainer = landedTotalUsd != null && numContainers > 0 ? landedTotalUsd / numContainers : null;
 
   return (
     <div className="data-entry-page max-w-5xl space-y-8">
@@ -1023,20 +918,33 @@ export function QuoteWizard() {
               </p>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">{t("wizard.destinationCountry")}</label>
-              <FilterSelect
-                value={state.destinationCountryCode}
-                onValueChange={(v) => update({ destinationCountryCode: v })}
-                emptyOptionLabel={t("wizard.selectCountry")}
-                options={countries.map((c) => ({
-                  value: c.code,
-                  label: `${c.name} (${c.code})`,
-                }))}
-                aria-label={t("wizard.destinationCountry")}
-                triggerClassName="h-10 w-full min-w-0 max-w-full text-sm"
-              />
-              <p className="text-xs text-muted-foreground mt-1">{t("wizard.destinationCountryHintStep3")}</p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">{t("wizard.destinationCountry")}</label>
+                <FilterSelect
+                  value={state.destinationCountryCode}
+                  onValueChange={(v) => update({ destinationCountryCode: v })}
+                  emptyOptionLabel={t("wizard.selectCountry")}
+                  options={countries.map((c) => ({
+                    value: c.code,
+                    label: `${c.name} (${c.code})`,
+                  }))}
+                  aria-label={t("wizard.destinationCountry")}
+                  triggerClassName="h-10 w-full min-w-0 max-w-full text-sm"
+                />
+                <p className="text-xs text-muted-foreground mt-1">{t("wizard.destinationCountryHintStep3")}</p>
+              </div>
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-foreground">{t("wizard.totalKitsLabel")}</label>
+                <input
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={state.totalKits}
+                  onChange={(e) => update({ totalKits: parseInt(e.target.value, 10) || 0 })}
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm"
+                />
+              </div>
             </div>
 
             {isSuperadmin && (
@@ -1058,21 +966,32 @@ export function QuoteWizard() {
             {!isSuperadmin && (
               <div>
                 <label className="text-xs font-semibold uppercase text-muted-foreground">{t("wizard.partnerMarkup")}</label>
-                <div className="mt-1 flex items-center gap-2 max-w-xs">
-                  <input
-                    type="number"
-                    step={0.1}
-                    value={state.partnerMarkupPct}
-                    onChange={(e) => update({ partnerMarkupPct: parseFloat(e.target.value) || 0 })}
-                    onBlur={() =>
-                      setState((prev) => {
-                        const c = clampPartnerMarkupClient(prev.partnerMarkupPct);
-                        return c === prev.partnerMarkupPct ? prev : { ...prev, partnerMarkupPct: c };
-                      })
-                    }
-                    className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
-                  />
-                  <span className="text-sm text-muted-foreground">%</span>
+                <div className="mt-1 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-2 max-w-[170px]">
+                    <input
+                      type="number"
+                      step={0.1}
+                      value={state.partnerMarkupPct}
+                      onChange={(e) => update({ partnerMarkupPct: parseFloat(e.target.value) || 0 })}
+                      onBlur={() =>
+                        setState((prev) => {
+                          const c = clampPartnerMarkupClient(prev.partnerMarkupPct);
+                          return c === prev.partnerMarkupPct ? prev : { ...prev, partnerMarkupPct: c };
+                        })
+                      }
+                      className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                    />
+                    <span className="text-sm text-muted-foreground">%</span>
+                  </div>
+                  {pricing && typeof pricing.basePriceForPartnerUsd === "number" && (
+                    <p className="text-xs text-muted-foreground sm:text-right">
+                      {t("wizard.partnerMarkupAmountHint", {
+                        amount: fmt(
+                          (pricing.basePriceForPartnerUsd as number) * (Math.max(0, state.partnerMarkupPct) / 100)
+                        ),
+                      })}
+                    </p>
+                  )}
                 </div>
                 {quoteDefaults != null &&
                   quoteDefaults.partnerMarkupMinPct != null &&
@@ -1087,29 +1006,8 @@ export function QuoteWizard() {
                       })}
                     </p>
                   )}
-                {pricing && typeof pricing.basePriceForPartnerUsd === "number" && (
-                  <p className="text-xs text-muted-foreground mt-2">
-                    {t("wizard.partnerMarkupAmountHint", {
-                      amount: fmt(
-                        (pricing.basePriceForPartnerUsd as number) * (Math.max(0, state.partnerMarkupPct) / 100)
-                      ),
-                    })}
-                  </p>
-                )}
               </div>
             )}
-
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-foreground">{t("wizard.totalKitsLabel")}</label>
-              <input
-                type="number"
-                min={0}
-                step={1}
-                value={state.totalKits}
-                onChange={(e) => update({ totalKits: parseInt(e.target.value, 10) || 0 })}
-                className="w-full max-w-xs rounded-lg border border-input bg-background px-3 py-2.5 text-sm"
-              />
-            </div>
 
             <div className="rounded-lg border border-border/60 bg-muted/15 p-4 space-y-3 text-sm">
               <p className="font-medium text-foreground">{t("wizard.previewSummary")}</p>
@@ -1119,83 +1017,23 @@ export function QuoteWizard() {
                 <>
                   <ul className="space-y-1 text-muted-foreground">
                     <li>
-                      {t("wizard.containersLabel")}: <span className="text-foreground font-medium">{String(snap.numContainers)}</span>{" "}
-                      ({t("wizard.fclCapacityHint", { m3: String(fcl.containerCapacityM3 ?? quoteDefaults?.containerCapacityM3 ?? "—") })})
+                      {t("wizard.containersLabel")}: <span className="text-foreground font-medium">{String(snap.numContainers)}</span>
                     </li>
                     <li>
                       {t("wizard.kitsPerContainer")}:{" "}
                       <span className="text-foreground font-medium">
-                        {typeof snap.kitsPerContainer === "number"
-                          ? Number(snap.kitsPerContainer).toLocaleString(undefined, { maximumFractionDigits: 2 })
+                        {kitsPerContainer != null
+                          ? kitsPerContainer.toLocaleString(undefined, { maximumFractionDigits: 2 })
                           : "—"}
                       </span>
                     </li>
+                    <li>
+                      {t("wizard.containerOccupancyPct")}:{" "}
+                      <span className="text-foreground font-medium">
+                        {occupancyPct != null ? `${occupancyPct.toFixed(1)}%` : "—"}
+                      </span>
+                    </li>
                   </ul>
-                  {priceLadderRows && priceLadderRows.length > 0 && (
-                    <div className="border-t border-border/40 pt-3 space-y-2">
-                      <p className="text-xs font-semibold uppercase text-muted-foreground">{t("wizard.priceBuildUp")}</p>
-                      <div className="overflow-x-auto rounded-md border border-border/50">
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="border-b border-border bg-muted/25 text-left text-xs text-muted-foreground">
-                              <th className="p-2 font-medium">{t("wizard.priceLadderConcept")}</th>
-                              <th className="p-2 font-medium text-right whitespace-nowrap">{t("wizard.priceLadderThisStep")}</th>
-                              <th className="p-2 font-medium text-right whitespace-nowrap">{t("wizard.priceLadderRunningTotal")}</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {priceLadderRows.map((row) => {
-                              const taxMatch = /^tax-(\d+)$/.exec(row.id);
-                              const taxIdx = taxMatch ? Number(taxMatch[1]) : NaN;
-                              const taxLineRow =
-                                !Number.isNaN(taxIdx) && pricing && Array.isArray(pricing.taxLines)
-                                  ? (pricing.taxLines as Array<Record<string, unknown>>)[taxIdx]
-                                  : undefined;
-                              const nc = typeof snap.numContainers === "number" ? snap.numContainers : 1;
-                              const conceptPrimary =
-                                row.id === "partner" && typeof pricing?.partnerMarkupPct === "number" ? (
-                                  <span className="text-foreground/95">
-                                    {t("wizard.afterPartnerMarkupLabel")}{" "}
-                                    <span className="text-xs font-normal text-muted-foreground">
-                                      ({Number(pricing.partnerMarkupPct).toLocaleString(undefined, { maximumFractionDigits: 2 })}%)
-                                    </span>
-                                  </span>
-                                ) : row.customLabel != null && row.customLabel !== "" ? (
-                                  row.customLabel
-                                ) : row.labelKey != null ? (
-                                  t(row.labelKey)
-                                ) : (
-                                  "—"
-                                );
-                              return (
-                                <tr
-                                  key={row.id}
-                                  className={`border-b border-border/30 last:border-0 ${
-                                    row.isTotal ? "bg-muted/20 font-semibold text-foreground" : "text-muted-foreground"
-                                  }`}
-                                >
-                                  <td className="p-2 align-top">
-                                    <div className="space-y-0.5">
-                                      <span className="block">{conceptPrimary}</span>
-                                      {taxLineRow && (
-                                        <span className="block text-xs text-muted-foreground leading-snug">
-                                          {describeWizardTaxLine(taxLineRow, nc, t, fmt)}
-                                        </span>
-                                      )}
-                                    </div>
-                                  </td>
-                                  <td className="p-2 text-right tabular-nums align-top">
-                                    {row.delta == null ? "—" : fmt(row.delta)}
-                                  </td>
-                                  <td className="p-2 text-right tabular-nums text-foreground align-top">{fmt(row.subtotal)}</td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
                 </>
               )}
             </div>
@@ -1247,6 +1085,39 @@ export function QuoteWizard() {
                 {t("wizard.forContainers", { count: String(snap.numContainers ?? "—") })}:{" "}
                 <span className="font-medium text-foreground">{fmt(Number(preview.data?.freightTotalUsd ?? 0))}</span>
               </p>
+            )}
+            {freightProgress && (
+              <div className="rounded-lg border border-border/60 bg-muted/15 p-4 space-y-2 text-sm">
+                <p className="font-medium text-foreground">{t("wizard.priceBuildUp")}</p>
+                <div className="overflow-x-auto rounded-md border border-border/50">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border bg-muted/25 text-left text-xs text-muted-foreground">
+                        <th className="p-2 font-medium">{t("wizard.priceLadderConcept")}</th>
+                        <th className="p-2 font-medium text-right whitespace-nowrap">{t("wizard.priceLadderRunningTotal")}</th>
+                      </tr>
+                    </thead>
+                    <tbody className="text-muted-foreground">
+                      <tr className="border-b border-border/30">
+                        <td className="p-2">{t("quotes.exwFactoryCost")}</td>
+                        <td className="p-2 text-right tabular-nums text-foreground">{fmt(freightProgress.exw)}</td>
+                      </tr>
+                      <tr className="border-b border-border/30">
+                        <td className="p-2">{isSuperadmin ? t("quotes.basePriceVisionLatam") : t("wizard.partnerMarkup")}</td>
+                        <td className="p-2 text-right tabular-nums text-foreground">{fmt(freightProgress.marginCommissionUsd)}</td>
+                      </tr>
+                      <tr className="border-b border-border/30">
+                        <td className="p-2">{t("quotes.freight")}</td>
+                        <td className="p-2 text-right tabular-nums text-foreground">{fmt(freightProgress.freightUsd)}</td>
+                      </tr>
+                      <tr className="font-semibold text-foreground">
+                        <td className="p-2">{t("quotes.cif")}</td>
+                        <td className="p-2 text-right tabular-nums">{fmt(freightProgress.cifUsd)}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             )}
           </div>
         )}
@@ -1317,7 +1188,7 @@ export function QuoteWizard() {
                     </tbody>
                   </table>
                 </div>
-                {previewTaxRunningRows && previewTaxRunningRows.length > 0 && (
+                {pricing && Array.isArray(pricing.taxLines) && pricing.taxLines.length > 0 && (
                   <div className="rounded-lg border border-border/60 bg-muted/15 p-4 space-y-2 text-sm">
                     <p className="font-medium text-foreground">{t("wizard.taxBreakdown")}</p>
                     <div className="overflow-x-auto rounded-md border border-border/50">
@@ -1325,46 +1196,49 @@ export function QuoteWizard() {
                         <thead>
                           <tr className="border-b border-border bg-muted/25 text-left text-xs text-muted-foreground">
                             <th className="p-2 font-medium">{t("wizard.priceLadderConcept")}</th>
-                            <th className="p-2 font-medium text-right whitespace-nowrap">{t("wizard.priceLadderThisStep")}</th>
                             <th className="p-2 font-medium text-right whitespace-nowrap">{t("wizard.priceLadderRunningTotal")}</th>
                           </tr>
                         </thead>
                         <tbody className="text-muted-foreground">
-                          {previewTaxRunningRows.map((row) => {
-                            const taxLn =
-                              pricing && Array.isArray(pricing.taxLines)
-                                ? (pricing.taxLines as Array<Record<string, unknown>>)[row.id]
-                                : undefined;
+                          {(pricing.taxLines as Array<Record<string, unknown>>).map((taxLn, idx) => {
                             const ncPrev = typeof snap?.numContainers === "number" ? snap.numContainers : 1;
                             return (
-                              <tr key={row.id} className="border-b border-border/30 last:border-0">
+                              <tr key={idx} className="border-b border-border/30 last:border-0">
                                 <td className="p-2 align-top">
                                   <div className="space-y-0.5">
-                                    <span className="block">{row.label}</span>
-                                    {taxLn && (
-                                      <span className="block text-xs text-muted-foreground leading-snug">
-                                        {describeWizardTaxLine(taxLn, ncPrev, t, fmt)}
-                                      </span>
-                                    )}
+                                    <span className="block">{String(taxLn.label ?? "")}</span>
+                                    <span className="block text-xs text-muted-foreground leading-snug">
+                                      {describeWizardTaxLine(taxLn, ncPrev, t, fmt)}
+                                    </span>
                                   </div>
                                 </td>
-                                <td className="p-2 text-right tabular-nums text-foreground">{fmt(row.delta)}</td>
-                                <td className="p-2 text-right tabular-nums text-foreground">{fmt(row.subtotal)}</td>
+                                <td className="p-2 text-right tabular-nums text-foreground">{fmt(Number(taxLn.computedAmount ?? 0))}</td>
                               </tr>
                             );
                           })}
-                          {typeof pricing?.ruleTaxesUsd === "number" && previewTaxRunningRows.length > 0 && (
+                          {typeof pricing?.ruleTaxesUsd === "number" && (
                             <tr className="border-t border-border/40 font-medium text-foreground">
                               <td className="p-2">{t("quotes.totalTaxesLabel")}</td>
                               <td className="p-2 text-right tabular-nums">{fmt(pricing.ruleTaxesUsd as number)}</td>
-                              <td className="p-2 text-right tabular-nums">
-                                {fmt(previewTaxRunningRows[previewTaxRunningRows.length - 1]!.subtotal)}
-                              </td>
                             </tr>
                           )}
                         </tbody>
                       </table>
                     </div>
+                  </div>
+                )}
+                {landedTotalUsd != null && (
+                  <div className="rounded-lg border border-border/60 bg-muted/15 p-4 space-y-1 text-sm text-muted-foreground">
+                    <p>
+                      {t("wizard.ddpPerKitLabel")}:{" "}
+                      <span className="font-medium text-foreground">{finalPerKit != null ? fmt(finalPerKit) : "—"}</span>
+                    </p>
+                    <p>
+                      {t("wizard.ddpPerContainerLabel")}:{" "}
+                      <span className="font-medium text-foreground">
+                        {finalPerContainer != null ? fmt(finalPerContainer) : "—"}
+                      </span>
+                    </p>
                   </div>
                 )}
               </>
@@ -1420,9 +1294,9 @@ export function QuoteWizard() {
 
 function ImportLinesPeek({ importId }: { importId: string }) {
   const t = useT();
-  const [lines, setLines] = useState<Array<{ rowNum: number; rawPieceName: string; rawQty: number; catalogPieceId: string | null }>>(
-    []
-  );
+  const [lines, setLines] = useState<
+    Array<{ rowNum: number; rawPieceName: string; rawQty: number; rawHeightMm: number; catalogPieceId: string | null }>
+  >([]);
   useEffect(() => {
     void fetch(`/api/import/${importId}`)
       .then((r) => r.json())
@@ -1436,6 +1310,7 @@ function ImportLinesPeek({ importId }: { importId: string }) {
         <tr className="border-b border-border/30 text-left text-[11px] uppercase tracking-wide text-muted-foreground">
           <th className="py-1 pr-2">#</th>
           <th className="py-1">{t("wizard.typePiece")}</th>
+          <th className="py-1 text-right">{t("partner.inventory.measureMmColumn")}</th>
           <th className="py-1 text-right">{t("quotes.qty")} (u)</th>
           <th className="py-1 text-right">{t("wizard.status")}</th>
         </tr>
@@ -1445,6 +1320,7 @@ function ImportLinesPeek({ importId }: { importId: string }) {
           <tr key={l.rowNum} className="border-b border-border/30">
             <td className="py-1 pr-2">{l.rowNum}</td>
             <td className="py-1">{l.rawPieceName}</td>
+            <td className="py-1 text-right">{Number(l.rawHeightMm ?? 0).toLocaleString()} mm</td>
             <td className="py-1 text-right">{l.rawQty}</td>
             <td className="py-1 text-right">{l.catalogPieceId ? "✓" : "—"}</td>
           </tr>

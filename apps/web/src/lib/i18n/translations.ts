@@ -702,6 +702,7 @@ export const translations = {
     "wizard.containerLogistics": "Container Logistics",
     "wizard.totalKitsLabel": "Total Kits",
     "wizard.kitsPerContainer": "Kits per Container",
+    "wizard.containerOccupancyPct": "Container occupancy",
     "wizard.containersLabel": "Containers",
     "wizard.commissionVisionLatam": "Commission (Vision Latam)",
     "wizard.commissionPct": "Commission %",
@@ -754,6 +755,7 @@ export const translations = {
     "wizard.perContainerLabel": "Per container",
     "wizard.readyToSave": "Ready to save as draft. You can edit and send later.",
     "wizard.ddpPerKitLabel": "DDP per kit",
+    "wizard.ddpPerContainerLabel": "DDP per container",
 
     // Admin - Users
     "admin.users.title": "User Management",
@@ -3139,6 +3141,7 @@ export const translations = {
     "wizard.containerLogistics": "Logística de contenedores",
     "wizard.totalKitsLabel": "Total kits",
     "wizard.kitsPerContainer": "Kits por contenedor",
+    "wizard.containerOccupancyPct": "Ocupación de contenedores",
     "wizard.containersLabel": "Contenedores",
     "wizard.commissionVisionLatam": "Comisión (Vision Latam)",
     "wizard.commissionPct": "Comisión %",
@@ -3191,6 +3194,7 @@ export const translations = {
     "wizard.perContainerLabel": "Por contenedor",
     "wizard.readyToSave": "Listo para guardar como borrador. Puedes editar y enviar después.",
     "wizard.ddpPerKitLabel": "DDP por kit",
+    "wizard.ddpPerContainerLabel": "DDP por contenedor",
 
     // Admin - Users
     "admin.users.title": "Gestión de Usuarios",

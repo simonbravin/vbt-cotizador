@@ -237,7 +237,7 @@ export async function computeWizardQuoteArtifacts(
   const kits = Math.max(0, Math.floor(Number(data.totalKits) || 0));
   const numContainersMerged = kits > 0 ? Math.max(wallFcl.numContainers, volFcl.numContainers, 1) : 1;
   const kitsPerContainerMerged =
-    numContainersMerged > 0 && kits > 0 ? Math.ceil(kits / numContainersMerged) : 0;
+    numContainersMerged > 0 && kits > 0 ? kits / numContainersMerged : 0;
   const fclBase = { numContainers: numContainersMerged, kitsPerContainer: kitsPerContainerMerged };
 
   let freightTotalUsd = Math.max(0, Number(data.freightCostUsd) || 0);

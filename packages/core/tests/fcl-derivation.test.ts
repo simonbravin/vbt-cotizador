@@ -47,4 +47,18 @@ describe("deriveFclContainersFromWallM2", () => {
     expect(r.numContainers).toBe(3);
     expect(r.kitsPerContainer).toBeCloseTo(10 / 3);
   });
+
+  it("keeps fractional kits per container when containers exceed kits", () => {
+    const r = deriveFclContainersFromWallM2({
+      m2S80: 0,
+      m2S150: 1260,
+      m2S200: 0,
+      areaM2PerContainerS80: 320,
+      areaM2PerContainerS150: 420,
+      areaM2PerContainerS200: 380,
+      totalKits: 1,
+    });
+    expect(r.numContainers).toBe(3);
+    expect(r.kitsPerContainer).toBeCloseTo(1 / 3);
+  });
 });
