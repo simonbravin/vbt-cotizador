@@ -53,6 +53,46 @@ type WizardPriceLadderRow = {
   isTotal?: boolean;
 };
 
+function describeWizardTaxLine(
+  line: Record<string, unknown>,
+  numContainers: number,
+  t: (key: string, vars?: Record<string, string | number>) => string,
+  fmt: (n: number) => string
+): string {
+  const base = String(line.base ?? "");
+  const ratePct = typeof line.ratePct === "number" && Number.isFinite(line.ratePct) ? line.ratePct : undefined;
+  const fixedAmount = typeof line.fixedAmount === "number" && Number.isFinite(line.fixedAmount) ? line.fixedAmount : undefined;
+  const baseAmount = Number(line.baseAmount ?? 0);
+  const baseKey =
+    base === "CIF"
+      ? "wizard.taxBaseCIF"
+      : base === "FOB"
+        ? "wizard.taxBaseFOB"
+        : base === "BASE_IMPONIBLE"
+          ? "wizard.taxBaseImponible"
+          : base === "FIXED_PER_CONTAINER"
+            ? "wizard.taxBaseFixedContainer"
+            : base === "FIXED_TOTAL"
+              ? "wizard.taxBaseFixedTotal"
+              : "wizard.taxBaseOther";
+  const baseName = t(baseKey);
+
+  if (ratePct !== undefined) {
+    return t("wizard.taxDetailPercent", { pct: String(ratePct), baseName, baseAmt: fmt(baseAmount) });
+  }
+  if (base === "FIXED_PER_CONTAINER" && fixedAmount !== undefined) {
+    return t("wizard.taxDetailFixedPerContainer", {
+      perContainer: fmt(fixedAmount),
+      n: numContainers,
+      baseName,
+    });
+  }
+  if (fixedAmount !== undefined) {
+    return t("wizard.taxDetailFixedTotal", { amt: fmt(fixedAmount), baseName });
+  }
+  return t("wizard.taxDetailBaseOnly", { baseName, baseAmt: fmt(baseAmount) });
+}
+
 function buildWizardPriceLadder(pricing: Record<string, unknown> | undefined): WizardPriceLadderRow[] | null {
   if (!pricing) return null;
   const readNum = (k: string): number | null => {
@@ -72,6 +112,7 @@ function buildWizardPriceLadder(pricing: Record<string, unknown> | undefined): W
   const tech = readNum("technicalServiceUsd") ?? 0;
   const landed = readNum("suggestedLandedUsd") ?? 0;
   const taxLines = Array.isArray(pricing.taxLines) ? (pricing.taxLines as Array<Record<string, unknown>>) : [];
+  const vlPctOnStack = readNum("visionLatamMarkupPct") ?? 0;
 
   const rows: WizardPriceLadderRow[] = [];
   let running = factory;
@@ -83,7 +124,7 @@ function buildWizardPriceLadder(pricing: Record<string, unknown> | undefined): W
     subtotal: running,
   });
 
-  if (afterVL != null) {
+  if (afterVL != null && Math.abs(vlPctOnStack) > 0.0005) {
     const d = afterVL - running;
     running = afterVL;
     rows.push({ id: "vl", labelKey: "quotes.basePriceVisionLatam", delta: d, subtotal: running });
@@ -1046,39 +1087,17 @@ export function QuoteWizard() {
                       })}
                     </p>
                   )}
+                {pricing && typeof pricing.basePriceForPartnerUsd === "number" && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {t("wizard.partnerMarkupAmountHint", {
+                      amount: fmt(
+                        (pricing.basePriceForPartnerUsd as number) * (Math.max(0, state.partnerMarkupPct) / 100)
+                      ),
+                    })}
+                  </p>
+                )}
               </div>
             )}
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label className="text-xs font-semibold uppercase text-muted-foreground">{t("wizard.fixedPerOrder")}</label>
-                <div className="mt-1 flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">$</span>
-                  <input
-                    type="number"
-                    min={0}
-                    step={1}
-                    value={state.commissionFixed}
-                    onChange={(e) => update({ commissionFixed: parseFloat(e.target.value) || 0 })}
-                    className="w-full max-w-xs rounded-lg border border-input bg-background px-3 py-2 text-sm"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="text-xs font-semibold uppercase text-muted-foreground">{t("wizard.fixedPerKit")}</label>
-                <div className="mt-1 flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">$</span>
-                  <input
-                    type="number"
-                    min={0}
-                    step={1}
-                    value={state.commissionFixedPerKit}
-                    onChange={(e) => update({ commissionFixedPerKit: parseFloat(e.target.value) || 0 })}
-                    className="w-full max-w-xs rounded-lg border border-input bg-background px-3 py-2 text-sm"
-                  />
-                </div>
-              </div>
-            </div>
 
             <div className="space-y-2">
               <label className="block text-sm font-medium text-foreground">{t("wizard.totalKitsLabel")}</label>
@@ -1127,26 +1146,53 @@ export function QuoteWizard() {
                             </tr>
                           </thead>
                           <tbody>
-                            {priceLadderRows.map((row) => (
-                              <tr
-                                key={row.id}
-                                className={`border-b border-border/30 last:border-0 ${
-                                  row.isTotal ? "bg-muted/20 font-semibold text-foreground" : "text-muted-foreground"
-                                }`}
-                              >
-                                <td className="p-2 align-top">
-                                  {row.customLabel != null && row.customLabel !== ""
-                                    ? row.customLabel
-                                    : row.labelKey != null
-                                      ? t(row.labelKey as never)
-                                      : "—"}
-                                </td>
-                                <td className="p-2 text-right tabular-nums align-top">
-                                  {row.delta == null ? "—" : fmt(row.delta)}
-                                </td>
-                                <td className="p-2 text-right tabular-nums text-foreground align-top">{fmt(row.subtotal)}</td>
-                              </tr>
-                            ))}
+                            {priceLadderRows.map((row) => {
+                              const taxMatch = /^tax-(\d+)$/.exec(row.id);
+                              const taxIdx = taxMatch ? Number(taxMatch[1]) : NaN;
+                              const taxLineRow =
+                                !Number.isNaN(taxIdx) && pricing && Array.isArray(pricing.taxLines)
+                                  ? (pricing.taxLines as Array<Record<string, unknown>>)[taxIdx]
+                                  : undefined;
+                              const nc = typeof snap.numContainers === "number" ? snap.numContainers : 1;
+                              const conceptPrimary =
+                                row.id === "partner" && typeof pricing?.partnerMarkupPct === "number" ? (
+                                  <span className="text-foreground/95">
+                                    {t("wizard.afterPartnerMarkupLabel")}{" "}
+                                    <span className="text-xs font-normal text-muted-foreground">
+                                      ({Number(pricing.partnerMarkupPct).toLocaleString(undefined, { maximumFractionDigits: 2 })}%)
+                                    </span>
+                                  </span>
+                                ) : row.customLabel != null && row.customLabel !== "" ? (
+                                  row.customLabel
+                                ) : row.labelKey != null ? (
+                                  t(row.labelKey)
+                                ) : (
+                                  "—"
+                                );
+                              return (
+                                <tr
+                                  key={row.id}
+                                  className={`border-b border-border/30 last:border-0 ${
+                                    row.isTotal ? "bg-muted/20 font-semibold text-foreground" : "text-muted-foreground"
+                                  }`}
+                                >
+                                  <td className="p-2 align-top">
+                                    <div className="space-y-0.5">
+                                      <span className="block">{conceptPrimary}</span>
+                                      {taxLineRow && (
+                                        <span className="block text-xs text-muted-foreground leading-snug">
+                                          {describeWizardTaxLine(taxLineRow, nc, t, fmt)}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td className="p-2 text-right tabular-nums align-top">
+                                    {row.delta == null ? "—" : fmt(row.delta)}
+                                  </td>
+                                  <td className="p-2 text-right tabular-nums text-foreground align-top">{fmt(row.subtotal)}</td>
+                                </tr>
+                              );
+                            })}
                           </tbody>
                         </table>
                       </div>
@@ -1286,13 +1332,29 @@ export function QuoteWizard() {
                           </tr>
                         </thead>
                         <tbody className="text-muted-foreground">
-                          {previewTaxRunningRows.map((row) => (
-                            <tr key={row.id} className="border-b border-border/30 last:border-0">
-                              <td className="p-2">{row.label}</td>
-                              <td className="p-2 text-right tabular-nums text-foreground">{fmt(row.delta)}</td>
-                              <td className="p-2 text-right tabular-nums text-foreground">{fmt(row.subtotal)}</td>
-                            </tr>
-                          ))}
+                          {previewTaxRunningRows.map((row) => {
+                            const taxLn =
+                              pricing && Array.isArray(pricing.taxLines)
+                                ? (pricing.taxLines as Array<Record<string, unknown>>)[row.id]
+                                : undefined;
+                            const ncPrev = typeof snap?.numContainers === "number" ? snap.numContainers : 1;
+                            return (
+                              <tr key={row.id} className="border-b border-border/30 last:border-0">
+                                <td className="p-2 align-top">
+                                  <div className="space-y-0.5">
+                                    <span className="block">{row.label}</span>
+                                    {taxLn && (
+                                      <span className="block text-xs text-muted-foreground leading-snug">
+                                        {describeWizardTaxLine(taxLn, ncPrev, t, fmt)}
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="p-2 text-right tabular-nums text-foreground">{fmt(row.delta)}</td>
+                                <td className="p-2 text-right tabular-nums text-foreground">{fmt(row.subtotal)}</td>
+                              </tr>
+                            );
+                          })}
                           {typeof pricing?.ruleTaxesUsd === "number" && previewTaxRunningRows.length > 0 && (
                             <tr className="border-t border-border/40 font-medium text-foreground">
                               <td className="p-2">{t("quotes.totalTaxesLabel")}</td>

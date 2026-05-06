@@ -41,6 +41,7 @@ export function wizardSnapshotLinesToItems(
     pieceId?: string | null;
     qty: number;
     lineTotal: number;
+    lineTotalWithMarkup: number;
     isIgnored: boolean;
   }>
 ): CreateQuoteItemInput[] {
@@ -49,9 +50,9 @@ export function wizardSnapshotLinesToItems(
   for (const line of lines) {
     if (line.isIgnored) continue;
     const qty = Math.max(0, Number(line.qty) || 0);
-    const lineTotal = Math.max(0, Number(line.lineTotal) || 0);
-    if (qty <= 0 || lineTotal <= 0) continue;
-    const unitCost = lineTotal / qty;
+    const lineGross = Math.max(0, Number(line.lineTotalWithMarkup ?? line.lineTotal) || 0);
+    if (qty <= 0 || lineGross <= 0) continue;
+    const unitCost = lineGross / qty;
     out.push({
       itemType: "product",
       sku: null,
@@ -61,7 +62,7 @@ export function wizardSnapshotLinesToItems(
       unitCost,
       markupPct: 0,
       unitPrice: unitCost,
-      totalPrice: lineTotal,
+      totalPrice: lineGross,
       sortOrder: i++,
       catalogPieceId: line.pieceId ?? null,
     });
@@ -126,14 +127,22 @@ export async function computeWizardQuoteArtifacts(
     projectCountryCode: taxCountryCode,
   });
 
+  const resolved = await resolvePartnerPricingConfig(prisma, {
+    organizationId,
+    projectCountryCode: taxCountryCode,
+  });
+
   const raw = await getRawRatesFromConfig(prisma);
+  /** Partners: bake Vision Latam % into catalog / M² factory so list rates match quote-defaults; stack uses VL 0. Superadmin: raw catalog × rates + editable VL %. */
+  const partnerFactoryCostMult = isPlatformSuperadmin ? 1 : 1 + resolved.effectiveVisionLatamMarkupPct / 100;
+
   const orgDefaults = {
     baseUom: data.baseUom,
     minRunFt: raw.minRunFt,
-    rateS80: raw.rateS80,
-    rateS150: raw.rateS150,
-    rateS200: raw.rateS200,
-    rateGlobal: raw.rateGlobal,
+    rateS80: raw.rateS80 * partnerFactoryCostMult,
+    rateS150: raw.rateS150 * partnerFactoryCostMult,
+    rateS200: raw.rateS200 * partnerFactoryCostMult,
+    rateGlobal: raw.rateGlobal * partnerFactoryCostMult,
   };
 
   let lines: QuoteInputLine[] | undefined;
@@ -165,7 +174,7 @@ export async function computeWizardQuoteArtifacts(
           },
         })
       : [];
-    pieceMeta = catalogPiecesToPieceMetaMap(pieces);
+    pieceMeta = catalogPiecesToPieceMetaMap(pieces, { costMultiplier: partnerFactoryCostMult });
     lines = imp.lines
       .filter((l) => !l.isIgnored && l.catalogPieceId)
       .map((l) => ({
@@ -259,11 +268,6 @@ export async function computeWizardQuoteArtifacts(
     throw new Error("WIZARD_CSV_NO_LINES");
   }
 
-  const resolved = await resolvePartnerPricingConfig(prisma, {
-    organizationId,
-    projectCountryCode: taxCountryCode,
-  });
-
   const totalKitsSafe = Math.max(0, Math.floor(Number(data.totalKits) || 0));
   const technicalServiceCost =
     (Number(data.commissionFixed) || 0) + (Number(data.commissionFixedPerKit) || 0) * totalKitsSafe;
@@ -276,7 +280,7 @@ export async function computeWizardQuoteArtifacts(
       logisticsCost: freightTotalUsd,
       importCost: undefined,
       localTransportCost: undefined,
-      technicalServiceCost: technicalServiceCost > 0 ? technicalServiceCost : undefined,
+      technicalServiceCost,
       ...(data.partnerMarkupPct !== undefined && data.partnerMarkupPct !== null
         ? { partnerMarkupPct: data.partnerMarkupPct }
         : {}),
@@ -285,10 +289,12 @@ export async function computeWizardQuoteArtifacts(
   });
 
   const hasLines = items.length > 0;
+  const visionLatamMarkupPctForCanon = isPlatformSuperadmin ? pricingInputs.visionLatamMarkupPct : 0;
+
   const canon = canonicalizeSaaSQuotePayload({
     items: hasLines ? items : [],
     headerFactoryExwUsd: hasLines ? undefined : snapshot.factoryCostUsd,
-    visionLatamMarkupPct: pricingInputs.visionLatamMarkupPct,
+    visionLatamMarkupPct: visionLatamMarkupPctForCanon,
     partnerMarkupPct: pricingInputs.partnerMarkupPct,
     logisticsCostUsd: pricingInputs.logisticsCostUsd,
     localTransportCostUsd: pricingInputs.localTransportCostUsd,

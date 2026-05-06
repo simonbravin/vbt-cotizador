@@ -74,8 +74,20 @@ export function matchCatalogPieceRow(
   return matchPiece(row, lookups, codeIndex);
 }
 
+export type CatalogPieceMetaOptions = {
+  /**
+   * Multiplier applied to catalog USD/m² (and derived USD/m) before building `PieceMeta.cost`.
+   * Use `1 + visionLatamCommissionPct/100` when partner-facing factory cost must match effective list rates.
+   */
+  costMultiplier?: number;
+};
+
 /** Maps catalog piece id -> `PieceMeta` for `buildQuoteSnapshot` CSV lines. */
-export function catalogPiecesToPieceMetaMap(pieces: CatalogPieceRow[]): Record<string, PieceMeta> {
+export function catalogPiecesToPieceMetaMap(
+  pieces: CatalogPieceRow[],
+  options?: CatalogPieceMetaOptions
+): Record<string, PieceMeta> {
+  const mult = typeof options?.costMultiplier === "number" && Number.isFinite(options.costMultiplier) && options.costMultiplier > 0 ? options.costMultiplier : 1;
   const out: Record<string, PieceMeta> = {};
   for (const p of pieces) {
     const usefulWidthM = (p.usefulWidthMm ?? 0) / 1000;
@@ -83,7 +95,7 @@ export function catalogPiecesToPieceMetaMap(pieces: CatalogPieceRow[]): Record<s
     if (!lbsPerMCored && p.kgPerMCored != null && p.kgPerMCored > 0) {
       lbsPerMCored = p.kgPerMCored / LBS_TO_KG;
     }
-    const pricePerM2 = p.pricePerM2Cored ?? 0;
+    const pricePerM2 = (p.pricePerM2Cored ?? 0) * mult;
     const pricePerMCored = usefulWidthM > 0 && pricePerM2 > 0 ? pricePerM2 * usefulWidthM : 0;
     const sc = systemToCode(p.systemCode);
     out[p.id] = {
