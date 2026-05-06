@@ -1124,12 +1124,10 @@ export function QuoteWizard() {
                     </li>
                     <li>
                       {t("wizard.kitsPerContainer")}:{" "}
-                      <span className="text-foreground font-medium">{String(snap.kitsPerContainer)}</span>
-                    </li>
-                    <li>
-                      {t("wizard.totalPanelVolume")}:{" "}
                       <span className="text-foreground font-medium">
-                        {typeof snap.totalVolumeM3 === "number" ? snap.totalVolumeM3.toFixed(2) : "—"} m³
+                        {typeof snap.kitsPerContainer === "number"
+                          ? Number(snap.kitsPerContainer).toLocaleString(undefined, { maximumFractionDigits: 2 })
+                          : "—"}
                       </span>
                     </li>
                   </ul>
@@ -1421,6 +1419,7 @@ export function QuoteWizard() {
 }
 
 function ImportLinesPeek({ importId }: { importId: string }) {
+  const t = useT();
   const [lines, setLines] = useState<Array<{ rowNum: number; rawPieceName: string; rawQty: number; catalogPieceId: string | null }>>(
     []
   );
@@ -1433,6 +1432,14 @@ function ImportLinesPeek({ importId }: { importId: string }) {
   if (!lines.length) return <p className="py-2">…</p>;
   return (
     <table className="w-full mt-2">
+      <thead>
+        <tr className="border-b border-border/30 text-left text-[11px] uppercase tracking-wide text-muted-foreground">
+          <th className="py-1 pr-2">#</th>
+          <th className="py-1">{t("wizard.typePiece")}</th>
+          <th className="py-1 text-right">{t("quotes.qty")} (u)</th>
+          <th className="py-1 text-right">{t("wizard.status")}</th>
+        </tr>
+      </thead>
       <tbody>
         {lines.slice(0, 80).map((l) => (
           <tr key={l.rowNum} className="border-b border-border/30">

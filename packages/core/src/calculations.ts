@@ -349,7 +349,7 @@ export function deriveFclContainersAndMetrics(input: FclDerivationInput): FclDer
     numContainers = 1;
   }
 
-  const kitsPerContainer = numContainers > 0 ? Math.ceil(kits / numContainers) : 0;
+  const kitsPerContainer = numContainers > 0 ? kits / numContainers : 0;
   return { numContainers, kitsPerContainer };
 }
 
@@ -381,6 +381,6 @@ export function deriveFclContainersFromWallM2(input: FclWallM2Input): FclDerivat
   if (kits > 0) {
     numContainers = Math.max(1, fromWall);
   }
-  const kitsPerContainer = numContainers > 0 && kits > 0 ? Math.ceil(kits / numContainers) : 0;
+  const kitsPerContainer = numContainers > 0 && kits > 0 ? kits / numContainers : 0;
   return { numContainers, kitsPerContainer };
 }

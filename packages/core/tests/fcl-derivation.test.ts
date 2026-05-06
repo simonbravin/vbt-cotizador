@@ -45,6 +45,6 @@ describe("deriveFclContainersFromWallM2", () => {
       totalKits: 10,
     });
     expect(r.numContainers).toBe(3);
-    expect(r.kitsPerContainer).toBe(4);
+    expect(r.kitsPerContainer).toBeCloseTo(10 / 3);
   });
 });

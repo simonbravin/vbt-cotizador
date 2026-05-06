@@ -175,6 +175,20 @@ export async function computeWizardQuoteArtifacts(
         })
       : [];
     pieceMeta = catalogPiecesToPieceMetaMap(pieces, { costMultiplier: partnerFactoryCostMult });
+    // Wizard pricing policy: CSV costs follow configured system USD/m² rates.
+    for (const meta of Object.values(pieceMeta)) {
+      const ratePerM2 =
+        meta.systemCode === "S80"
+          ? orgDefaults.rateS80
+          : meta.systemCode === "S150"
+            ? orgDefaults.rateS150
+            : meta.systemCode === "S200"
+              ? orgDefaults.rateS200
+              : 0;
+      if (ratePerM2 > 0 && (meta.usefulWidthM ?? 0) > 0) {
+        meta.cost = { pricePerMCored: ratePerM2 * (meta.usefulWidthM ?? 0) };
+      }
+    }
     lines = imp.lines
       .filter((l) => !l.isIgnored && l.catalogPieceId)
       .map((l) => ({
